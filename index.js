@@ -31,6 +31,7 @@ var logLevel = 1;
 var path = require('path');
 
 var applicationConfig = {};
+var applicationSource = {};
 var deferred = {};
 var logger = null;
 function establishApplication (path, controllerPath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig) {
@@ -66,7 +67,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     // Retrieve configuration information
     var config = applicationConfig[path];
     if (!config)
-        throw "Semotus: establishServerSession called with a path of " + path + " which was not registered";
+        throw  new Error("Semotus: establishServerSession called with a path of " + path + " which was not registered");
     var initObjectTemplate = config.initObjectTemplate;
     var controllerPath = config.controllerPath;
     var objectCacheExpiration = config.objectCacheExpiration;
@@ -82,6 +83,21 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
         var match = config.appConfig.createControllerFor;
         if (!referer.match(match))
         {
+            // Create the templates to get the source but don't instantiate a controller yet
+            var requires = {};
+            controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
+            var prefix = RegExp.$1;
+            var prop = RegExp.$2
+
+            // Create a new unique object template utility
+            var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+
+            // Get the controller and all of it's dependent requires which will populate a
+            // key value pairs where the key is the require prefix and and the value is the
+            // key value pairs of each exported template
+            applicationSource[path] = "";
+            var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config, path);
+
             return Q.fcall(function ()
             {
                 return {
@@ -90,6 +106,9 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                             url: "semotus?path=" + path,
                             message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
                         })
+                    },
+                    getModelSource: function () {
+                        return applicationSource[path];
                     },
                     getServerConfigString: function () {
                         return JSON.stringify(config.appConfig);
@@ -144,6 +163,9 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
         getServerConfigString: function () {
             return JSON.stringify(config.appConfig);
         },
+        getModelSource: function () {
+            return applicationSource[path];
+        },
         save: function (path, session) {
             saveSession(path, session, controller);
         },
@@ -169,7 +191,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
 }
 var controllers = {};
 
-function getTemplates(objectTemplate, prefix, templates, config) {
+function getTemplates(objectTemplate, prefix, templates, config, path) {
 
     var requires = {};
     var ref = {};
@@ -183,17 +205,23 @@ function getTemplates(objectTemplate, prefix, templates, config) {
         if (requires[prop])
             return requires[prop];
         if (ref[prop])
-            throw "circular reference on " + file;
+            throw  new Error("circular reference on " + file);
         ref[prop] = true;
         var require_results = require(toRoot + prefix + file);
         var initializer = (require_results[prop]);
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
-            throw prop + " not exported in " + prefix + file;
+            throw  new Error(prop + " not exported in " + prefix + file);
         var templates = initializer(objectTemplate, getTemplate);
         requires[prop] = templates;
         if (mixins_initializer)
             mixins.push(mixins_initializer);
+
+        if (typeof(path) != 'undefined') {
+            applicationSource[path] += "module.exports." + prop + " = " + require_results[prop] + "\n\n";
+            if (mixins_initializer)
+                applicationSource[path] += "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n";
+        }
         return templates;
     }
 
@@ -211,9 +239,12 @@ function getTemplates(objectTemplate, prefix, templates, config) {
             else if (typeof(require(config.appConfig.modules[mixin].require)[mixin + "_mixins"]) != "function")
                 console.log(config.appConfig.modules[mixin].require + " must export a " + mixin +
                     "_mixins property which is an initialization function");
-            else
-                require(config.appConfig.modules[mixin].require)
-                    [mixin + "_mixins"](objectTemplate, requires, config.appConfig.modules[mixin], config.appConfig.nconf);
+            else {
+                var results = require(config.appConfig.modules[mixin].require);
+                results[mixin + "_mixins"](objectTemplate, requires, config.appConfig.modules[mixin], config.appConfig.nconf);
+                if (typeof(path) != 'undefined')
+                    applicationSource[path] += "module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n";
+            }
 
     objectTemplate.performInjections();
     return requires;
@@ -296,12 +327,14 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     // Get the controller and all of it's dependent requires which will populate a
     // key value pairs where the key is the require prefix and and the value is the
     // key value pairs of each exported template
+    applicationSource[path] = "";
+    var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config, applicationSource[path]);
 
     var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config);
 
     var controllerTemplate = requires[prop].Controller;
     if (!controllerTemplate)
-        throw "Missing controller template in " + prefix + prop + ".js";
+        throw  new Error("Missing controller template in " + prefix + prop + ".js");
     controllerTemplate.objectTemplate = objectTemplate;
 
     // Setup unique object template to manage a session
@@ -315,8 +348,8 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         var controller = controllerId ?
             objectTemplate._createEmptyObject(controllerTemplate, controllerId) :
             new controllerTemplate();
-            if (controllerId)
-                objectTemplate.syncSession();
+        if (controllerId)
+            objectTemplate.syncSession();
         log(1, sessionId, "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
@@ -376,7 +409,7 @@ function processFile(req, resp, next)
                     console.log(file + ' deleted');
                 }
             })}, 60000);
-        resp.end('<html><body><img src="img/add.png" onload="top.semotus.prepareFileUpload(\'package\');top.semotus.uploadFunction.call()" /></body></html>');
+        resp.end('<html><body><img src="img/pixel.gif" onload="top.amorphic.prepareFileUpload(\'package\');top.amorphic.uploadFunction.call()" /></body></html>');
         req.session.file = file;
     });
 }
@@ -461,10 +494,10 @@ function processMessage(req, resp)
             resp.end(error.toString());
         }
     }).fail(function(error){
-            log(0, req.sessionId, error);
-            resp.writeHead(500, {"Content-Type": "text/plain"});
-            resp.end(error.toString());
-        }).done();
+        log(0, req.sessionId, error);
+        resp.writeHead(500, {"Content-Type": "text/plain"});
+        resp.end(error.toString());
+    }).done();
 }
 
 function route(req, resp, next) {
@@ -530,7 +563,7 @@ function listen(dirname, memoryStore)
     memoryStore = memoryStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
         {store: memoryStore, secret: nconf.get('sessionSecret'),
-         cookie: {maxAge: sessionExpiration}, rolling: true}
+            cookie: {maxAge: sessionExpiration}, rolling: true}
     );
 
     // Initialize applications
@@ -549,23 +582,23 @@ function listen(dirname, memoryStore)
         var dbPath = nconf.get(app + '_dbPath') || config.dbPath;
         if (dbName && dbPath) {
             promises.push(Q.ninvoke(MongoClient, "connect", dbPath + dbName).then (function (db)
-            {
-                console.log("DB connection established to " + dbName);
-                function injectObjectTemplate (objectTemplate) {
-                    objectTemplate.setDB(db);
-                    objectTemplate.setSchema(schema);
-                    objectTemplate.config = config;
-                    objectTemplate.logLevel = nconf.get('logLevel') || 1;
-                }
+                    {
+                        console.log("DB connection established to " + dbName);
+                        function injectObjectTemplate (objectTemplate) {
+                            objectTemplate.setDB(db);
+                            objectTemplate.setSchema(schema);
+                            objectTemplate.config = config;
+                            objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                        }
 
-                amorphic.establishApplication(app, path + '/public/js/controller.js', injectObjectTemplate,
-                    sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
+                        amorphic.establishApplication(app, path + '/public/js/controller.js', injectObjectTemplate,
+                            sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
 
-                return Q(true);
+                        return Q(true);
 
-            },
-            function(e) {console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)})
-        )} else {
+                    },
+                    function(e) {console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)})
+            )} else {
 
             // No database case
 
@@ -610,6 +643,7 @@ function listen(dirname, memoryStore)
                         response.setHeader("Content-Type", "application/javascript");
                         response.setHeader("Cache-Control", "public, max-age=0");
                         response.end(
+                                session.getModelSource() +
                                 "amorphic.setConfig(" + session.getServerConfigString() +");" +
                                 "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
                         );

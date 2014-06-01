@@ -37,7 +37,7 @@ time the amorphic-ticket-demo is the best resource
 
 ## License
 
-superType is licensed under the MIT license
+Amorphic is licensed under the MIT license
 
 
 

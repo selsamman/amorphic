@@ -35,7 +35,7 @@ Person.inject(function () {
 
 var securityPrincipal;
 
-ObjectTemplate.globalInject(function (obj) {
+PersistObjectTemplate.globalInject(function (obj) {
     obj.getSecurityContext = function () {
         return {principal: securityPrincipal};
     }

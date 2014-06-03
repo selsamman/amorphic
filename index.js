@@ -328,9 +328,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     // key value pairs where the key is the require prefix and and the value is the
     // key value pairs of each exported template
     applicationSource[path] = "";
-    var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config, applicationSource[path]);
-
-    var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config);
+    var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config, path);
 
     var controllerTemplate = requires[prop].Controller;
     if (!controllerTemplate)
@@ -625,7 +623,7 @@ function listen(dirname, memoryStore)
         }
 
         app
-            .use('/modules/', connect.static(__dirname + "/node_modules"))
+            .use('/modules/', connect.static(dirname + "/node_modules"))
             .use('/bindster/', connect.static(__dirname + "/node_modules/amorphic-bindster"))
             .use('/amorphic/', connect.static(__dirname))
             .use('/supertype/', connect.static(__dirname + "/node_modules/supertype"))

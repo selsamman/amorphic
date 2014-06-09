@@ -1,3 +1,5 @@
+## 1.1.31
+* Include model files as document.writes of the script files since source mapping would otherwise not be available
 ## 1.1.30
 * Tests were not running because securityContext injected in supertype rather than peristor
 ## 1.1.28

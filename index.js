@@ -34,6 +34,7 @@ var applicationConfig = {};
 var applicationSource = {};
 var deferred = {};
 var logger = null;
+var sourceMode = 'debug'
 function establishApplication (path, controllerPath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig) {
     applicationConfig[path] = {
         controllerPath: controllerPath,
@@ -218,9 +219,13 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
             mixins.push(mixins_initializer);
 
         if (typeof(path) != 'undefined') {
-            applicationSource[path] += "module.exports." + prop + " = " + require_results[prop] + "\n\n";
-            if (mixins_initializer)
-                applicationSource[path] += "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n";
+            if (sourceMode == 'debug') {
+                applicationSource[path] += "document.write(\"<script src='" + path + "/js/" + file + "'></script>\");\n\n";
+            } else {
+                applicationSource[path] += "module.exports." + prop + " = " + require_results[prop] + "\n\n";
+                if (mixins_initializer)
+                    applicationSource[path] += "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n";
+            }
         }
         return templates;
     }
@@ -240,10 +245,15 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
                 console.log(config.appConfig.modules[mixin].require + " must export a " + mixin +
                     "_mixins property which is an initialization function");
             else {
-                var results = require(config.appConfig.modules[mixin].require);
+                var requireName = config.appConfig.modules[mixin].require;
+                var results = require(requireName);
                 results[mixin + "_mixins"](objectTemplate, requires, config.appConfig.modules[mixin], config.appConfig.nconf);
                 if (typeof(path) != 'undefined')
-                    applicationSource[path] += "module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n";
+                    if (sourceMode == 'debug') {
+                        applicationSource[path] += "document.write(\"<script src='modules/" + requireName + "/index.js'></script>\");\n\n";
+                    } else {
+                        applicationSource[path] += "module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n";
+                    }
             }
 
     objectTemplate.performInjections();
@@ -569,15 +579,15 @@ function listen(dirname, memoryStore)
     var appList = nconf.get('applications');
     var mainApp = nconf.get('application');
     var promises = [];
-    for (var app in appList)
+    for (var appName in appList)
     {
-        var path = appList[app];
+        var path = appList[appName];
         var config = JSON.parse(fs.readFileSync(path + "/config.json").toString());
         config.nconf = nconf; // global config
         var schema = JSON.parse(fs.readFileSync(path + "/schema.json").toString());
 
-        var dbName = nconf.get(app + '_dbName') || config.dbName;
-        var dbPath = nconf.get(app + '_dbPath') || config.dbPath;
+        var dbName = nconf.get(appName + '_dbName') || config.dbName;
+        var dbPath = nconf.get(appName + '_dbPath') || config.dbPath;
         if (dbName && dbPath) {
             promises.push(Q.ninvoke(MongoClient, "connect", dbPath + dbName).then (function (db)
                     {
@@ -589,7 +599,7 @@ function listen(dirname, memoryStore)
                             objectTemplate.logLevel = nconf.get('logLevel') || 1;
                         }
 
-                        amorphic.establishApplication(app, path + '/public/js/controller.js', injectObjectTemplate,
+                        amorphic.establishApplication(appName, path + '/public/js/controller.js', injectObjectTemplate,
                             sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
 
                         return Q(true);
@@ -604,7 +614,7 @@ function listen(dirname, memoryStore)
                 objectTemplate.config = config;
                 objectTemplate.logLevel = nconf.get('logLevel') || 1;
             }
-            amorphic.establishApplication(app, path + '/public/js/controller.js', injectObjectTemplate,
+            amorphic.establishApplication(appName, path + '/public/js/controller.js', injectObjectTemplate,
                 sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
 
             promises.push(Q(true));
@@ -616,9 +626,10 @@ function listen(dirname, memoryStore)
         var app = connect();
 
         for (var appName in appList) {
-            var url = appName == mainApp ? "/" : "/" + appName;
             var path = dirname + "/" + appList[appName] + "/public";
-            app.use(url, connect.static(path,{index: "index.html"}));
+            app.use("/" + appName, connect.static(path,{index: "index.html"}));
+            if (appName == mainApp)
+                app.use("/", connect.static(path,{index: "index.html"}));
             console.log("Url " + url + " connected to " + path);
         }
 

@@ -1,4 +1,4 @@
-## 1.1.34
+## 1.1.35
 * You can now place common template files in /app/common/js
 ## 1.1.33
 * Include new dependencies

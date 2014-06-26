@@ -199,8 +199,7 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
     var mixins = [];
     var toRoot = __dirname.match(/node_modules/) ? "../../" : "./";
 
-    function getTemplate(file)
-    {
+    function getTemplate(file) {
         file.match(/([0-9A-Za-z_]*)\.js/);
         var prop = RegExp.$1;
         if (requires[prop])
@@ -208,7 +207,13 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
         if (ref[prop])
             throw  new Error("circular reference on " + file);
         ref[prop] = true;
-        var require_results = require(toRoot + prefix + file);
+        if (fs.existsSync(__dirname + "/" + toRoot + prefix + file)) {
+            var clientPath = path;
+            var require_results = require(toRoot + prefix + file);
+        } else {
+            var clientPath = '/common';
+            var require_results = require(toRoot + 'apps/common/js/' + file);
+        }
         var initializer = (require_results[prop]);
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
@@ -220,7 +225,7 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
 
         if (typeof(path) != 'undefined') {
             if (sourceMode == 'debug') {
-                applicationSource[path] += "document.write(\"<script src='" + path + "/js/" + file + "'></script>\");\n\n";
+                applicationSource[path] += "document.write(\"<script src='" + clientPath + "/js/" + file + "'></script>\");\n\n";
             } else {
                 applicationSource[path] += "module.exports." + prop + " = " + require_results[prop] + "\n\n";
                 if (mixins_initializer)
@@ -231,7 +236,7 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
     }
 
     for (var ix = 0; ix < templates.length; ++ix)
-        getTemplate(templates[ix]);;
+        getTemplate(templates[ix]);
 
     for (var ix = 0;ix < mixins.length;++ix)
         if (mixins[ix])
@@ -637,6 +642,7 @@ function listen(dirname, memoryStore)
             .use('/modules/', connect.static(dirname + "/node_modules"))
             .use('/bindster/', connect.static(__dirname + "/node_modules/amorphic-bindster"))
             .use('/amorphic/', connect.static(__dirname))
+            .use('/common/', connect.static(__dirname + "/apps/common"))
             .use('/supertype/', connect.static(__dirname + "/node_modules/supertype"))
             .use('/semotus/', connect.static(__dirname + "/node_modules/semotus"))
             .use(connect.cookieParser())

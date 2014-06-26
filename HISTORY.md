@@ -1,3 +1,7 @@
+## 1.1.34
+* You can now place common template files in /app/common/js
+## 1.1.33
+* Include new dependencies
 ## 1.1.31
 * Include model files as document.writes of the script files since source mapping would otherwise not be available
 ## 1.1.30

@@ -211,7 +211,7 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
             var clientPath = path;
             var require_results = require(toRoot + prefix + file);
         } else {
-            var clientPath = '/common';
+            var clientPath = 'common';
             var require_results = require(toRoot + 'apps/common/js/' + file);
         }
         var initializer = (require_results[prop]);
@@ -225,7 +225,7 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
 
         if (typeof(path) != 'undefined') {
             if (sourceMode == 'debug') {
-                applicationSource[path] += "document.write(\"<script src='" + clientPath + "/js/" + file + "'></script>\");\n\n";
+                applicationSource[path] += "document.write(\"<script src='/" + clientPath + "/js/" + file + "'></script>\");\n\n";
             } else {
                 applicationSource[path] += "module.exports." + prop + " = " + require_results[prop] + "\n\n";
                 if (mixins_initializer)
@@ -255,7 +255,7 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
                 results[mixin + "_mixins"](objectTemplate, requires, config.appConfig.modules[mixin], config.appConfig.nconf);
                 if (typeof(path) != 'undefined')
                     if (sourceMode == 'debug') {
-                        applicationSource[path] += "document.write(\"<script src='modules/" + requireName + "/index.js'></script>\");\n\n";
+                        applicationSource[path] += "document.write(\"<script src='/modules/" + requireName + "/index.js'></script>\");\n\n";
                     } else {
                         applicationSource[path] += "module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n";
                     }

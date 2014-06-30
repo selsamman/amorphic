@@ -1,3 +1,6 @@
+## 1.1.37
+* schema.js and config.js can now be in /app/common
+* fixed another issues with multiple applications
 ## 1.1.35
 * Multiple applications had some path issues
 ## 1.1.35

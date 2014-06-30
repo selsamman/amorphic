@@ -584,46 +584,52 @@ function listen(dirname, memoryStore)
     var appList = nconf.get('applications');
     var mainApp = nconf.get('application');
     var promises = [];
-    for (var appName in appList)
+    for (var appKey in appList)
     {
-        var path = appList[appName];
-        var config = JSON.parse(fs.readFileSync(path + "/config.json").toString());
-        config.nconf = nconf; // global config
-        var schema = JSON.parse(fs.readFileSync(path + "/schema.json").toString());
+        (function () {
+            var appName = appKey;
+            var path = appList[appName];
+            var cpath = dirname + '/apps/common/';
+            function readFile (file) {return file && fs.existsSync(file) ? fs.readFileSync(file) : null;}
+            var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
+            config.nconf = nconf; // global config
+            var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
 
-        var dbName = nconf.get(appName + '_dbName') || config.dbName;
-        var dbPath = nconf.get(appName + '_dbPath') || config.dbPath;
-        if (dbName && dbPath) {
-            promises.push(Q.ninvoke(MongoClient, "connect", dbPath + dbName).then (function (db)
-                    {
-                        console.log("DB connection established to " + dbName);
-                        function injectObjectTemplate (objectTemplate) {
-                            objectTemplate.setDB(db);
-                            objectTemplate.setSchema(schema);
-                            objectTemplate.config = config;
-                            objectTemplate.logLevel = nconf.get('logLevel') || 1;
-                        }
+            var dbName = nconf.get(appName + '_dbName') || config.dbName;
+            var dbPath = nconf.get(appName + '_dbPath') || config.dbPath;
+            if (dbName && dbPath) {
+                promises.push(Q.ninvoke(MongoClient, "connect", dbPath + dbName).then (function (db)
+                        {
+                            console.log("DB connection established to " + dbName);
+                            function injectObjectTemplate (objectTemplate) {
+                                objectTemplate.setDB(db);
+                                objectTemplate.setSchema(schema);
+                                objectTemplate.config = config;
+                                objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                            }
 
-                        amorphic.establishApplication(appName, path + '/public/js/controller.js', injectObjectTemplate,
-                            sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
+                            amorphic.establishApplication(appName, path + '/public/js/controller.js', injectObjectTemplate,
+                                sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
 
-                        return Q(true);
+                            return Q(true);
 
-                    },
-                    function(e) {console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)})
-            )} else {
+                        },
+                        function(e) {console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)})
+                )} else {
 
-            // No database case
+                // No database case
 
-            function injectObjectTemplate (objectTemplate) {
-                objectTemplate.config = config;
-                objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                function injectObjectTemplate(objectTemplate) {
+                    objectTemplate.config = config;
+                    objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                }
+
+                amorphic.establishApplication(appName, path + '/public/js/controller.js', injectObjectTemplate,
+                    sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
+
+                promises.push(Q(true));
             }
-            amorphic.establishApplication(appName, path + '/public/js/controller.js', injectObjectTemplate,
-                sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
-
-            promises.push(Q(true));
-        }
+        })();
     }
 
     Q.all(promises).then( function ()

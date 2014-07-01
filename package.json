@@ -2,7 +2,7 @@
     "name": "amorphic",
     "description": "Front to back isomorphic framework for developing applications with node.js and mongoDB",
     "homepage": "https://github.com/selsamman/amorphic",
-    "version": "0.1.37",
+    "version": "0.1.38",
     "dependencies": {
         "q": "1.x",
         "supertype": "0.1.x",
@@ -12,7 +12,9 @@
         "mongodb": "1.x",
         "formidable": "1.x",
         "nconf": "0.x",
-        "connect": "2.6.2"
+        "connect": "2.6.2",
+        "node-mandrill": "1.x"
+
     },
     "devDependencies": {
         "q-mongodb": "x",

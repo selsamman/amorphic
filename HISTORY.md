@@ -1,3 +1,5 @@
+## 1.1.38
+* fixed problem referencing static assets for other than the default application
 ## 1.1.37
 * schema.js and config.js can now be in /app/common
 * fixed another issues with multiple applications

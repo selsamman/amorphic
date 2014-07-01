@@ -93,6 +93,9 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             // Create a new unique object template utility
             var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
 
+            // Inject into it any db or persist attributes needed for application
+            initObjectTemplate(objectTemplate);
+
             // Get the controller and all of it's dependent requires which will populate a
             // key value pairs where the key is the require prefix and and the value is the
             // key value pairs of each exported template
@@ -638,7 +641,7 @@ function listen(dirname, memoryStore)
 
         for (var appName in appList) {
             var path = dirname + "/" + appList[appName] + "/public";
-            app.use("/" + appName, connect.static(path,{index: "index.html"}));
+            app.use("/" + appName + '/', connect.static(path,{index: "index.html"}));
             if (appName == mainApp)
                 app.use("/", connect.static(path,{index: "index.html"}));
             console.log("Url " + url + " connected to " + path);

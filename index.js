@@ -48,7 +48,36 @@ function establishApplication (path, controllerPath, initObjectTemplate, session
     logger = loggerCall ? loggerCall : logger;
     log(1, "", "semotus extablishing application for " + path);
 }
+function establishDaemon (path) {
+    // Retrieve configuration information
+    var config = applicationConfig[path];
+    if (!config)
+        throw  new Error("Semotus: establishServerSession called with a path of " + path + " which was not registered");
+    var initObjectTemplate = config.initObjectTemplate;
+    var controllerPath = config.controllerPath;
 
+    var requires = {};
+    controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
+    var prefix = RegExp.$1;
+    var prop = RegExp.$2
+
+    // Create a new unique object template utility
+    var objectTemplate = require("persistor")(ObjectTemplate, null, ObjectTemplate);
+
+    // Inject into it any db or persist attributes needed for application
+    initObjectTemplate(objectTemplate);
+    var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config);
+
+    var controllerTemplate = requires[prop].Controller;
+    if (!controllerTemplate)
+        throw  new Error("Missing controller template in " + prefix + prop + ".js");
+    controllerTemplate.objectTemplate = objectTemplate;
+
+    var controller = new controllerTemplate();
+    objectTemplate.controller = controller;
+
+    controller.serverInit();
+}
 /**
  * Establish a server session
 
@@ -587,6 +616,7 @@ function listen(dirname, memoryStore)
     var appList = nconf.get('applications');
     var mainApp = nconf.get('application');
     var promises = [];
+    var isNonBatch = false;
     for (var appKey in appList)
     {
         (function () {
@@ -611,10 +641,15 @@ function listen(dirname, memoryStore)
                                 objectTemplate.logLevel = nconf.get('logLevel') || 1;
                             }
 
-                            amorphic.establishApplication(appName, path + '/public/js/controller.js', injectObjectTemplate,
+                            amorphic.establishApplication(appName,
+                                path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
                                 sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
 
-                            return Q(true);
+                            if (config.isDaemon) {
+                                amorphic.establishDaemon(appName);
+                                console.log(appName + " started as a daemon");
+                            } else
+                                promises.push(Q(true));
 
                         },
                         function(e) {console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)})
@@ -627,10 +662,17 @@ function listen(dirname, memoryStore)
                     objectTemplate.logLevel = nconf.get('logLevel') || 1;
                 }
 
-                amorphic.establishApplication(appName, path + '/public/js/controller.js', injectObjectTemplate,
+                amorphic.establishApplication(appName,
+                    path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
                     sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
 
-                promises.push(Q(true));
+                if (config.isDaemon) {
+                    amorphic.establishDaemon(appName);
+                    console.log(appName + " started as a daemon");
+                } else
+                    promises.push(Q(true));
+
+
             }
         })();
     }
@@ -682,6 +724,7 @@ function listen(dirname, memoryStore)
 }
 module.exports = {
     establishApplication: establishApplication,
+    establishDaemon: establishDaemon,
     establishServerSession: establishServerSession,
     saveSession: saveSession,
     processMessage: processMessage,

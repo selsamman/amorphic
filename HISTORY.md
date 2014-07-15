@@ -1,3 +1,5 @@
+## 1.1.40
+* Added support for daemons (batch tasks)
 ## 1.1.38
 * fixed problem referencing static assets for other than the default application
 ## 1.1.37

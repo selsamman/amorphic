@@ -136,7 +136,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                 return {
                     getServerConnectString: function () {
                         return JSON.stringify({
-                            url: "semotus?path=" + path,
+                            url: "amorphic/xhr?path=" + path,
                             message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
                         })
                     },
@@ -546,7 +546,7 @@ function processMessage(req, resp)
 }
 
 function route(req, resp, next) {
-    if (req.url.match(/semotus\?path\=/))
+    if (req.url.match(/amorphic\/xhr\?path\=/))
         processMessage(req, resp);
     else
         next();

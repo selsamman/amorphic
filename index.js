@@ -189,7 +189,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             var message = this.getMessage();
             message.ver = appVersion;
             return JSON.stringify({
-                url: "semotus?path=" + path,
+                url: "amorphic/xhr?path=" + path,
                 message: message
             })
         },
@@ -552,7 +552,7 @@ function route(req, resp, next) {
         next();
 }
 function uploadRoute(req, resp, next) {
-    if (req.url.match(/semotus\?path\=/) && url.parse(req.url, true).query.file)
+    if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.file)
         processFile(req, resp,next)
     else
         next();

@@ -1,4 +1,4 @@
-## 1.1.41
+## 1.1.42
 * Changed path for xhr calls to /amorphic/xhr?path= to make it easier to map
 ## 1.1.40
 * Added support for daemons (batch tasks)

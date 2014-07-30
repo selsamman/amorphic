@@ -1,25 +1,29 @@
-## 1.1.42
+## 0.1.44
+* Allow other requests to be injected
+## 0.1.43
+* Allow supertype and semotus to be installed in root of project without messing up client paths
+## 0.1.42
 * Changed path for xhr calls to /amorphic/xhr?path= to make it easier to map
-## 1.1.40
+## 0.1.40
 * Added support for daemons (batch tasks)
-## 1.1.38
+## 0.1.38
 * fixed problem referencing static assets for other than the default application
-## 1.1.37
+## 0.1.37
 * schema.js and config.js can now be in /app/common
 * fixed another issues with multiple applications
-## 1.1.35
+## 0.1.35
 * Multiple applications had some path issues
-## 1.1.35
+## 0.1.35
 * You can now place common template files in /app/common/js
-## 1.1.33
+## 0.1.33
 * Include new dependencies
-## 1.1.31
+## 0.1.31
 * Include model files as document.writes of the script files since source mapping would otherwise not be available
-## 1.1.30
+## 0.1.30
 * Tests were not running because securityContext injected in supertype rather than peristor
-## 1.1.28
+## 0.1.28
 * Corrected a problem when controllers are created on the server model was not being passed to client
-## 1.1.27
+## 0.1.27
 * Include proper path for modules
 * Fixed incorrect file upload handling
 * Include controller and it's dependency automatically for the browser

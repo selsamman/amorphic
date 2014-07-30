@@ -570,7 +570,7 @@ function log (level, sessionId, data) {
 
 }
 
-function listen(dirname, memoryStore)
+function listen(dirname, memoryStore, preSessionInject, postSessionInject)
 {
     var sys = require('sys');
     var exec = require('child_process').exec;
@@ -681,6 +681,9 @@ function listen(dirname, memoryStore)
     {
         var app = connect();
 
+        if (preSessionInject)
+            preSessionInject.call(null, app);
+
         for (var appName in appList) {
             var path = dirname + "/" + appList[appName] + "/public";
             app.use("/" + appName + '/', connect.static(path,{index: "index.html"}));
@@ -689,13 +692,16 @@ function listen(dirname, memoryStore)
             console.log("Url " + url + " connected to " + path);
         }
 
+        rootSuperType = fs.existsSync(dirname + "/node_modules/supertype") ? dirname : __dirname;
+        rootSemotus = fs.existsSync(dirname + "/node_modules/semotus") ? dirname : __dirname;
+
         app
             .use('/modules/', connect.static(dirname + "/node_modules"))
             .use('/bindster/', connect.static(__dirname + "/node_modules/amorphic-bindster"))
             .use('/amorphic/', connect.static(__dirname))
             .use('/common/', connect.static(dirname + "/apps/common"))
-            .use('/supertype/', connect.static(__dirname + "/node_modules/supertype"))
-            .use('/semotus/', connect.static(__dirname + "/node_modules/semotus"))
+            .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
+            .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
             .use(connect.cookieParser())
             .use(connect.bodyParser())
             .use(sessionRouter)
@@ -718,6 +724,8 @@ function listen(dirname, memoryStore)
             })
             .use(amorphic.router);
 
+        if (postSessionInject)
+            postSessionInject.call(null, app);
 
         app.listen(nconf.get('port'));
     }).fail(function(e){console.log(e.message + " " + e.stack)});

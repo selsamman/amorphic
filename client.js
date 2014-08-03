@@ -18,44 +18,40 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/**********************************************************************************************************
- * Usage:
-
- <script src="/node_modules/semotus/client.js">
- <script src="path/file1.js"></script>
- <script src="path/file2.js"></script>
-
- semotus.importTemplates()
- semotus.establishClientSession(....)
-
- // path/file1.js:
- module.exports.file1 = function (objectTemplate, getTemplate)
- {
-	var Class2 = getTemplate('path/file2.js').Class2
-	var Class1 = objectTemplate.create({
-	init: function () {var x = new Class2()}
-});
-return {
-	Class1: Class1
-	}
-};
-
- // path/file2.js:
- module.exports.file2 = function (objectTemplate, getTemplate)
- {
-	var Class2 = objectTemplate.create({
-	});
-return {
-	Class2: Class2
-	}
-};
- *********************************************************************************************************/
-Persistor = ObjectTemplate.create(
-{
-});
+Persistor = ObjectTemplate.create("Peristor",
+    {
+    });
 
 RemoteObjectTemplate._injectIntoTemplate = function (template)
 {
+    // Extract schema and collection
+
+    template.__schema__ = amorphic.schema[template.__name__];
+    template.__collection__ = template.__schema__ ? template.__schema__.documentOf || template.__schema__.subDocumentOf : null;
+    var parentTemplate = template.__parent__;
+    while  (parentTemplate) {
+        var schema = parentTemplate.__schema__;
+        if (schema && schema.children) {
+            if (!template.__schema__)
+                template.__schema__ = {};
+            if (!template.__schema__.children)
+                template.__schema__.children = [];
+            for (var key in schema.children)
+                template.__schema__.children[key] = schema.children[key];
+        }
+        if (schema && schema.parents) {
+            if (!template.__schema__)
+                template.__schema__ = {};
+            if (!template.__schema__.parents)
+                template.__schema__.parents = [];
+            for (var key in schema.parents)
+                template.__schema__.parents[key] = schema.parents[key];
+        }
+        parentTemplate = parentTemplate.__parent__;
+    }
+
+
+
     // Add persistors to foreign key references
 
     var props = template.getProperties();
@@ -73,7 +69,7 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
                 var closureDefineProperty = defineProperty;
 
                 if (!props[closureProp + 'Persistor'])
-                    template.createProperty(closureProp + 'Persistor', {type: Object, value:{isFetched: false, isFetching: false}});
+                    template.createProperty(closureProp + 'Persistor', {type: Object, toServer: false, value:{isFetched: false, isFetching: false}});
 
                 if (!template.prototype[closureProp + 'Fetch'])
                     template.createProperty(closureProp + 'Fetch', {on: "server", body: function (){}});
@@ -108,12 +104,16 @@ var amorphic =
     setConfig: function (config) {
         this.config = config;
     },
+    setSchema: function (schema) {
+        this.schema = schema;
+    },
     maxAlerts: 5,
     shutdown: false,
     sequence: 1,
     logLevel: 1,
     rootId: null,
     config: {},
+    schema: {},
     sessionExpiration: 0,
     sessionExpirationCushion: 10000,
     heartBeat: null,
@@ -161,7 +161,7 @@ var amorphic =
         this.sendMessage = function (message)
         {
             message.sequence = self.sequence++;
-    
+
             // Sending rootId will reset the server
             if (self.rootId) {
                 message.rootId = self.rootId;
@@ -171,14 +171,14 @@ var amorphic =
             if (self.logLevel > 0)
                 console.log ("sending " + message.type + " " + message.name);
             self.lastServerInteraction = (new Date()).getTime();
-    
+
             // Post xhr to server
             self._post(self.url, message, function (request) // Success
             {
                 var message = JSON.parse(request.responseText);
                 if (self.logLevel > 0)
                     console.log("receiving " + message.type + " " + message.name + " serverAppVersion=" + message.ver);
-    
+
                 // If app version in message not uptodate
                 if (self.appVersion && message.ver != self.appVersion) {
                     console.log("Application version " + self.appVersion + " out of date - " +
@@ -192,7 +192,7 @@ var amorphic =
                 self._setSessionTimeout();
                 if (message.type == "pinged")
                     return;
-    
+
                 // Handle resets and refreshes
                 if (message.newSession || message.type == "refresh")
                     self._reset(message);
@@ -203,7 +203,7 @@ var amorphic =
 
                 if (message.sync === false)
                     self.refreshSession();
-    
+
             }, function (err) { // Failure of the wire
                 if (self.offline)
                     self.offline.call();

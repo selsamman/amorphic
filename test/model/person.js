@@ -1,7 +1,7 @@
 module.exports.person = function (objectTemplate, getTemplate)
 {
 	var Person;
-	Person = objectTemplate.create("person:person",
+	Person = objectTemplate.create("Person",
 		{
 			// Name
 			firstName: {type: String, value: "", length: 40, rule: ["name", "required"]},

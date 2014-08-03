@@ -4,7 +4,7 @@ module.exports.ticket = function (objectTemplate, getTemplate)
 	var Project = getTemplate('./project.js').Project;
 	var ProjectRelease = getTemplate('./project.js').ProjectRelease;
 
-	var Ticket = objectTemplate.create("ticket:ticket",
+	var Ticket = objectTemplate.create("Ticket",
 	{
         // Insecure properties can be set on the client and saved by a logged in user
 
@@ -84,7 +84,7 @@ module.exports.ticket = function (objectTemplate, getTemplate)
 	 * Any additional informational content for ticket added after creation
 	 * such as a comment or an approval
 	 */
-	var TicketItem = objectTemplate.create("ticketItem:ticketItem",
+	var TicketItem = objectTemplate.create("TicketItem",
 	{
         // Secure properties can only be set on the server
 
@@ -103,7 +103,7 @@ module.exports.ticket = function (objectTemplate, getTemplate)
 	});
 
 
-	var TicketItemAttachment = objectTemplate.create("attachment:ticketItemAttachment",
+	var TicketItemAttachment = objectTemplate.create("TicketItemAttachment",
 	{
 		data:               {type: String},
 		name:               {type: String},
@@ -120,7 +120,7 @@ module.exports.ticket = function (objectTemplate, getTemplate)
 		}
 	});
 
-	var TicketItemComment = TicketItem.extend("ticketItem:ticketItemComment",
+	var TicketItemComment = TicketItem.extend("TicketItemComment",
 	{
 		text:               {type: String, value: null},
 		attachments:        {type: Array, of: TicketItemAttachment, value: []},
@@ -144,7 +144,7 @@ module.exports.ticket = function (objectTemplate, getTemplate)
 	});
 
 
-	var TicketItemApproval = TicketItem.extend("ticketItem:ticketItemApproval",
+	var TicketItemApproval = TicketItem.extend("TicketItemApproval",
 	{
 		init: function (person) {
 			TicketItem.call(this, person);

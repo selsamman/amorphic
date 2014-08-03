@@ -617,6 +617,7 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
     var mainApp = nconf.get('application');
     var promises = [];
     var isNonBatch = false;
+    var schemas = {};
     for (var appKey in appList)
     {
         (function () {
@@ -627,6 +628,7 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
             var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
             config.nconf = nconf; // global config
             var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
+            schemas[appKey] = schema;
 
             var dbName = nconf.get(appName + '_dbName') || config.dbName;
             var dbPath = nconf.get(appName + '_dbPath') || config.dbPath;
@@ -642,7 +644,7 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
                             }
 
                             amorphic.establishApplication(appName,
-                                path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
+                                    path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
                                 sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
 
                             if (config.isDaemon) {
@@ -663,7 +665,7 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
                 }
 
                 amorphic.establishApplication(appName,
-                    path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
+                        path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
                     sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
 
                 if (config.isDaemon) {
@@ -715,6 +717,7 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
                         response.setHeader("Content-Type", "application/javascript");
                         response.setHeader("Cache-Control", "public, max-age=0");
                         response.end(
+                                "amorphic.setSchema(" + JSON.stringify(schemas[appName]) + ");" +
                                 session.getModelSource() +
                                 "amorphic.setConfig(" + session.getServerConfigString() +");" +
                                 "amorphic.setInitialMessage(" + session.getServerConnectString() +");"

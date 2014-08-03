@@ -6,6 +6,10 @@ var PersistObjectTemplate = require('persistor')(ObjectTemplate, null, ObjectTem
 var MongoClient = require('mongodb').MongoClient;
 var nconf = require('nconf');
 var amorphic = require('../index.js');
+
+var collections = JSON.parse(fs.readFileSync(__dirname + "/../test/model/schema.json"));
+PersistObjectTemplate.setSchema(collections);
+
 var requires = amorphic.getTemplates(PersistObjectTemplate, 'test/model/',
 	['ticket.js','person.js','person.js','project.js']);
 
@@ -22,8 +26,6 @@ var ProjectRelease = requires.project.ProjectRelease;
 var ProjectRole = requires.project.ProjectRole;
 
 var db;
-
-var collections = JSON.parse(fs.readFileSync(__dirname + "/../test/model/schema.json"));
 
 // Injections
 
@@ -57,7 +59,6 @@ describe("Ticket System Test Suite", function () {
         Q.ninvoke(MongoClient, "connect", "mongodb://localhost:27017/testamorphic").then(function (dbopen) {
             db = dbopen;
             PersistObjectTemplate.setDB(db);
-            PersistObjectTemplate.setSchema(collections);
             done();
         });
     });

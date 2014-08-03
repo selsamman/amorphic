@@ -1,3 +1,5 @@
+## 0.1.46
+* Changes to be compatible with new convention for schemas and collections
 ## 0.1.44
 * Allow other requests to be injected
 ## 0.1.43

@@ -3,7 +3,7 @@ module.exports.project = function (objectTemplate, getTemplate)
 
 	var Person = getTemplate('./person.js').Person;
 
-	var ProjectRelease = objectTemplate.create("project:release",
+	var ProjectRelease = objectTemplate.create("ProjectRelease",
 	{
 		name:               {type: String},
 		date:               {type: Date},
@@ -12,7 +12,7 @@ module.exports.project = function (objectTemplate, getTemplate)
 			                 using: {"planned":"Planned", "complete":"Completed"}}
 	});
 
-	var ProjectRole	= objectTemplate.create("project:projectRole",
+	var ProjectRole	= objectTemplate.create("ProjectRole",
 	{
 		role:               {type: String,  values: ["manager", "developer"]},
 		created:            {type: Date, rule: ["datetime"]},
@@ -29,7 +29,7 @@ module.exports.project = function (objectTemplate, getTemplate)
 
 	});
 
-	var Project = objectTemplate.create("project:project",
+	var Project = objectTemplate.create("Project",
 	{
 		// Name
 		name:               {type: String, value: "", length: 40, rule: ["name", "required"]},

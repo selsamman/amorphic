@@ -1,47 +1,67 @@
 {
-	"ticket": {
+	"Ticket": {
+        "documentOf": "ticket",
 		"children": {
-			"ticketItems":        {"template": "TicketItem", "id":"ticket_id"}
+			"ticketItems":        {"id":"ticket_id"}
 		},
 		"parents": {
-			"creator":            {"template": "Person", "id": "creator_id"},
-			"release":            {"template": "ProjectRelease", "id": "project_release_id"},
-			"project":            {"template": "Project", "id": "project_id"}
+			"creator":            {"id": "creator_id"},
+			"release":            {"id": "project_release_id"},
+			"project":            {"id": "project_id"}
 		}
 	},
-	"ticketItem": {
+	"TicketItem": {
+        "documentOf": "ticketItem",
 		"parents": {
-			"creator":            {"template": "Person", "id": "creator_id"},
-			"ticket":             {"template": "Ticket", "id": "ticket_id"}
+			"creator":            {"id": "creator_id"},
+			"ticket":             {"id": "ticket_id"}
+		}
+	},
+    "TicketItemComment": {
+        "subDocumentOf": "ticketItem",
+        "children": {
+            "attachments":        {"id": "ticket_item_id"}
+        }
+    },
+    "TicketItemApproval": {
+        "subDocumentOf": "ticketItem"
+    },
+	"TicketItemAttachment": {
+        "documentOf": "attachment",
+		"parents": {
+			"ticketItem":         {"id": "ticket_item_id"}
+		}
+	},
+	"Person": {
+        "documentOf": "person",
+		"children": {
+			"projectRoles":       {"id":"person_id"},
+			"ticketItems":        {"id": "creator_id"}
+		}
+	},
+	"Project": {
+        "documentOf": "project",
+        "children": {
+			"projectRoles":       {"id": "project_id"},
+			"projectReleases":    {"id": "project_id"},
+			"tickets":            {"id": "project_id"}
 		},
-		"children": {
-			"attachments":        {"template": "TicketItemAttachment", "id": "ticket_item_id"}
-		}
-	},
-	"attachment": {
 		"parents": {
-			"ticketItem":         {"template": "TicketItem", "id": "ticket_item_id"}
+			"person":             {"id": "person_id"},
+			"owner":              {"id": "owner_id"},
+			"creator":            {"id": "creator_id"}
 		}
 	},
-	"person": {
-		"children": {
-			"projectRoles":       {"template": "ProjectRole", "id":"person_id"},
-			"ticketItems":        {"template": "TicketItem", "id": "creator_id"}
-		}
-	},
-	"project": {
-		"children": {
-			"projectRoles":       {"template": "ProjectRole", "id": "project_id"},
-			"projectReleases":    {"template": "ProjectRelease", "id": "project_id"},
-			"tickets":            {"template": "Ticket", "id": "project_id"}
-		},
-		"parents": {
-			"person":             {"template": "Person", "id": "person_id"},
-			"owner":              {"template": "Person", "id": "owner_id"},
-			"creator":            {"template": "Person", "id": "creator_id"}
-		}
-	},
-    "controller": {
+    "ProjectRelease": {
+        "subDocumentOf": "project"
+    },
+    "ProjectRole": {
+        "subDocumentOf": "project",
+        "parents": {
+            "person":             {"id": "person_id"}
+        }
+    },
+    "Controller": {
         "queries": {
             "tickets":            {},
             "searchTickets":      {"query": {}}

@@ -2,7 +2,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
 {
 	var BaseController = getTemplate('./baseController.js').BaseController;
 
-    Controller = BaseController.extend(
+    Controller = BaseController.extend("Controller",
 	{
         serverInit: function () {
             setInterval(function () {this.interval()}.bind(this), 5000);

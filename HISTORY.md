@@ -1,3 +1,5 @@
+## 0.1.47
+* Changes to be compatible with new persistor sub-document handling
 ## 0.1.46
 * Changes to be compatible with new convention for schemas and collections
 ## 0.1.44

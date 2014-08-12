@@ -69,7 +69,10 @@ describe("Ticket System Test Suite", function () {
 	it ("clears the ticket system", function (done) {
 		clearCollection("ticket").then(function (count) {
 			expect(count).to.equal(0);
-			return clearCollection('attachment')
+			return clearCollection('ticketItem')
+        }).then(function (count) {
+            expect(count).to.equal(0);
+            return clearCollection('attachment')
 		}).then(function (count) {
 			expect(count).to.equal(0);
 			return clearCollection('person')
@@ -151,14 +154,14 @@ describe("Ticket System Test Suite", function () {
             project.tickets.sort(function(a,b){a.created - b.created});
             expect(project.tickets[0].title).to.equal("semotus ticket1");
             project.tickets[0].ticketItems.sort(function(a,b){a.created - b.created});
-            expect(project.tickets[0].ticketItems[0] instanceof TicketItemComment).to.be.true;
-            expect(project.tickets[0].ticketItems[1] instanceof TicketItemApproval).to.be.true;
+            expect(project.tickets[0].ticketItems[0] instanceof TicketItemComment).to.equal(true);
+            expect(project.tickets[0].ticketItems[1] instanceof TicketItemApproval).to.equal(true);
             project.tickets[0].ticketItems[0].attachments.sort(function(a,b){a.created - b.created});
             expect(project.tickets[0].ticketItems[0].attachments[0].name).to.equal("attachment1");
             expect(project.tickets[0].ticketItems[0].attachments[1].name).to.equal("attachment2");
             done();
 
-        }.bind(this)).fail(function(e) {
+        }).fail(function(e) {
             done(e)
         });
     });

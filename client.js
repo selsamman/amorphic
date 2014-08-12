@@ -22,35 +22,46 @@ Persistor = ObjectTemplate.create("Peristor",
     {
     });
 
+RemoteObjectTemplate._initSchema = function ()
+{
+    for (var templateName in amorphic.schema) {
+        var template = this.__dictionary__[templateName];
+        if (template) {
+            template.__schema__ = amorphic.schema[template.__name__];
+            template.__collection__ = template.__schema__ ? template.__schema__.documentOf || template.__schema__.subDocumentOf : null;
+            var parentTemplate = template.__parent__;
+            while (parentTemplate) {
+                var schema = parentTemplate.__schema__;
+                if (schema && schema.children) {
+                    if (!template.__schema__)
+                        template.__schema__ = {};
+                    if (!template.__schema__.children)
+                        template.__schema__.children = [];
+                    for (var key in schema.children)
+                        template.__schema__.children[key] = schema.children[key];
+                }
+                if (schema && schema.parents) {
+                    if (!template.__schema__)
+                        template.__schema__ = {};
+                    if (!template.__schema__.parents)
+                        template.__schema__.parents = [];
+                    for (var key in schema.parents)
+                        template.__schema__.parents[key] = schema.parents[key];
+                }
+                parentTemplate = parentTemplate.__parent__;
+            }
+        }
+    }
+}
 RemoteObjectTemplate._injectIntoTemplate = function (template)
 {
     // Extract schema and collection
 
-    template.__schema__ = amorphic.schema[template.__name__];
-    template.__collection__ = template.__schema__ ? template.__schema__.documentOf || template.__schema__.subDocumentOf : null;
-    var parentTemplate = template.__parent__;
-    while  (parentTemplate) {
-        var schema = parentTemplate.__schema__;
-        if (schema && schema.children) {
-            if (!template.__schema__)
-                template.__schema__ = {};
-            if (!template.__schema__.children)
-                template.__schema__.children = [];
-            for (var key in schema.children)
-                template.__schema__.children[key] = schema.children[key];
-        }
-        if (schema && schema.parents) {
-            if (!template.__schema__)
-                template.__schema__ = {};
-            if (!template.__schema__.parents)
-                template.__schema__.parents = [];
-            for (var key in schema.parents)
-                template.__schema__.parents[key] = schema.parents[key];
-        }
-        parentTemplate = parentTemplate.__parent__;
+    if (!this.__schemaInit__) {
+        this.__schemaInit__ = true;
+        this._initSchema();
     }
-
-
+    var schema = template.__schema__;
 
     // Add persistors to foreign key references
 
@@ -60,8 +71,14 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
         var type = defineProperty.type;
         var collection = template.__collection__;
         var of = defineProperty.of;
-        var isCrossDocRef = (of && of.__collection__ && of.__collection__ != collection) ||
-            (type && type.__collection__ && type.__collection__ != collection);
+        //var isCrossDocRef = (of && of.__collection__ && of.__collection__ != collection) ||
+        //    (type && type.__collection__ && type.__collection__ != collection);
+        var childrenRef = schema && schema.children && schema.children[prop];
+        var parentsRef = schema && schema.parents && schema.parents[prop];
+
+        var isCrossDocRef =  (of && of.__collection__ && ((of.__collection__ != collection) || childrenRef)) ||
+            (type && type.__collection__ && ((type.__collection__ != collection) || parentsRef));
+
         if (isCrossDocRef) {
             (function ()
             {
@@ -89,7 +106,6 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
                     }});
             })();
         }
-
     }
 }
 var module = {exports: {}}

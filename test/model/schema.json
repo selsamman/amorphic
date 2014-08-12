@@ -18,13 +18,13 @@
 		}
 	},
     "TicketItemComment": {
-        "subDocumentOf": "ticketItem",
+        "documentOf": "ticketItem",
         "children": {
             "attachments":        {"id": "ticket_item_id"}
         }
     },
     "TicketItemApproval": {
-        "subDocumentOf": "ticketItem"
+        "documentOf": "ticketItem"
     },
 	"TicketItemAttachment": {
         "documentOf": "attachment",

@@ -454,7 +454,7 @@ function processFile(req, resp, next)
                     console.log(file + ' deleted');
                 }
             })}, 60000);
-        resp.end('<html><body><img src="img/pixel.gif" onload="top.amorphic.prepareFileUpload(\'package\');top.amorphic.uploadFunction.call()" /></body></html>');
+        resp.end('<html><body><script>top.amorphic.prepareFileUpload(\'package\');top.amorphic.uploadFunction.call()</script></body></html>');
         req.session.file = file;
     });
 }
@@ -705,8 +705,9 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
             .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
             .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
             .use(connect.cookieParser())
-            .use(connect.bodyParser())
             .use(sessionRouter)
+            .use(amorphic.uploadRouter)
+            .use(connect.bodyParser())
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
                 if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {

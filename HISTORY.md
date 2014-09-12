@@ -1,3 +1,5 @@
+## 0.1.48
+* File upload handling was broken
 ## 0.1.47
 * Changes to be compatible with new persistor sub-document handling
 ## 0.1.46

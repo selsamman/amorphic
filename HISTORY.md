@@ -1,3 +1,5 @@
+## 0.1.49
+* Don't require subclasses in same collection to be defined in schema
 ## 0.1.48
 * File upload handling was broken
 ## 0.1.47

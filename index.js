@@ -604,6 +604,7 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
     var sessionExpiration = nconf.get('sessionSeconds') * 1000;
     var objectCacheExpiration = nconf.get('objectCacheSeconds') * 1000;
     var dbname = nconf.get('dbname');
+    var dbpath = nconf.get('dbpath');
 
     memoryStore = memoryStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
@@ -630,8 +631,8 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
             var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
             schemas[appKey] = schema;
 
-            var dbName = nconf.get(appName + '_dbName') || config.dbName;
-            var dbPath = nconf.get(appName + '_dbPath') || config.dbPath;
+            var dbName = nconf.get(appName + '_dbName') || config.dbName || dbname;
+            var dbPath = nconf.get(appName + '_dbPath') || config.dbPath || dbpath;
             if (dbName && dbPath) {
                 promises.push(Q.ninvoke(MongoClient, "connect", dbPath + dbName).then (function (db)
                         {

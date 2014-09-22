@@ -1,3 +1,5 @@
+## 0.1.50
+* Use env variables or command parameters dbname and dbpath if app level names and paths are not specified 
 ## 0.1.49
 * Don't require subclasses in same collection to be defined in schema
 ## 0.1.48

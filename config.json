@@ -4,5 +4,5 @@
     "objectCacheSeconds" : 600,
     "sessionSecret" : "Ey0veeljPcLsHitdxCG2",
 	"applications" : {"helloworld": "apps/helloworld", "batch":"apps/batch"},
-	"application"  : "helloworld"
+	"application"  : "helloworld;batch"
 }

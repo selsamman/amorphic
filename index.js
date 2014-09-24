@@ -615,12 +615,14 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
     // Initialize applications
 
     var appList = nconf.get('applications');
-    var mainApp = nconf.get('application');
+    var appStartList = nconf.get('application') + ';';
+    var mainApp = nconf.get('application').split(';')[0];
     var promises = [];
     var isNonBatch = false;
     var schemas = {};
     for (var appKey in appList)
     {
+        if (appStartList.match(appKey + ';'))
         (function () {
             var appName = appKey;
             var path = appList[appName];
@@ -688,11 +690,13 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
             preSessionInject.call(null, app);
 
         for (var appName in appList) {
-            var path = dirname + "/" + appList[appName] + "/public";
-            app.use("/" + appName + '/', connect.static(path,{index: "index.html"}));
-            if (appName == mainApp)
-                app.use("/", connect.static(path,{index: "index.html"}));
-            console.log("Url " + url + " connected to " + path);
+            if (appStartList.match(appKey + ';')) {
+                var path = dirname + "/" + appList[appName] + "/public";
+                app.use("/" + appName + '/', connect.static(path, {index: "index.html"}));
+                if (appName == mainApp)
+                    app.use("/", connect.static(path, {index: "index.html"}));
+                console.log("Url " + url + " connected to " + path);
+            }
         }
 
         rootSuperType = fs.existsSync(dirname + "/node_modules/supertype") ? dirname : __dirname;

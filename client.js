@@ -193,8 +193,11 @@ var amorphic =
             self.lastServerInteraction = (new Date()).getTime();
 
             // Post xhr to server
+            RemoteObjectTemplate.enableSendMessage(false);  // Queue stuff while we are out to the server
             self._post(self.url, message, function (request) // Success
             {
+                RemoteObjectTemplate.enableSendMessage(true, this.sendMessage); // Re-enable sending
+
                 var message = JSON.parse(request.responseText);
                 if (self.logLevel > 0)
                     console.log("receiving " + message.type + " " + message.name + " serverAppVersion=" + message.ver);

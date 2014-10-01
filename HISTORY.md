@@ -1,3 +1,5 @@
+## 0.1.54
+* queue up messages while being processed by server so stuff goes single file  
 ## 0.1.51
 * application parameter in config.json or environment / start parameter must specifiy list of apps to star separated by ; 
 ## 0.1.50

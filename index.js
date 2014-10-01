@@ -570,7 +570,7 @@ function log (level, sessionId, data) {
 
 }
 
-function listen(dirname, memoryStore, preSessionInject, postSessionInject)
+function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 {
     var sys = require('sys');
     var exec = require('child_process').exec;
@@ -606,9 +606,9 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
     var dbname = nconf.get('dbname');
     var dbpath = nconf.get('dbpath');
 
-    memoryStore = memoryStore || new (connect.session.MemoryStore)();
+    sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
-        {store: memoryStore, secret: nconf.get('sessionSecret'),
+        {store: sessionStore, secret: nconf.get('sessionSecret'),
             cookie: {maxAge: sessionExpiration}, rolling: true}
     );
 
@@ -648,7 +648,7 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
 
                             amorphic.establishApplication(appName,
                                     path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
-                                sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
+                                sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
                             if (config.isDaemon) {
                                 amorphic.establishDaemon(appName);
@@ -669,7 +669,7 @@ function listen(dirname, memoryStore, preSessionInject, postSessionInject)
 
                 amorphic.establishApplication(appName,
                         path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
-                    sessionExpiration, objectCacheExpiration, memoryStore, null, config.ver, config);
+                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
                 if (config.isDaemon) {
                     amorphic.establishDaemon(appName);

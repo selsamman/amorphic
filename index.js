@@ -454,7 +454,8 @@ function processFile(req, resp, next)
                     console.log(file + ' deleted');
                 }
             })}, 60000);
-        resp.end('<html><body><script>top.amorphic.prepareFileUpload(\'package\');top.amorphic.uploadFunction.call()</script></body></html>');
+        var fileName = files.file.name;
+        resp.end('<html><body><script>top.amorphic.prepareFileUpload(\'package\');top.amorphic.uploadFunction.call(null, "' +  fileName + '"' + ')</script></body></html>');
         req.session.file = file;
     });
 }
@@ -552,11 +553,28 @@ function route(req, resp, next) {
         next();
 }
 function uploadRoute(req, resp, next) {
-    if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.file)
+    if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.file && req.method=='POST')
         processFile(req, resp,next)
     else
         next();
 }
+function downloadRoute(req, resp, next) {
+    var file = url.parse(req.url, true).query.file;
+    if (req.url.match(/amorphic\/xhr\?path\=/) && file && req.method=='GET')
+        processContentRequest(req, resp, next, file)
+    else
+        next();
+}
+
+function processContentRequest(request, response, next) {
+
+    var path = url.parse(request.url, true).query.path;
+    establishServerSession(request, path, false).then (function (semotus) {
+        if (typeof(semotus.objectTemplate.controller.onContentRequest) == 'function')
+            semotus.objectTemplate.controller.onContentRequest(request, response);
+    });
+}
+
 function log (level, sessionId, data) {
     if (level > logLevel)
         return;
@@ -712,6 +730,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
             .use(connect.cookieParser())
             .use(sessionRouter)
             .use(amorphic.uploadRouter)
+            .use(amorphic.downloadRouter)
             .use(connect.bodyParser())
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
@@ -747,6 +766,7 @@ module.exports = {
     processMessage: processMessage,
     router: route,
     uploadRouter: uploadRoute,
+    downloadRouter: downloadRoute,
     getTemplates: getTemplates,
     setDownloadDir: setDownloadDir,
     listen: listen

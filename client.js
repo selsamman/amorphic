@@ -228,7 +228,8 @@ var amorphic =
                     self.refreshSession();
 
             }, function (err) { // Failure of the wire
-                if (self.offline)
+                RemoteObjectTemplate.enableSendMessage(true, this.sendMessage); // Re-enable sending
+                if (typeof(self.offline) == 'function')
                     self.offline.call();
                 else if (--self.maxAlerts > 0)
                     alert("Error on server: " + err);
@@ -359,12 +360,15 @@ var amorphic =
         RemoteObjectTemplate.processMessage(message);
         this.bindController.call(null, this.controller, message.sessionExpiration);
     },
-    _post: function (url, message, success, failure) {
+    _post: function (url, message, success, failure, retries, retryInterval) {
+        retries = retries || 30;
+        retryInterval = retryInterval || 2000;
         if (this.shutdown)
             return;
         var request = this.getxhr();
         request.open('POST', url, true);
         request.setRequestHeader("Content-Type", "application/json");
+        var self = this;
         request.onreadystatechange = function () {
             if (request.readyState != 4)
                 return;
@@ -382,7 +386,13 @@ var amorphic =
                 success.call(this, request)
             } else {
                 console.log("Error: " + message.type + " " + message.name + " status: " + status + " - " + statusText);
-                failure.call(this, status + " - " + statusText);
+                if (status == 503 && --retries) {
+                    console.log("temporary error retrying in " + retryInterval / 1000 + " seconds");
+                    setTimeout( function () {
+                        return self._post(url, message, success, failure, retries, retryInterval);
+                    }, retryInterval);
+                } else
+                    failure.call(this, status + " - " + statusText);
             }
         }
         try {

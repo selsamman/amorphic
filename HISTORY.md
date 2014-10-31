@@ -1,3 +1,5 @@
+## 0.1.59
+* support for file download  
 ## 0.1.54
 * queue up messages while being processed by server so stuff goes single file  
 ## 0.1.51

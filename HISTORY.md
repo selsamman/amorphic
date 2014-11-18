@@ -1,3 +1,5 @@
+## 0.1.60
+* file upload mechansim now compatible with REDIS  
 ## 0.1.59
 * support for file download  
 ## 0.1.54

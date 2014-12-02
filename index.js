@@ -456,7 +456,7 @@ function processFile(req, resp, next)
             })}, 60000);
         var fileName = files.file.name;
         req.session.file = file;
-        resp.end('<html><body><script>top.amorphic.prepareFileUpload(\'package\');top.amorphic.uploadFunction.call(null, "' +  fileName + '"' + ')</script></body></html>');
+        resp.end('<html><body><script>parent.amorphic.prepareFileUpload(\'package\');parent.amorphic.uploadFunction.call(null, "' +  fileName + '"' + ')</script></body></html>');
     });
 }
 

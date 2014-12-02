@@ -1,3 +1,5 @@
+## 0.1.62
+* Allow file uploads in iFrames
 ## 0.1.61
 * Zombie detection code now takes into account application name  
 ## 0.1.60

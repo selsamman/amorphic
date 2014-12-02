@@ -127,6 +127,9 @@ var amorphic =
     setSchema: function (schema) {
         this.schema = schema;
     },
+    setApplication: function(app) {
+        this.app = app;
+    },
     maxAlerts: 5,
     shutdown: false,
     sequence: 1,
@@ -139,7 +142,7 @@ var amorphic =
     heartBeat: null,
     session: (new Date()).getTime(),
     state: 'live',
-
+    app: 'generic',
     /**
      * start a session with the server and process any initial messages
      *
@@ -150,7 +153,7 @@ var amorphic =
      */
     establishClientSession: function(controllerTemplate, appVersion, bindController, refresh, reload, offline)
     {
-        this.setCookie('session', this.session, 0);
+        this.setCookie('session' + this.app, this.session, 0);
 
         // Initialize object
         if (appVersion == "0")
@@ -265,7 +268,7 @@ var amorphic =
         if (this.state == 'zombie') {
             this.state = 'live';
             this.rootId = null;  // Cancel forcing our controller on server
-            this.setCookie('session', this.session, 0);
+            this.setCookie('session' + this.app, this.session, 0);
             this.refreshSession();
             console.log("Getting live again - fetching state from server");
         }
@@ -273,7 +276,7 @@ var amorphic =
 
     // Anytime we see some other windows session has been stored we become a zombie
     _zombieCheck: function () {
-        if (this.getCookie('session') != this.session) {
+        if (this.getCookie('session' + this.app) != this.session) {
             if (this.state != 'zombie') {
                 this.expireController();
                 console.log("Another browser took over, entering zombie state");

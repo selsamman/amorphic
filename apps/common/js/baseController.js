@@ -371,7 +371,32 @@ BaseController = objectTemplate.create("BaseController", {
 				}
 			}
 		}
-	}
+	},
+
+    loadScript: function(src, then) {
+        var head= document.getElementsByTagName('head')[0];
+        var script= document.createElement('script');
+        var thenFunction = then;
+        var self = this;
+        script.type= 'text/javascript';
+        script.src= src;
+        if (then) {
+            if(document.all) {
+                script.onreadystatechange = function() {
+                    if (script.readyState == 'complete')
+                        script.onreadystatechange = "";
+                    else if (script.readyState == 'loaded')
+                        script.onreadystatechange = "";
+                    thenFunction.call(self);
+                }
+            }
+            else
+                script.onload = function() {
+                    thenFunction.call(self);
+                }
+        }
+        head.appendChild(script);
+    }
 
 });
 

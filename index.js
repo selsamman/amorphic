@@ -641,63 +641,63 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     for (var appKey in appList)
     {
         if (appStartList.match(appKey + ';'))
-        (function () {
-            var appName = appKey;
-            var path = appList[appName];
-            var cpath = dirname + '/apps/common/';
-            function readFile (file) {return file && fs.existsSync(file) ? fs.readFileSync(file) : null;}
-            var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
-            config.nconf = nconf; // global config
-            var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
-            schemas[appKey] = schema;
+            (function () {
+                var appName = appKey;
+                var path = appList[appName];
+                var cpath = dirname + '/apps/common/';
+                function readFile (file) {return file && fs.existsSync(file) ? fs.readFileSync(file) : null;}
+                var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
+                config.nconf = nconf; // global config
+                var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
+                schemas[appKey] = schema;
 
-            var dbName = nconf.get(appName + '_dbName') || config.dbName || dbname;
-            var dbPath = nconf.get(appName + '_dbPath') || config.dbPath || dbpath;
-            if (dbName && dbPath) {
-                promises.push(Q.ninvoke(MongoClient, "connect", dbPath + dbName).then (function (db)
-                        {
-                            console.log("DB connection established to " + dbName);
-                            function injectObjectTemplate (objectTemplate) {
-                                objectTemplate.setDB(db);
-                                objectTemplate.setSchema(schema);
-                                objectTemplate.config = config;
-                                objectTemplate.logLevel = nconf.get('logLevel') || 1;
-                            }
+                var dbName = nconf.get(appName + '_dbName') || config.dbName || dbname;
+                var dbPath = nconf.get(appName + '_dbPath') || config.dbPath || dbpath;
+                if (dbName && dbPath) {
+                    promises.push(Q.ninvoke(MongoClient, "connect", dbPath + dbName).then (function (db)
+                            {
+                                console.log("DB connection established to " + dbName);
+                                function injectObjectTemplate (objectTemplate) {
+                                    objectTemplate.setDB(db);
+                                    objectTemplate.setSchema(schema);
+                                    objectTemplate.config = config;
+                                    objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                                }
 
-                            amorphic.establishApplication(appName,
-                                    path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
-                                sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
+                                amorphic.establishApplication(appName,
+                                        path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
+                                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
-                            if (config.isDaemon) {
-                                amorphic.establishDaemon(appName);
-                                console.log(appName + " started as a daemon");
-                            } else
-                                promises.push(Q(true));
+                                if (config.isDaemon) {
+                                    amorphic.establishDaemon(appName);
+                                    console.log(appName + " started as a daemon");
+                                } else
+                                    promises.push(Q(true));
 
-                        },
-                        function(e) {console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)})
-                )} else {
+                            },
+                            function(e) {console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)})
+                    )} else {
 
-                // No database case
+                    // No database case
 
-                function injectObjectTemplate(objectTemplate) {
-                    objectTemplate.config = config;
-                    objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                    function injectObjectTemplate(objectTemplate) {
+                        objectTemplate.config = config;
+                        objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                    }
+
+                    amorphic.establishApplication(appName,
+                            path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
+                        sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
+
+                    if (config.isDaemon) {
+                        amorphic.establishDaemon(appName);
+                        console.log(appName + " started as a daemon");
+                    } else
+                        promises.push(Q(true));
+
+
                 }
-
-                amorphic.establishApplication(appName,
-                        path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
-                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
-
-                if (config.isDaemon) {
-                    amorphic.establishDaemon(appName);
-                    console.log(appName + " started as a daemon");
-                } else
-                    promises.push(Q(true));
-
-
-            }
-        })();
+            })();
     }
 
     Q.all(promises).then( function ()
@@ -742,6 +742,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                         response.setHeader("Content-Type", "application/javascript");
                         response.setHeader("Cache-Control", "public, max-age=0");
                         response.end(
+                                "amorphic.setApplication('" + appName + "');" +
                                 "amorphic.setSchema(" + JSON.stringify(schemas[appName]) + ");" +
                                 session.getModelSource() +
                                 "amorphic.setConfig(" + session.getServerConfigString() +");" +

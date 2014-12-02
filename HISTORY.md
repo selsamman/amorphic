@@ -1,3 +1,5 @@
+## 0.1.61
+* Zombie detection code now takes into account application name  
 ## 0.1.60
 * file upload mechansim now compatible with REDIS  
 ## 0.1.59

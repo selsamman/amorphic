@@ -708,12 +708,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
             preSessionInject.call(null, app);
 
         for (var appName in appList) {
-            if (appStartList.match(appKey + ';')) {
+            if (appStartList.match(appName + ';')) {
                 var path = dirname + "/" + appList[appName] + "/public";
                 app.use("/" + appName + '/', connect.static(path, {index: "index.html"}));
                 if (appName == mainApp)
                     app.use("/", connect.static(path, {index: "index.html"}));
-                console.log("Url " + url + " connected to " + path);
+                console.log(appName + " connected to " + path);
             }
         }
 

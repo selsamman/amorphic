@@ -1,3 +1,6 @@
+## 0.1.65
+* Corrected problems starting specific applications from command line
+* Support for new subdoc handling in persistor
 ## 0.1.62
 * Allow file uploads in iFrames
 ## 0.1.61

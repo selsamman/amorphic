@@ -79,9 +79,11 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
             this._initSchema(type);
         var childrenRef = schema && schema.children && schema.children[prop];
         var parentsRef = schema && schema.parents && schema.parents[prop];
+        var crossChildren = schema && schema.children && schema.children[prop]  && schema.children[prop].crossDocument;
+        var crossParent = schema && schema.parents && schema.parents[prop] && schema.parents[prop].crossDocument;
 
-        var isCrossDocRef =  (of && of.__collection__ && ((of.__collection__ != collection) || childrenRef)) ||
-            (type && type.__collection__ && ((type.__collection__ != collection) || parentsRef));
+        var isCrossDocRef =  (of && of.__collection__ && ((of.__collection__ != collection) || (childrenRef && crossChildren))) ||
+            (type && type.__collection__ && ((type.__collection__ != collection) || (parentsRef && crossParent)));
 
         if (isCrossDocRef) {
             (function ()
@@ -203,7 +205,9 @@ var amorphic =
 
                 var message = JSON.parse(request.responseText);
                 if (self.logLevel > 0)
-                    console.log("receiving " + message.type + " " + message.name + " serverAppVersion=" + message.ver);
+                    console.log("receiving " + message.type + " " + message.name + " serverAppVersion=" + message.ver +
+                        "executionTime=" + ((new Date()).getTime() - self.lastServerInteraction) +
+                        "ms messageSize=" + Math.round(request.responseText.length / 1000) + "K");
 
                 // If app version in message not uptodate
                 if (self.appVersion && message.ver != self.appVersion) {
@@ -224,7 +228,7 @@ var amorphic =
                     self._reset(message);
                 else {
                     RemoteObjectTemplate.processMessage(message);
-                    self.refresh();
+                    Q.delay(50).then(function () {self.refresh()}); // Let the promises settle out
                 }
 
                 if (message.sync === false)
@@ -259,7 +263,7 @@ var amorphic =
         var iFrameDoc = iFrame.contentWindow.document;
         var content = document.getElementById(id + '_content').value;
         iFrameDoc.open();
-        iFrameDoc.write(content.replace(/__url__/, this.url + '&file=yes'));
+        iFrameDoc.write(content.replace(/__url__/, '/' + this.url + '&file=yes'));
         iFrameDoc.close();
     },
 

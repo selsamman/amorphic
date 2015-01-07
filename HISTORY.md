@@ -1,3 +1,5 @@
+## 0.1.68
+* Problem in amorphic url for test framework
 ## 0.1.65
 * Corrected problems starting specific applications from command line
 * Support for new subdoc handling in persistor

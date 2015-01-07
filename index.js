@@ -136,7 +136,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                 return {
                     getServerConnectString: function () {
                         return JSON.stringify({
-                            url: "amorphic/xhr?path=" + path,
+                            url: "/amorphic/xhr?path=" + path,
                             message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
                         })
                     },
@@ -189,7 +189,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             var message = this.getMessage();
             message.ver = appVersion;
             return JSON.stringify({
-                url: "amorphic/xhr?path=" + path,
+                url: "/amorphic/xhr?path=" + path,
                 message: message
             })
         },

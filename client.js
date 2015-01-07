@@ -263,7 +263,7 @@ var amorphic =
         var iFrameDoc = iFrame.contentWindow.document;
         var content = document.getElementById(id + '_content').value;
         iFrameDoc.open();
-        iFrameDoc.write(content.replace(/__url__/, '/' + this.url + '&file=yes'));
+        iFrameDoc.write(content.replace(/__url__/, this.url + '&file=yes'));
         iFrameDoc.close();
     },
 

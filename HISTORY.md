@@ -1,3 +1,5 @@
+## 0.1.69
+* Force version on model files to prevent browser caching issue
 ## 0.1.68
 * Problem in amorphic url for test framework
 ## 0.1.65

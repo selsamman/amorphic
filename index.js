@@ -257,7 +257,7 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
 
         if (typeof(path) != 'undefined') {
             if (sourceMode == 'debug') {
-                applicationSource[path] += "document.write(\"<script src='/" + clientPath + "/js/" + file + "'></script>\");\n\n";
+                applicationSource[path] += "document.write(\"<script src='/" + clientPath + "/js/" + file + "?ver=" + config.appVersion + "'></script>\");\n\n";
             } else {
                 applicationSource[path] += "module.exports." + prop + " = " + require_results[prop] + "\n\n";
                 if (mixins_initializer)

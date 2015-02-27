@@ -227,8 +227,8 @@ var amorphic =
                 if (message.newSession || message.type == "refresh")
                     self._reset(message);
                 else {
-                    RemoteObjectTemplate.processMessage(message);
-                    Q.delay(50).then(function () {self.refresh()}); // Let the promises settle out
+                    var hasChanges = RemoteObjectTemplate.processMessage(message);
+                    Q.delay(50).then(function () {self.refresh(hasChanges)}); // Let the promises settle out
                 }
 
                 if (message.sync === false)

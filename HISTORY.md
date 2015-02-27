@@ -1,3 +1,5 @@
+## 0.1.70
+* Don't cause refresh if server call didn't make changes
 ## 0.1.69
 * Force version on model files to prevent browser caching issue
 ## 0.1.68

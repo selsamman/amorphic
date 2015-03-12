@@ -1,3 +1,6 @@
+## 0.1.71
+* Got rid of obsolete code
+* Allow {client: false} as the 2nd parameter of getTemplate to prevent transmission to browser
 ## 0.1.70
 * Don't cause refresh if server call didn't make changes
 ## 0.1.69

@@ -206,21 +206,9 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
         appVersion: appVersion
     };
 
-    // Call any initialization function which may actually send messages to the client
-    if (newSession && typeof(controller.serverInit) == "function") {
-        return Q.resolve(controller.serverInit.call(controller, req, newPage))
-            .then(function() {
-                // If we are waiting to complete processing of a response take care of that
-                if (deferred[session.id])
-                    deferred[session.id].resolve();
-                saveSession(path, session, controller);
-                return Q.fcall(function () {return ret});
-            });
-    } else {
-        if (newPage)
-            saveSession(path, session, controller);
-        return Q.fcall(function () {return ret});
-    }
+    if (newPage)
+        saveSession(path, session, controller);
+    return Q.fcall(function () {return ret});
 }
 var controllers = {};
 
@@ -230,12 +218,23 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
     var ref = {};
     var mixins = [];
     var toRoot = __dirname.match(/node_modules/) ? "../../" : "./";
+    var ignoringClient = false;
+    var filesNeeded = {};
+    var applicationSourceMap = {};
 
-    function getTemplate(file) {
+    function getTemplate(file, options) {
+        var previousIgnoringClient = ignoringClient;
+        if(options && (options.client === false))
+            ignoringClient = true;
         file.match(/([0-9A-Za-z_]*)\.js/);
         var prop = RegExp.$1;
-        if (requires[prop])
+        if (!ignoringClient) {
+            filesNeeded[prop] = true;
+        }
+        if (requires[prop]) {
+            ignoringClient = previousIgnoringClient;
             return requires[prop];
+        }
         if (ref[prop])
             throw  new Error("circular reference on " + file);
         ref[prop] = true;
@@ -257,18 +256,29 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
 
         if (typeof(path) != 'undefined') {
             if (sourceMode == 'debug') {
-                applicationSource[path] += "document.write(\"<script src='/" + clientPath + "/js/" + file + "?ver=" + config.appVersion + "'></script>\");\n\n";
+                applicationSourceMap[prop] =  "document.write(\"<script src='/" + clientPath + "/js/" + file + "?ver=" + config.appVersion + "'></script>\");\n\n";
             } else {
-                applicationSource[path] += "module.exports." + prop + " = " + require_results[prop] + "\n\n";
-                if (mixins_initializer)
-                    applicationSource[path] += "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n";
+                applicationSourceMap[prop] = "module.exports." + prop + " = " + require_results[prop] + "\n\n" +
+                    (mixins_initializer ? "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n" : "");
             }
         }
+
+        ignoringClient = previousIgnoringClient;
         return templates;
     }
 
     for (var ix = 0; ix < templates.length; ++ix)
         getTemplate(templates[ix]);
+
+    for (var prop in applicationSourceMap)
+        if (filesNeeded[prop])
+            applicationSource[path] += applicationSourceMap[prop];
+        else {
+            for (var template in requires[prop])
+                requires[prop][template].__toClient__ = false;
+            if (prop == "Workflow")
+                console.log("requires[prop][template].__toClient__ = " + requires[prop][template].__toClient__);
+        }
 
     for (var ix = 0;ix < mixins.length;++ix)
         if (mixins[ix])
@@ -393,6 +403,8 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         var controller = controllerId ?
             objectTemplate._createEmptyObject(controllerTemplate, controllerId) :
             new controllerTemplate();
+        if (typeof(controller.serverInit) == "function")
+            controller.serverInit();
         if (controllerId)
             objectTemplate.syncSession();
         log(1, sessionId, "Creating new controller " + (newPage ? " new page " : "") + browser);
@@ -522,15 +534,6 @@ function processMessage(req, resp)
                 console.log("processing request took " + took + " response length = " + respstr.length);
 
         }
-        deferred[req.session.id] = Q.defer();
-        deferred[req.session.id].promise.then(function() {
-            log(1, req.session.id, "sending deferred empty response");
-            ourObjectTemplate.setSession(remoteSessionId);
-            ourObjectTemplate.enableSendMessage(false);
-            semotus.save(path, session);
-            resp.end("");
-            delete deferred[req.session.id];
-        }).done();
         ourObjectTemplate.enableSendMessage(true, sendMessage);  // Enable the sending of the message in the response
         try {
             ourObjectTemplate.processMessage(message);

@@ -1,3 +1,5 @@
+## 0.1.72
+* Added objectTemplate.expireSession
 ## 0.1.71
 * Got rid of obsolete code
 * Allow {client: false} as the 2nd parameter of getTemplate to prevent transmission to browser

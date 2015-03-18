@@ -504,6 +504,10 @@ function processMessage(req, resp)
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
 
+        ourObjectTemplate.expireSession = function () {
+            req.session.destroy();
+        }
+
         // If we expired just return a message telling the client to reset itself
         if (semotus.newSession || newPage || forceReset)
         {

@@ -8,10 +8,10 @@ module.exports.controller = function (objectTemplate, getTemplate)
     }
 
     MyTemplate = objectTemplate.create("MyTemplate", {
-        myNumber:   {type: Number},
-        myString:   {type: String},
-        myDate:     {type: Date},
-        myArrayObj: {type: Array, of: Object, value:[]},
+        myNumber:   {type: Number, value: 100},
+        myString:   {type: String, value: "100"},
+        myDate:     {type: Date, value: (new Date("January 15, 2014"))},
+        myArrayObj: {type: Array, of: Object, value:[1, 2, 3]},
         init: function (n, s, d) {
             this.myNumber = n;
             this.myString = s;
@@ -35,6 +35,8 @@ module.exports.controller = function (objectTemplate, getTemplate)
                     b = b.toString();
 
                 if (a instanceof Array) {
+                    if (a.length != b.length)
+                        return false;
                     if (a.length == 0 && b.length == 0)
                         return true;
                     else
@@ -49,7 +51,8 @@ module.exports.controller = function (objectTemplate, getTemplate)
                 if (b && b.__id__)
                     b = b.__id__;
 
-                return a == b;
+
+                return JSON.stringify(a) == JSON.stringify(b);
             }
 
             this.value = result;
@@ -65,7 +68,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
         myNumber:       {type: Number},
         myString:       {type: String},
         myDate:         {type: Date},
-        myArrayObj:     {type: Array, of: Object},
+        myArrayObj:     {type: Array, of: Object, value: []},
         myArrayTObj:    {type: Array, of: MyTemplate, value:[]},
         myObj:          {type: Object},
 
@@ -81,13 +84,13 @@ module.exports.controller = function (objectTemplate, getTemplate)
         }},
 
         clientInit: function () {
+            this.assertions = [];
             this.assertIs(this.myNumber, null, "controller.myNumber is null");
             this.assertIs(this.myString, null, "controller.myString is null");
             this.assertIs(this.myDate, null, "controller.myDate is null");
-            this.assertIs(this.myArrayObj, null, "controller.myArrayObj is null");
+            this.assertIs(this.myArrayObj.length, 0, "controller.myArrayObj is []");
             this.assertIs(this.myArrayTObj.length, 0, "controller.myArrayTObj is []");
             this.assertIs(this.myObj, null, "controller.myObj is null");
-            this.assertions = [];
 
             var t1 = new MyTemplate(1, "two", new Date("January 15, 2015"));
             var t2;
@@ -112,6 +115,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
                 return this.doServer('myNumber', null, "controller.myNumber is 0", 0);
             }.bind(this)).then(function () {
                 this.assertIs(this.myNumber, 0, "controller.myNumber is 0");
+                this.myNumber = null;
                 
             // String
                 
@@ -154,18 +158,55 @@ module.exports.controller = function (objectTemplate, getTemplate)
             }.bind(this)).then(function () {
                 this.assertIs(this.myArrayTObj, [t1], "controller.myArrayTObj is t1");
                 this.myArrayTObj = null;
+                t2.myNumber = null;
                 return this.doServer('myArrayTObj', null, "controller.myArrayTObj is null", [t2]);
             }.bind(this)).then(function () {
                 this.assertIs(this.myArrayTObj, [t2], "controller.myArrayTObj is t2");
-                this.myArrayTObj = [t2, t1];
+                this.myArrayTObj[1] = t1;
                 return this.doServer('myArrayTObj', [t2, t1], "controller.myArrayTObj is t2, t1", null);
             }.bind(this)).then(function () {
                 this.assertIs(this.myArrayTObj, null, "controller.myArrayTObj is null");
 
-            }.bind(this));
+                // Object array
+
+                this.assertIs(this.myArrayObj, [], "controller.myArrayObj is []");
+                this.myArrayObj = [{t: 1}, {t: 2}];
+                return this.doServer('myArrayObj', [{t: 1}, {t: 2}], "controller.myArrayObj is {t: 1}, {t: 2}", [{t: 1}]);
+            }.bind(this)).then(function () {
+                this.assertIs(this.myArrayObj, [{t: 1}], "controller.myArrayObj is {t: 1}");
+                this.myArrayObj = null;
+                return this.doServer('myArrayObj', null, "controller.myArrayObj is null", [{t: 2}]);
+            }.bind(this)).then(function () {
+                this.assertIs(this.myArrayObj, [{t: 2}], "controller.myArrayObj is {t: 2}");
+                this.myArrayObj[1] = {t: 1};
+                return this.doServer('myArrayObj', [{t: 2}, {t: 1}], "controller.myArrayObj is {t: 2}, {t: 1}", null);
+            }.bind(this)).then(function () {
+                this.assertIs(this.myArrayObj, null, "controller.myArrayObj is null");
+
+            // Object 
+
+                this.assertIs(this.myObj, null, "controller.myObj is null");
+                this.myObj = {foo: 'one'};
+                return this.doServer('myObj', {foo: 'one'}, "controller.myObj is {foo: 'one'}", {foo: 'two'});
+            }.bind(this)).then(function () {
+                this.assertIs(this.myObj, {foo: 'two'}, "controller.myObj is {foo: 'two'}");
+                this.myObj = null;
+                return this.doServer('myObj', null, "controller.myObj is null", {foo: 'one'});
+            }.bind(this)).then(function () {
+                this.assertIs(this.myObj, {foo: 'one'}, "controller.myObj is {foo: 'one'}");
+                this.myObj = {foo: 'two'};
+                return this.doServer('myObj', {foo: 'two'}, "controller.myObj is {foo: 'two'}", null);
+            }.bind(this)).then(function () {
+                this.assertIs(this.myObj, null, "controller.myObj is null");
+
+            }.bind(this)).fail(function (error) {
+                    console.log(error.message);
+                    console.log(error.stack.toString());
+            });
         },
         createMyTemplateOnServer: {on: "server", body: function () {
-            return new MyTemplate(2, "three", new Date("January 15, 2015"));
+            var my = new MyTemplate(2, "three", new Date("January 15, 2015"));
+            return my;
         }},
         
 		worlds:        {type: Array, of: World, value: []},

@@ -1,3 +1,5 @@
+## 0.1.73
+* Don't expect persistors for non-schema objects
 ## 0.1.72
 * Added objectTemplate.expireSession
 ## 0.1.71

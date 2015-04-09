@@ -109,7 +109,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     // For a new page determine if a controller is to be omitted
     if (newPage == "initial" && config.appConfig.createControllerFor && !session.semotus)
     {
-        var referer = url.parse(req.headers['referer'], true).path;
+        var referer = req.headers['referer'] ? url.parse(req.headers['referer'], true).path : "";
         var match = config.appConfig.createControllerFor;
         if (!referer.match(match))
         {

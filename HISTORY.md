@@ -1,3 +1,5 @@
+## 0.1.74
+* Don't require referer header to support AWS Cloudfront
 ## 0.1.73
 * Don't expect persistors for non-schema objects
 ## 0.1.72

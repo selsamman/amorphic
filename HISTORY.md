@@ -1,3 +1,5 @@
+## 0.1.75
+* Don't let undefined values in template returns throw an exception
 ## 0.1.74
 * Don't require referer header to support AWS Cloudfront
 ## 0.1.73

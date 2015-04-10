@@ -275,9 +275,10 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
             applicationSource[path] += applicationSourceMap[prop];
         else {
             for (var template in requires[prop])
-                requires[prop][template].__toClient__ = false;
-            if (prop == "Workflow")
-                console.log("requires[prop][template].__toClient__ = " + requires[prop][template].__toClient__);
+                if (requires[prop][template])
+                    requires[prop][template].__toClient__ = false;
+                else
+                    console.log(template + " not found in requires for " + prop);
         }
 
     for (var ix = 0;ix < mixins.length;++ix)

@@ -4,30 +4,27 @@
 <head>
 
     <!-- boiler plate -->
-    <script src="modules/q/q.js?ver=0q.js?ver=0"></script>
+    <script src="/modules/q/q.js?ver=0q.js?ver=0"></script>
     <script src="/bindster/index.js?ver=0"></script>
     <script src="/supertype/index.js?ver=0"></script>
     <script src="/semotus/index.js?ver=0"></script>
     <script src="/amorphic/client.js?ver=0"></script>
 
     <!-- Dynamically generated script that will instatiate the controller -->
-    <script src="/amorphic/init/helloworld.js?ver=0"></script>
-
-    <script src="../../common/js/lib/bootstrap.min.js"></script>
-    <link href="../../common/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/amorphic/init/tests.js?ver=0"></script>
 
 </head>
 
 <body style="visibility:hidden;">
 
     <!-- View -->
-    <input type="button" b:onclick="newWorld()" value="create world"/><br />
-
-    <b:iterate on="worlds" with="world">
-        <div>
-            Hello I was created at <span b:bind="world.createdAt"></span>
+    <b:iterate on="assertions" with="assertion" index="ix">
+        <div b:style="color: {assertion.value ? 'green' : 'red'}">
+            <span b:bind="ix"></span>: <span b:bind="assertion.name"></span>
         </div>
     </b:iterate>
+
+    <a href="amorphic/xhr?path=helloworld&file=gimbal_housing.pdf" target="_blank">Download a PDF</a>
 
     <!-- Bind view to amorphic -->
     <script src="/bindster/bindster-amorphic.js"></script>

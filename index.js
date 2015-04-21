@@ -753,7 +753,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                                 "amorphic.setApplication('" + appName + "');" +
                                 "amorphic.setSchema(" + JSON.stringify(schemas[appName]) + ");" +
                                 session.getModelSource() +
-                                "amorphic.setConfig(" + session.getServerConfigString() +");" +
+                                "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
                                 "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
                         );
                     }).done();

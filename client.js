@@ -439,7 +439,7 @@ var amorphic =
         }
         for (var exp in module.exports) {
             if (exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config.modules ? this.config.modules[exp.replace(/_mixins/,'')] : null);
+                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config ? this.config[exp.replace(/_mixins/,'')] : null);
                 for (var template in  templates)
                     window[template] = templates[template];
             }

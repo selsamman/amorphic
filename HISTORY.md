@@ -1,3 +1,5 @@
+## 0.1.80
+* Make config_secure.json override config.json
 ## 0.1.76
 * setConfig was causing leakage of data from secure.json
 ## 0.1.75

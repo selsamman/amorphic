@@ -623,8 +623,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     // Configuraiton file
     var nconf = require('nconf');
     nconf.argv().env();
-    nconf.file('checkedin', 'config.json');
     nconf.file('local', 'config_secure.json');
+    nconf.file('checkedin', 'config.json');
 
     // Global varibles
     var sessionExpiration = nconf.get('sessionSeconds') * 1000;

@@ -537,8 +537,14 @@ function processMessage(req, resp)
             var took = (diff[0] * 1e9 + diff[1]) / 1000000;
             if (performanceLogging)
                 console.log("processing request took " + took + " response length = " + respstr.length);
-
         }
+
+        var forwardedIpsStr = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        if (forwardedIpsStr)
+            ourObjectTemplate.incomingIP = forwardedIpsStr.split(',')[0];
+        else
+            ourObjectTemplate.incomingIP = 'unknown';
+
         ourObjectTemplate.enableSendMessage(true, sendMessage);  // Enable the sending of the message in the response
         try {
             ourObjectTemplate.processMessage(message);
@@ -553,7 +559,6 @@ function processMessage(req, resp)
         resp.end(error.toString());
     }).done();
 }
-
 function route(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/))
         processMessage(req, resp);

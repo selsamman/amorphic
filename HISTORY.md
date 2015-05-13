@@ -1,3 +1,7 @@
+## 0.1.82
+* Clear session when we expireController()
+## 0.1.81
+* Record incoming IP address in objectTemplate.incomingIP
 ## 0.1.80
 * Make config_secure.json override config.json
 ## 0.1.76

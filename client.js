@@ -145,6 +145,7 @@ var amorphic =
     session: (new Date()).getTime(),
     state: 'live',
     app: 'generic',
+    sessionId: 0,
     /**
      * start a session with the server and process any initial messages
      *
@@ -320,6 +321,9 @@ var amorphic =
     expireController: function ()
     {
         // Create new controller
+        if (this.sessionId)
+            RemoteObjectTemplate.deleteSession(this.sessionId)
+        this.sessionId = RemoteObjectTemplate.createSession('client', this.sendMessage);
         this.controller = new (this.controllerTemplate)();
         this.rootId = this.controller.__id__;  // Force it to be sent as reset on next message
         RemoteObjectTemplate.controller = this.controller;
@@ -346,7 +350,9 @@ var amorphic =
 
     _reset: function (message, appVersion, reload)
     {
-        RemoteObjectTemplate.createSession('client', this.sendMessage);
+        if (this.sessionId)
+            RemoteObjectTemplate.deleteSession(this.sessionId)
+        this.sessionId = RemoteObjectTemplate.createSession('client', this.sendMessage);
         RemoteObjectTemplate.setMinimumSequence(message.startingSequence);
         if (message.rootId)
             this.controller = RemoteObjectTemplate._createEmptyObject(this.controllerTemplate, message.rootId)

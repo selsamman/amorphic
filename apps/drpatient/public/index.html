@@ -13,6 +13,8 @@
     <!-- Dynamically generated script that will instatiate the controller -->
     <script src="/amorphic/init/drpatient.js?ver=0"></script>
 
+    <script src="../../common/js/lib/underscore.js"></script>
+    <script src="../../common/js/lib/jquery.js"></script>
     <script src="../../common/js/lib/bootstrap.min.js"></script>
     <link href="../../common/css/bootstrap.min.css" rel="stylesheet">
 
@@ -20,59 +22,59 @@
 
 <body style="visibility:hidden;">
 
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="panel panel-default">
-                    <div class="panel-heading">Doctors</div>
-                    <div class="panel-body">
-                        <b:iterate on="doctors" with="doctor">
-                            <div><a href="#" b:bind="doctor.name" b:onclick="selectedDoctor = doctor"></a></div>
-                        </b:iterate>
-                        <div>
-                            <input b:bind="doctorName" class="form-control" b:placeholder="New Doctor" />
-                            <a href="#" b:onclick="addDoctor()">Add</a>
-                        </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">Doctors</div>
+                <div class="panel-body">
+                    <b:iterate on="doctors" with="doctor">
+                        <div><a href="#" b:bind="doctor.name" b:onclick="selectedDoctor = doctor"></a></div>
+                    </b:iterate>
+                    <div>
+                        <input b:bind="doctorName" class="form-control" b:placeholder="New Doctor" />
+                        <a href="#" b:onclick="addDoctor()">Add</a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="panel panel-default">
-                    <div class="panel-heading">Patients</div>
-                    <div class="panel-body">
-                        <b:iterate on="patients" with="patient">
-                            <div b:bind="patient.name"></div>
-                        </b:iterate>
-                        <div>
-                            <input b:bind="patientName" class="form-control" b:placeholder="New Patient" />
-                            <a href="#" b:onclick="addPatient()">Add</a>
-                        </div>
+        </div>
+        <div class="col-md-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">Patients</div>
+                <div class="panel-body">
+                    <b:iterate on="patients" with="patient">
+                        <div b:bind="patient.name"></div>
+                    </b:iterate>
+                    <div>
+                        <input b:bind="patientName" class="form-control" b:placeholder="New Patient" />
+                        <a href="#" b:onclick="addPatient()">Add</a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="panel panel-default" b:showif="selectedDoctor">
-                    <div class="panel-heading">Appointments for <span b:bind="selectedDoctor.name"></span></div>
-                    <div class="panel-body">
-                        <b:iterate on="selectedDoctor.appointments" with="appointment">
-                            <div>
-                                <span b:bind="appointment.patient.name"></span> <span b:bind="appointment.when" b:format="formatDateTime()">-
-                                <a href="#" b:onclick="appointment.cancel()">Delete</a>
-                            </div>
-                        </b:iterate>
+        </div>
+        <div class="col-md-4">
+            <div class="panel panel-default" b:showif="selectedDoctor">
+                <div class="panel-heading">Appointments for <span b:bind="selectedDoctor.name"></span></div>
+                <div class="panel-body">
+                    <b:iterate on="selectedDoctor.appointments" with="appointment">
                         <div>
-                            Patient: <select b:bind="appPatient" class="form-control" b:fill="patients" b:fill-key="value._\\_id_\\_" b:fill-value="value.name"></select>
-                            When: <input b:bind="appTime" class="form-control" b:placeholder="Appointment Time" b:format="formatDateTime()" b:parse="parseDate()"/>
-                            <a href="#" b:onclick="addAppointment()">Add</a>
+                            <span b:bind="appointment.patient.name"></span> - <span b:bind="appointment.when" b:format="formatDateTime()"></span> -
+                            <a href="#" b:onclick="appointment.cancel()">Delete</a>
                         </div>
+                    </b:iterate>
+                    <div>
+                        Patient: <select b:bind="appPatient" class="form-control" b:fill="patients" b:fill-key="value._\\_id_\\_" b:fill-value="value.name"></select>
+                        When: <input b:bind="appTime" class="form-control" b:placeholder="Appointment Time" b:format="formatDateTime()" b:parse="parseDate()"/>
+                        <a href="#" b:onclick="addAppointment()">Add</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Bind view to amorphic -->
-    <script src="/bindster/bindster-amorphic.js"></script>
+<!-- Bind view to amorphic -->
+<script src="/bindster/bindster-amorphic.js"></script>
 
 </body>
 </html>

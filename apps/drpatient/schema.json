@@ -1,0 +1,21 @@
+{
+  "Doctor": {
+    "documentOf" : "Doctor",
+    "children": {
+      "appointments":    	{"template": "Appointment", "id":"doctor_id"}
+    }
+  },
+  "Patient": {
+    "documentOf" : "Patient",
+    "children": {
+      "appointments":       {"template": "Appointment", "id":"patient_id"}
+    }
+  },
+  "Appointment": {
+    "documentOf" : "Appointment",
+    "parents": {
+      "doctor":      		{"template": "Doctor",  "id": "doctor_id"},
+      "patient":      	{"template": "Patient", "id": "patient_id"}
+    }
+  }
+}

@@ -1,3 +1,5 @@
+## 0.1.83
+* Updated doctor patient sample
 ## 0.1.82
 * Clear session when we expireController()
 ## 0.1.81

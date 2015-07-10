@@ -18,8 +18,8 @@ module.exports.model = function (objectTemplate, getTemplate)
             patient.appointments.push(this);
         },
         cancel: function () {
-            this.doctor.splice(_.find(this.doctor.appointments), function (a) {return a == this}.bind(this), 1);
-            this.patient.splice(_.find(this.patient.appointments), function (a) {return a == this}.bind(this), 1);
+            this.doctor.appointments.splice(_.find(this.doctor.appointments, function (a) {return a == this}.bind(this)), 1);
+            this.patient.appointments.splice(_.find(this.patient.appointments, function (a) {return a == this}.bind(this)), 1);
         }
     });
     Doctor.mixin({

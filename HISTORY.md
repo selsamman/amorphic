@@ -1,3 +1,5 @@
+## 0.1.85
+* Allow get fetch to be forced by specifying query options
 ## 0.1.83
 * Updated doctor patient sample
 * Set zombie status before expiring controller

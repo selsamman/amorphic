@@ -85,7 +85,7 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
         var isCrossDocRef =  (of && of.__collection__ && ((of.__collection__ != collection) || (childrenRef && crossChildren))) ||
             (type && type.__collection__ && ((type.__collection__ != collection) || (parentsRef && crossParent)));
 
-        if (collection && isCrossDocRef) {
+        if (defineProperty.queryOptions || (collection && isCrossDocRef)) {
             (function ()
             {
                 var closureProp = prop;

@@ -283,10 +283,10 @@ var amorphic =
     _zombieCheck: function () {
         if (this.getCookie('session' + this.app) != this.session) {
             if (this.state != 'zombie') {
+                this.state = 'zombie'
                 this.expireController();
                 console.log("Another browser took over, entering zombie state");
             }
-            this.state = 'zombie'
         }
     },
 

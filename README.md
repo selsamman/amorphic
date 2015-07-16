@@ -10,13 +10,12 @@ To get started with a more complex app see the [Amorphic Ticket Demo](https://gi
 
 To start with a hello world follow these instructions
 
-    mkdir node_modules
     npm install amorphic
     npm install Q
 
 Then move these from node_modules\amorphic into the root
 
-* apps folder which contains a hello world app
+* apps folder which contains a hello world app and a doctor patient app
 
 * config.json
 

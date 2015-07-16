@@ -1,41 +1,39 @@
 module.exports.model = function (objectTemplate, getTemplate)
 {
-	Doctor = objectTemplate.create("Doctor", {
-		name: {type: String}
+    Doctor = objectTemplate.create("Doctor", {});
+    Patient = objectTemplate.create("Patient", {});
+    Appointment = objectTemplate.create("Appointment", {});
+
+    Doctor.mixin({
+        name:           {type: String},
+        appointments:   {type: Array, of: Appointment, value: []},
+        init: function (name) {this.name = name}
     });
-    Patient = objectTemplate.create("Patient", {
-        name: {type: String}
+
+    Patient.mixin({
+        name:           {type: String},
+        appointments:   {type: Array, of: Appointment, value: []},
+        init: function (name) {this.name = name}
     });
-    Appointment = objectTemplate.create("Appointment", {
-        doctor:     {type: Doctor},
-        patient:    {type: Patient},
-        when:       {type: Date},
-        init:       function(when, doctor, patient) {
+
+    Appointment.mixin({
+        doctor:         {type: Doctor},
+        patient:        {type: Patient},
+        when:           {type: Date},
+        init: function(when, doctor, patient) {
             this.when = when;
             this.doctor = doctor;
             this.patient = patient;
             doctor.appointments.push(this)
             patient.appointments.push(this);
-        },
-        cancel: function () {
-            this.doctor.appointments.splice(_.find(this.doctor.appointments, function (a) {return a == this}.bind(this)), 1);
-            this.patient.appointments.splice(_.find(this.patient.appointments, function (a) {return a == this}.bind(this)), 1);
         }
-    });
-    Doctor.mixin({
-        appointments:    {type: Array, of: Appointment, value: []},
-        init: function (name) {this.name = name}
-    });
-    Patient.mixin({
-        appointments:    {type: Array, of: Appointment, value: []},
-        init: function (name) {this.name = name}
     });
 
     return {
-		Doctor: Doctor,
+        Doctor: Doctor,
         Patient: Patient,
         Appointment: Appointment
-	}
+    }
 
 }
 

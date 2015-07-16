@@ -1,3 +1,5 @@
+## 0.1.86
+* Fixed problem introduced in 1.85
 ## 0.1.85
 * Allow get fetch to be forced by specifying query options
 ## 0.1.83

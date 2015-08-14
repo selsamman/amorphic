@@ -1,3 +1,6 @@
+## 0.1.87
+* serverInit on controller was not tracking changes
+* zombie handling allowed messages to go through
 ## 0.1.86
 * Fixed problem introduced in 1.85
 ## 0.1.85

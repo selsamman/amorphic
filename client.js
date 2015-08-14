@@ -271,20 +271,24 @@ var amorphic =
     // When a zombie gets focus it wakes up.  Pushing it's cookie makes other live windows into zombies
     _windowActivity: function () {
         if (this.state == 'zombie') {
+            this.expireController();  // Toss anything that might have happened
+            RemoteObjectTemplate.enableSendMessage(true, this.sendMessage); // Re-enable sending
             this.state = 'live';
             this.rootId = null;  // Cancel forcing our controller on server
-            this.setCookie('session' + this.app, this.session, 0);
             this.refreshSession();
             console.log("Getting live again - fetching state from server");
         }
+        this.setCookie('session' + this.app, this.session, 0);
     },
 
     // Anytime we see some other windows session has been stored we become a zombie
     _zombieCheck: function () {
-        if (this.getCookie('session' + this.app) != this.session) {
+        if (RemoteObjectTemplate.getPendingCallCount() == 0 &&
+            this.getCookie('session' + this.app) != this.session) {
             if (this.state != 'zombie') {
                 this.state = 'zombie'
                 this.expireController();
+                RemoteObjectTemplate.enableSendMessage(false);  // Queue stuff as a zombie we will toss it later
                 console.log("Another browser took over, entering zombie state");
             }
         }

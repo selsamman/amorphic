@@ -404,10 +404,10 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         var controller = controllerId ?
             objectTemplate._createEmptyObject(controllerTemplate, controllerId) :
             new controllerTemplate();
-        if (typeof(controller.serverInit) == "function")
-            controller.serverInit();
         if (controllerId)
             objectTemplate.syncSession();
+        if (typeof(controller.serverInit) == "function")
+            controller.serverInit();
         log(1, sessionId, "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
@@ -678,7 +678,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                                 }
 
                                 amorphic.establishApplication(appName,
-                                        path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
+                                    path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
                                     sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
                                 if (config.isDaemon) {
@@ -699,7 +699,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                     }
 
                     amorphic.establishApplication(appName,
-                            path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
+                        path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
                         sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
                     if (config.isDaemon) {
@@ -755,11 +755,11 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                         response.setHeader("Content-Type", "application/javascript");
                         response.setHeader("Cache-Control", "public, max-age=0");
                         response.end(
-                                "amorphic.setApplication('" + appName + "');" +
-                                "amorphic.setSchema(" + JSON.stringify(schemas[appName]) + ");" +
-                                session.getModelSource() +
-                                "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
-                                "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
+                            "amorphic.setApplication('" + appName + "');" +
+                            "amorphic.setSchema(" + JSON.stringify(schemas[appName]) + ");" +
+                            session.getModelSource() +
+                            "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
+                            "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
                         );
                     }).done();
                 }

@@ -85,6 +85,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
         doServer: {on: "server", body: function(prop, val, name, newVal) {
             this.assertions.push(new Assertion(this[prop], val, name));
             this[prop] = newVal;
+            return Q.timeout(250);
         }},
 
         clientInit: function () {
@@ -177,7 +178,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
             }.bind(this)).then(function () {
                 this.assertIs(this.myArrayTObj, null, "controller.myArrayTObj is null");
 
-                // Object array
+            // Object array
 
                 this.assertIs(this.myArrayObj, [], "controller.myArrayObj is []");
                 this.myArrayObj = [{t: 1}, {t: 2}];
@@ -208,6 +209,22 @@ module.exports.controller = function (objectTemplate, getTemplate)
                 return this.doServer('myObj', {foo: 'two'}, "controller.myObj is {foo: 'two'}", null);
             }.bind(this)).then(function () {
                 this.assertIs(this.myObj, null, "controller.myObj is null");
+
+            // Asynchronous handling
+
+                this.myObj = {foo: 'one'}
+                var promise1 = this.doServer('myObj', {foo: 'one'}, "controller.myObj is {foo: 'one'}", {foo: 'one'});
+                this.myObj = {foo: 'two'};
+                var promise2 = this.doServer('myObj', {foo: 'two'}, "controller.myObj is {foo: 'two'}", {foo: 'two'});
+                this.myObj = {foo: 'three'};
+                var promise3 = this.doServer('myObj', {foo: 'three'}, "controller.myObj is {foo: 'three'}", {foo: 'three'});
+                return Q.all([promise1, promise2, promise3]);
+
+            }.bind(this)).then(function () {
+                this.assertIs(this.myObj, {foo: 'three'}, "controller.myObj is {foo: three}");
+
+
+            // Final
 
             }.bind(this)).fail(function (error) {
                     console.log(error.message);

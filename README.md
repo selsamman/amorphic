@@ -29,7 +29,8 @@ start node.js
 
 Bring up the hello world test page in your browser and add some worlds!
 
-See this [blog post](http://elsamman.com/?p=117) for more info on Amorphic
+See this [blog post](http://elsamman.com/?p=117) for more info on Amorphic and this
+[video ](http://www.screencast.com/t/Z5Y2jMTmJ) that demos the drpatient sample
 
 ## Status
 

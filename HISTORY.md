@@ -1,3 +1,8 @@
+## 0.1.89
+* Included link to video
+* Pull standard amorphic-bindster
+## 0.1.88
+* Beta version including beta version 0.1.51 of amorphic-bindster for new router functionality 
 ## 0.1.87
 * serverInit on controller was not tracking changes
 * zombie handling allowed messages to go through

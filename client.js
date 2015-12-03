@@ -472,7 +472,6 @@ amorphic = // Needs to be global to make mocha tests work
     },
     getCookieJar: function ()
     {
-        console.log("checking cookies " + document.cookie);
         var cookies = document.cookie.split(";");
         var jar = new Object();
         for (var i = 0; i < cookies.length; ++i)

@@ -1,0 +1,62 @@
+{
+  "Customer": {
+    "documentOf": "customer",
+    "table": "customer",
+    "cascadeSave": true,
+    "children": {
+      "roles": {"id": "customer_id"},
+      "referrers": {"id": "referred_id", "crossDocument": true},
+      "addresses": {"id": "customer_id", "fetch": true}
+    },
+    "parents": {
+      "referredBy": {"id": "referred_id", "crossDocument": true}
+    }
+  },
+  "Address": {
+    "documentOf": "address",
+    "table": "address",
+    "parents": {
+    "account": {"id": "account_id"},
+    "customer": {"id": "customer_id"}
+    },
+    "children": {
+      "returnedMail": {"id": "address_id", "fetch": true}
+    }
+  },
+  "ReturnedMail": {
+    "subDocumentOf": "customer",
+    "table": "rm",
+    "cascadeSave": true,
+    "parents": {
+      "address": {"id": "address_id"}
+    }
+  },
+  "Account": {
+    "documentOf": "account",
+    "table": "account",
+    "children": {
+      "roles": {"id": "account_id"},
+      "transactions": {"id": "account_id", "fetch": true},
+      "fromAccountTransactions": {"id": "from_account_id"}
+    },
+    "parents": {
+      "address": {"id": "address_id", "fetch": true}
+    }
+  },
+  "Role": {
+    "documentOf": "role",
+    "table": "role",
+    "parents": {
+      "customer": {"id": "customer_id"},
+      "account": {"id": "account_id"}
+    }
+  },
+  "Transaction": {
+    "subDocumentOf": "account",
+    "table": "transaction",
+    "parents": {
+      "account": {"id": "account_id"},
+      "fromAccount": {"id": "from_account_id"}
+    }
+  }
+}

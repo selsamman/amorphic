@@ -35,9 +35,10 @@ var applicationSource = {};
 var deferred = {};
 var logger = null;
 var sourceMode = 'debug'
-function establishApplication (path, controllerPath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig) {
-    applicationConfig[path] = {
-        controllerPath: controllerPath,
+function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig) {
+    applicationConfig[appPath] = {
+        appPath: path,
+        commonPath: cpath,
         initObjectTemplate: initObjectTemplate,
         sessionExpiration: sessionExpiration,
         objectCacheExpiration: objectCacheExpiration,
@@ -46,7 +47,7 @@ function establishApplication (path, controllerPath, initObjectTemplate, session
         appConfig: appConfig
     };
     logger = loggerCall ? loggerCall : logger;
-    log(1, "", "semotus extablishing application for " + path);
+    log(1, "", "semotus extablishing application for " + appPath);
 }
 function establishDaemon (path) {
     // Retrieve configuration information
@@ -54,11 +55,10 @@ function establishDaemon (path) {
     if (!config)
         throw  new Error("Semotus: establishServerSession called with a path of " + path + " which was not registered");
     var initObjectTemplate = config.initObjectTemplate;
-    var controllerPath = config.controllerPath;
+    var controllerPath = config.appPath + "controller.js";
 
     var requires = {};
     controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
-    var prefix = RegExp.$1;
     var prop = RegExp.$2
 
     // Create a new unique object template utility
@@ -66,7 +66,7 @@ function establishDaemon (path) {
 
     // Inject into it any db or persist attributes needed for application
     initObjectTemplate(objectTemplate);
-    var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config);
+    var requires = getTemplates(objectTemplate, config.appPath, [prop + ".js"], config);
 
     var controllerTemplate = requires[prop].Controller;
     if (!controllerTemplate)
@@ -99,7 +99,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     if (!config)
         throw  new Error("Semotus: establishServerSession called with a path of " + path + " which was not registered");
     var initObjectTemplate = config.initObjectTemplate;
-    var controllerPath = config.controllerPath;
+    var controllerPath = config.appPath + "/controller.js";
     var objectCacheExpiration = config.objectCacheExpiration;
     var sessionExpiration = config.sessionExpiration;
     var sessionStore = config.sessionStore;
@@ -116,7 +116,6 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             // Create the templates to get the source but don't instantiate a controller yet
             var requires = {};
             controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
-            var prefix = RegExp.$1;
             var prop = RegExp.$2
 
             // Create a new unique object template utility
@@ -129,7 +128,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             // key value pairs where the key is the require prefix and and the value is the
             // key value pairs of each exported template
             applicationSource[path] = "";
-            var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config, path);
+            var requires = getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, path);
 
             return Q.fcall(function ()
             {
@@ -202,6 +201,9 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
         save: function (path, session) {
             saveSession(path, session, controller);
         },
+        restoreSession: function () {
+            return restoreSession(path, session, controller.__template__);
+        },
         newSession: newSession,
         appVersion: appVersion
     };
@@ -212,12 +214,11 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
 }
 var controllers = {};
 
-function getTemplates(objectTemplate, prefix, templates, config, path) {
+function getTemplates(objectTemplate, appPath, templates, config, path) {
 
     var requires = {};
     var ref = {};
     var mixins = [];
-    var toRoot = __dirname.match(/node_modules/) ? "../../" : "./";
     var ignoringClient = false;
     var filesNeeded = {};
     var applicationSourceMap = {};
@@ -238,17 +239,17 @@ function getTemplates(objectTemplate, prefix, templates, config, path) {
         if (ref[prop])
             throw  new Error("circular reference on " + file);
         ref[prop] = true;
-        if (fs.existsSync(__dirname + "/" + toRoot + prefix + file)) {
+        if (fs.existsSync(appPath + file)) {
             var clientPath = path;
-            var require_results = require(toRoot + prefix + file);
+            var require_results = require(appPath + file);
         } else {
             var clientPath = 'common';
-            var require_results = require(toRoot + 'apps/common/js/' + file);
+            var require_results = require(config.commonPath + file);
         }
         var initializer = (require_results[prop]);
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
-            throw  new Error(prop + " not exported in " + prefix + file);
+            throw  new Error(prop + " not exported in " + appPath + file);
         var templates = initializer(objectTemplate, getTemplate);
         requires[prop] = templates;
         if (mixins_initializer)
@@ -439,6 +440,26 @@ function saveSession(path, session, controller) {
     controller.__request = request;
     var ourObjectTemplate = controller.__template__.objectTemplate;
 }
+function restoreSession(path, session, controllerTemplate) {
+    var objectTemplate = controllerTemplate.objectTemplate;
+
+    // Get the cached controller
+    if (!controllers[session.sessionId + path])
+        controllers[session.sessionId + path] = {};
+    var cachedController = controllers[session.sessionId + path];
+
+    // restore the controller from the session
+    var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
+    log(1, session.sessionId, "Explicit Restore of saved controller ");
+    objectTemplate.syncSession();  // Clean tracking of changes
+    objectTemplate.controller = controller;
+    controller.__sessionId = session.sessionId;
+
+    // Set it up in the cache
+    cachedController.controller = controller;
+
+    return controller;
+    }
 var downloads;
 function setDownloadDir(dir) {
     downloads = dir;
@@ -540,14 +561,14 @@ function processMessage(req, resp)
         }
 
         var forwardedIpsStr = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-        if (forwardedIpsStr)
+        if (forwardedIpsStr && false)
             ourObjectTemplate.incomingIP = forwardedIpsStr.split(',')[0];
         else
             ourObjectTemplate.incomingIP = 'unknown';
 
         ourObjectTemplate.enableSendMessage(true, sendMessage);  // Enable the sending of the message in the response
         try {
-            ourObjectTemplate.processMessage(message);
+            ourObjectTemplate.processMessage(message, null, semotus.restoreSession);
         } catch (error) {
             log(0, req.sessionId, error);
             resp.writeHead(500, {"Content-Type": "text/plain"});
@@ -608,7 +629,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     var fs = require('fs');
     var Q = require('q');
     var url = require('url');
-    var MongoClient = require('mongodb').MongoClient;
     var connect = require('connect');
     var http = require('http');
     var https = require('https');
@@ -628,8 +648,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     // Configuraiton file
     var nconf = require('nconf');
     nconf.argv().env();
-    nconf.file('local', 'config_secure.json');
-    nconf.file('checkedin', 'config.json');
+    nconf.file('local', dirname +  '/config_secure.json');
+    nconf.file('checkedin', dirname + '/config.json');
 
     // Global varibles
     var sessionExpiration = nconf.get('sessionSeconds') * 1000;
@@ -656,7 +676,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
         if (appStartList.match(appKey + ';'))
             (function () {
                 var appName = appKey;
-                var path = appList[appName];
+                var path = dirname + '/' + appList[appName] + '/';
                 var cpath = dirname + '/apps/common/';
                 function readFile (file) {return file && fs.existsSync(file) ? fs.readFileSync(file) : null;}
                 var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
@@ -666,29 +686,50 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
                 var dbName = nconf.get(appName + '_dbName') || config.dbName || dbname;
                 var dbPath = nconf.get(appName + '_dbPath') || config.dbPath || dbpath;
+                var dbDriver = nconf.get(appName + '_dbDriver') || config.dbDriver || 'mongo';
+                var dbType = nconf.get(appName + '_dbType') || config.dbType || 'mongo';
+                var dbUser = nconf.get(appName + '_dbUser') || config.dbUser || 'nodejs';
+
+                if (dbDriver == 'mongo')
+                    var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbPath + dbName);
+                else if (dbDriver == 'knex') {
+                    var knex = require('knex')({
+                        client: dbType,
+                        connection: {
+                            host     : dbPath,
+                            database : dbName,
+                            user: dbUser
+                        }});
+                    var dbClient = Q(knex);
+                }
                 if (dbName && dbPath) {
-                    promises.push(Q.ninvoke(MongoClient, "connect", dbPath + dbName).then (function (db)
-                            {
-                                console.log("DB connection established to " + dbName);
-                                function injectObjectTemplate (objectTemplate) {
+                    promises.push(dbClient
+                        .then (function (db) {
+                            console.log("DB connection established to " + dbName);
+                            function injectObjectTemplate (objectTemplate) {
+                                if (dbDriver == "knex")
+                                    objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
+                                else
                                     objectTemplate.setDB(db);
-                                    objectTemplate.setSchema(schema);
-                                    objectTemplate.config = config;
-                                    objectTemplate.logLevel = nconf.get('logLevel') || 1;
-                                }
+                                objectTemplate.setSchema(schema);
+                                objectTemplate.config = config;
+                                objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                            }
 
-                                amorphic.establishApplication(appName,
-                                    path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
-                                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
+                            amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
+                                cpath + '/js/', injectObjectTemplate,
+                                sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
-                                if (config.isDaemon) {
-                                    amorphic.establishDaemon(appName);
-                                    console.log(appName + " started as a daemon");
-                                } else
-                                    promises.push(Q(true));
+                            if (config.isDaemon) {
+                                amorphic.establishDaemon(appName);
+                                console.log(appName + " started as a daemon");
+                            } else
+                                promises.push(Q(true));
 
-                            },
-                            function(e) {console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)})
+                        },
+                        function(e) {
+                            console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)
+                        })
                     )} else {
 
                     // No database case
@@ -698,8 +739,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                         objectTemplate.logLevel = nconf.get('logLevel') || 1;
                     }
 
-                    amorphic.establishApplication(appName,
-                        path + (config.isDaemon ? '/js/controller.js' :'/public/js/controller.js'), injectObjectTemplate,
+                    amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
+                        cpath + '/js/', injectObjectTemplate,
                         sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
                     if (config.isDaemon) {

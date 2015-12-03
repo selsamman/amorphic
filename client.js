@@ -26,7 +26,7 @@ RemoteObjectTemplate._initSchema = function (template)
 {
     // Pick up schema unless this is a sub-class not defined in schema
     template.__schema__ = amorphic.schema[template.__name__] || null;
-    template.__collection__ = template.__schema__ ? template.__schema__.documentOf || template.__schema__.subDocumentOf : null;
+    template.__collection__ = template.__schema__ ? template.__schema__.table || template.__schema__.documentOf || template.__schema__.subDocumentOf : null;
 
     // Walk through superclasses
     var parentTemplate = template.__parent__;
@@ -116,7 +116,7 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
 }
 var module = {exports: {}}
 
-var amorphic =
+amorphic = // Needs to be global to make mocha tests work
 {
     initializationData: {},
     lastServerInteraction: (new Date()).getTime(),
@@ -472,6 +472,7 @@ var amorphic =
     },
     getCookieJar: function ()
     {
+        console.log("checking cookies " + document.cookie);
         var cookies = document.cookie.split(";");
         var jar = new Object();
         for (var i = 0; i < cookies.length; ++i)
@@ -480,3 +481,4 @@ var amorphic =
         return jar;
     }
 }
+

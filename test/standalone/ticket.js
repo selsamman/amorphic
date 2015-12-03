@@ -5,12 +5,12 @@ var ObjectTemplate = require('supertype');
 var PersistObjectTemplate = require('persistor')(ObjectTemplate, null, ObjectTemplate);
 var MongoClient = require('mongodb').MongoClient;
 var nconf = require('nconf');
-var amorphic = require('../index.js');
+var amorphic = require('../../index.js');
 
-var collections = JSON.parse(fs.readFileSync(__dirname + "/../test/model/schema.json"));
+var collections = JSON.parse(fs.readFileSync(__dirname + "/model/schema.json"));
 PersistObjectTemplate.setSchema(collections);
 
-var requires = amorphic.getTemplates(PersistObjectTemplate, 'test/model/',
+var requires = amorphic.getTemplates(PersistObjectTemplate, __dirname + '/model/',
 	['ticket.js','person.js','person.js','project.js']);
 
 var Ticket = requires.ticket.Ticket;
@@ -37,12 +37,6 @@ Person.inject(function () {
 
 var securityPrincipal;
 
-PersistObjectTemplate.globalInject(function (obj) {
-    obj.getSecurityContext = function () {
-        return {principal: securityPrincipal};
-    }
-});
-
 // Utility function to clear a collection via mongo native
 function clearCollection(collectionName) {
 	return Q.ninvoke(db, "collection", collectionName).then(function (collection) {
@@ -54,8 +48,15 @@ function clearCollection(collectionName) {
 
 describe("Ticket System Test Suite", function () {
 
+    it ("can perform injections", function () {
+        PersistObjectTemplate.globalInject(function (obj) {
+            obj.getSecurityContext = function () {
+                return {principal: securityPrincipal};
+            };
+        });
+    });
+
     it ("opens the database", function (done) {
-        console.log("starting ticket test");
         Q.ninvoke(MongoClient, "connect", "mongodb://localhost:27017/testamorphic").then(function (dbopen) {
             db = dbopen;
             PersistObjectTemplate.setDB(db);
@@ -67,6 +68,7 @@ describe("Ticket System Test Suite", function () {
     var semotusProject;
 
 	it ("clears the ticket system", function (done) {
+        console.log(1);
 		clearCollection("ticket").then(function (count) {
 			expect(count).to.equal(0);
 			return clearCollection('ticketItem')

@@ -1,3 +1,6 @@
+## 0.2.01
+* Support for transactions
+* Support for new semotus/persistor with Postgres databases
 ## 0.1.89
 * Included link to video
 * Pull standard amorphic-bindster

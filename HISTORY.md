@@ -1,3 +1,5 @@
+## 0.2.03
+* Added dbUser, dbType, dbDriver config parameters to both base and application level config.json
 ## 0.2.01
 * Support for transactions
 * Support for new semotus/persistor with Postgres databases

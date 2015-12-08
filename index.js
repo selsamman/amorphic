@@ -654,8 +654,11 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     // Global varibles
     var sessionExpiration = nconf.get('sessionSeconds') * 1000;
     var objectCacheExpiration = nconf.get('objectCacheSeconds') * 1000;
-    var dbname = nconf.get('dbname');
-    var dbpath = nconf.get('dbpath');
+    var dbname = nconf.get('dbName') || nconf.get('dbname');
+    var dbpath = nconf.get('dbPath') || nconf.get('dbpath');
+    var dbdriver = nconf.get('dbDriver') || nconf.get('dbdriver');
+    var dbtype = nconf.get('dbType') || nconf.get('dbtype');
+    var dbuser = nconf.get('dbUser') || nconf.get('dbuser');
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
@@ -686,9 +689,9 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
                 var dbName = nconf.get(appName + '_dbName') || config.dbName || dbname;
                 var dbPath = nconf.get(appName + '_dbPath') || config.dbPath || dbpath;
-                var dbDriver = nconf.get(appName + '_dbDriver') || config.dbDriver || 'mongo';
-                var dbType = nconf.get(appName + '_dbType') || config.dbType || 'mongo';
-                var dbUser = nconf.get(appName + '_dbUser') || config.dbUser || 'nodejs';
+                var dbDriver = nconf.get(appName + '_dbDriver') || config.dbDriver || dbdriver || 'mongo';
+                var dbType = nconf.get(appName + '_dbType') || config.dbType || dbtype || 'mongo';
+                var dbUser = nconf.get(appName + '_dbUser') || config.dbUser || dbuser || 'nodejs';
 
                 if (dbDriver == 'mongo')
                     var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbPath + dbName);

@@ -1,3 +1,5 @@
+## 0.2.04
+* support for dbpassword
 ## 0.2.03
 * Added dbUser, dbType, dbDriver config parameters to both base and application level config.json
 ## 0.2.01

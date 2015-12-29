@@ -634,9 +634,14 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     var https = require('https');
     var amorphic = require('amorphic');
     var path = require('path');
+    //var nconf = require('nconf');
+
+    var configBuilder = require('./configBuilder').ConfigBuilder;
+    var configApi = require('./configBuilder').ConfigAPI;
+
 
     // Create temporary directory for file uploads
-    var downloads = path.join(path.dirname(require.main.filename), "download");
+    var downloads = path.join(path.dirname(require.main.filename), 'download');
     if (!fs.existsSync(downloads))
         fs.mkdirSync(downloads);
     var files = fs.readdirSync(downloads);
@@ -644,37 +649,38 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
         fs.unlinkSync(path.join(downloads, files[ix]));
     amorphic.setDownloadDir(downloads);
 
+    var builder = new configBuilder(new configApi());
+    
+
+    var configStore = builder.build(dirname);
 
     // Configuraiton file
-    var nconf = require('nconf');
-    nconf.argv().env();
-    nconf.file('local', dirname +  '/config_secure.json');
-    nconf.file('checkedin', dirname + '/config.json');
-
+    var rootCfg = configStore['root'];
     // Global varibles
-    var sessionExpiration = nconf.get('sessionSeconds') * 1000;
-    var objectCacheExpiration = nconf.get('objectCacheSeconds') * 1000;
-    var dbname = nconf.get('dbName') || nconf.get('dbname');
-    var dbpath = nconf.get('dbPath') || nconf.get('dbpath');
-    var dbdriver = nconf.get('dbDriver') || nconf.get('dbdriver');
-    var dbtype = nconf.get('dbType') || nconf.get('dbtype');
-    var dbuser = nconf.get('dbUser') || nconf.get('dbuser');
-    var dbpassword = nconf.get('dbPassword') || nconf.get('dbpassword');
+    var sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
+    var objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
+    var dbname = rootCfg.get('dbName') || rootCfg.get('dbname');
+    var dbpath = rootCfg.get('dbPath') || rootCfg.get('dbpath');
+    var dbdriver = rootCfg.get('dbDriver') || rootCfg.get('dbdriver');
+    var dbtype = rootCfg.get('dbType') || rootCfg.get('dbtype');
+    var dbuser = rootCfg.get('dbUser') || rootCfg.get('dbuser');
+    var dbpassword = rootCfg.get('dbPassword') || rootCfg.get('dbpassword');
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
-        {store: sessionStore, secret: nconf.get('sessionSecret'),
+        {store: sessionStore, secret: rootCfg.get('sessionSecret'),
             cookie: {maxAge: sessionExpiration}, rolling: true}
     );
 
     // Initialize applications
 
-    var appList = nconf.get('applications');
-    var appStartList = nconf.get('application') + ';';
-    var mainApp = nconf.get('application').split(';')[0];
+    var appList = rootCfg.get('applications');
+    var appStartList = rootCfg.get('application') + ';';
+    var mainApp = rootCfg.get('application').split(';')[0];
     var promises = [];
     var isNonBatch = false;
     var schemas = {};
+    var app
     for (var appKey in appList)
     {
         if (appStartList.match(appKey + ';'))
@@ -683,17 +689,21 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                 var path = dirname + '/' + appList[appName] + '/';
                 var cpath = dirname + '/apps/common/';
                 function readFile (file) {return file && fs.existsSync(file) ? fs.readFileSync(file) : null;}
-                var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
-                config.nconf = nconf; // global config
+                
+                var appConfig = configStore[appKey];
+                var config = configStore[appKey].get();
+                //var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
+                config.nconf = configStore[appKey]; // global config
                 var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
                 schemas[appKey] = schema;
 
-                var dbName = nconf.get(appName + '_dbName') || config.dbName || dbname;
-                var dbPath = nconf.get(appName + '_dbPath') || config.dbPath || dbpath;
-                var dbDriver = nconf.get(appName + '_dbDriver') || config.dbDriver || dbdriver || 'mongo';
-                var dbType = nconf.get(appName + '_dbType') || config.dbType || dbtype || 'mongo';
-                var dbUser = nconf.get(appName + '_dbUser') || config.dbUser || dbuser || 'nodejs';
-                var dbPassword = nconf.get(appName + '_dbPassword') || config.dbPassword || dbpassword || null;
+                // get the setting from || app config using _ || app config || root config
+                var dbName = appConfig.get(appName + '_dbName') || config.dbName || dbname;
+                var dbPath = appConfig.get(appName + '_dbPath') || config.dbPath || dbpath;
+                var dbDriver = appConfig.get(appName + '_dbDriver') || config.dbDriver || dbdriver || 'mongo';
+                var dbType = appConfig.get(appName + '_dbType') || config.dbType || dbtype || 'mongo';
+                var dbUser = appConfig.get(appName + '_dbUser') || config.dbUser || dbuser || 'nodejs';
+                var dbPassword = appConfig.get(appName + '_dbPassword') || config.dbPassword || dbpassword || null;
 
                 if (dbDriver == 'mongo')
                     var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbPath + dbName);
@@ -719,7 +729,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                                     objectTemplate.setDB(db);
                                 objectTemplate.setSchema(schema);
                                 objectTemplate.config = config;
-                                objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                                objectTemplate.logLevel = appConfig.get('logLevel') || 1;
                             }
 
                             amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
@@ -742,7 +752,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
                     function injectObjectTemplate(objectTemplate) {
                         objectTemplate.config = config;
-                        objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                        objectTemplate.logLevel = appConfig.get('logLevel') || 1;
                     }
 
                     amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
@@ -816,7 +826,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
         if (postSessionInject)
             postSessionInject.call(null, app);
 
-        app.listen(nconf.get('port'));
+        app.listen(rootCfg.get('port'));
     }).fail(function(e){console.log(e.message + " " + e.stack)});
 }
 module.exports = {

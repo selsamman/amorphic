@@ -1,3 +1,5 @@
+## 0.2.05
+* Attempt to destory knex connection on exit
 ## 0.2.04
 * support for dbpassword
 ## 0.2.03

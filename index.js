@@ -29,7 +29,24 @@ var fs = require('fs');
 var Q = require('q');
 var logLevel = 1;
 var path = require('path');
-
+var onDeath = require('death');
+var deathWatch = [];
+onDeath(function () {
+    console.log("exiting gracefully " + deathWatch.length + " tasks to perform");
+    return Q()
+        .then(function () {
+            return deathWatch.reduce(function(p, task) {
+                return p.then(task)
+            }, Q(true));
+        }).then(function () {
+            console.log("All done");
+            return Q.delay(1000);
+        }).then(function () {
+            process.exit(0);
+        }).fail(function (e){
+            console.log("on death caught exception: " + e.message + e.stack);
+        });
+});
 var applicationConfig = {};
 var applicationSource = {};
 var deferred = {};
@@ -459,7 +476,7 @@ function restoreSession(path, session, controllerTemplate) {
     cachedController.controller = controller;
 
     return controller;
-    }
+}
 var downloads;
 function setDownloadDir(dir) {
     downloads = dir;
@@ -707,34 +724,41 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                             password: dbPassword,
                         }});
                     var dbClient = Q(knex);
+                    (function () {
+                        var closureKnex = knex;
+                        deathWatch.push(function () {
+                            console.log("closing knex connection");
+                            return closureKnex.destroy();
+                        });
+                    })()
                 }
                 if (dbName && dbPath) {
                     promises.push(dbClient
                         .then (function (db) {
-                            console.log("DB connection established to " + dbName);
-                            function injectObjectTemplate (objectTemplate) {
-                                if (dbDriver == "knex")
-                                    objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
-                                else
-                                    objectTemplate.setDB(db);
-                                objectTemplate.setSchema(schema);
-                                objectTemplate.config = config;
-                                objectTemplate.logLevel = nconf.get('logLevel') || 1;
-                            }
+                                console.log("DB connection established to " + dbDriver + ":" + dbName);
+                                function injectObjectTemplate (objectTemplate) {
+                                    if (dbDriver == "knex")
+                                        objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
+                                    else
+                                        objectTemplate.setDB(db);
+                                    objectTemplate.setSchema(schema);
+                                    objectTemplate.config = config;
+                                    objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                                }
 
-                            amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
-                                cpath + '/js/', injectObjectTemplate,
-                                sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
+                                amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
+                                    cpath + '/js/', injectObjectTemplate,
+                                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
-                            if (config.isDaemon) {
-                                amorphic.establishDaemon(appName);
-                                console.log(appName + " started as a daemon");
-                            } else
-                                promises.push(Q(true));
+                                if (config.isDaemon) {
+                                    amorphic.establishDaemon(appName);
+                                    console.log(appName + " started as a daemon");
+                                } else
+                                    promises.push(Q(true));
 
-                        },
-                        function(e) {
-                            console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)
+                            },
+                            function(e) {
+                                console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)
                         })
                     )} else {
 
@@ -799,16 +823,16 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                     console.log("Establishing " + appName);
                     amorphic.establishServerSession(request, appName, "initial")
                         .then (function (session) {
-                        response.setHeader("Content-Type", "application/javascript");
-                        response.setHeader("Cache-Control", "public, max-age=0");
-                        response.end(
-                            "amorphic.setApplication('" + appName + "');" +
-                            "amorphic.setSchema(" + JSON.stringify(schemas[appName]) + ");" +
-                            session.getModelSource() +
-                            "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
-                            "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
-                        );
-                    }).done();
+                            response.setHeader("Content-Type", "application/javascript");
+                            response.setHeader("Cache-Control", "public, max-age=0");
+                            response.end(
+                                "amorphic.setApplication('" + appName + "');" +
+                                "amorphic.setSchema(" + JSON.stringify(schemas[appName]) + ");" +
+                                session.getModelSource() +
+                                "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
+                                "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
+                            );
+                        }).done();
                 }
             })
             .use(amorphic.router);

@@ -624,8 +624,6 @@ function log (level, sessionId, data) {
 
 function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 {
-    var sys = require('sys');
-    var exec = require('child_process').exec;
     var fs = require('fs');
     var Q = require('q');
     var url = require('url');
@@ -634,7 +632,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     var https = require('https');
     var amorphic = require('amorphic');
     var path = require('path');
-    //var nconf = require('nconf');
 
     var configBuilder = require('./configBuilder').ConfigBuilder;
     var configApi = require('./configBuilder').ConfigAPI;
@@ -650,8 +647,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     amorphic.setDownloadDir(downloads);
 
     var builder = new configBuilder(new configApi());
-    
-
     var configStore = builder.build(dirname);
 
     // Configuraiton file
@@ -659,12 +654,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     // Global varibles
     var sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
     var objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
-    var dbname = rootCfg.get('dbName') || rootCfg.get('dbname');
-    var dbpath = rootCfg.get('dbPath') || rootCfg.get('dbpath');
-    var dbdriver = rootCfg.get('dbDriver') || rootCfg.get('dbdriver');
-    var dbtype = rootCfg.get('dbType') || rootCfg.get('dbtype');
-    var dbuser = rootCfg.get('dbUser') || rootCfg.get('dbuser');
-    var dbpassword = rootCfg.get('dbPassword') || rootCfg.get('dbpassword');
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
@@ -680,7 +669,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     var promises = [];
     var isNonBatch = false;
     var schemas = {};
-    var app
+    var app;
     for (var appKey in appList)
     {
         if (appStartList.match(appKey + ';'))
@@ -690,46 +679,51 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                 var cpath = dirname + '/apps/common/';
                 function readFile (file) {return file && fs.existsSync(file) ? fs.readFileSync(file) : null;}
                 
-                var appConfig = configStore[appKey];
                 var config = configStore[appKey].get();
-                //var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
                 config.nconf = configStore[appKey]; // global config
+                config.configStore = configStore;
+ 
                 var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
                 schemas[appKey] = schema;
 
-                // get the setting from || app config using _ || app config || root config
-                var dbName = appConfig.get(appName + '_dbName') || config.dbName || dbname;
-                var dbPath = appConfig.get(appName + '_dbPath') || config.dbPath || dbpath;
-                var dbDriver = appConfig.get(appName + '_dbDriver') || config.dbDriver || dbdriver || 'mongo';
-                var dbType = appConfig.get(appName + '_dbType') || config.dbType || dbtype || 'mongo';
-                var dbUser = appConfig.get(appName + '_dbUser') || config.dbUser || dbuser || 'nodejs';
-                var dbPassword = appConfig.get(appName + '_dbPassword') || config.dbPassword || dbpassword || null;
+                var dbConfig = (function(config){
+                    return {
+                        dbName : config.get(appName + '_dbName') || config.get('dbName') || config.get('dbname'),
+                        dbPath : config.get(appName + '_dbPath') || config.get('dbPath') || config.get('dbpath'),
+                        dbDriver : config.get(appName + '_dbDriver') || config.get('dbDriver') || config.get('dbdriver') || 'mongo',
+                        dbType : config.get(appName + '_dbType') || config.get('dbType') || config.get('dbtype') || 'mongo',
+                        dbUser : config.get(appName + '_dbUser') || config.get('dbUser') || config.get('dbuser') || 'nodejs',
+                        dbPassword : config.get(appName + '_dbPassword') || config.get('dbPassword') || config.get('dbpassword') || null,
+                        isDBSet : function () { return this.dbName && this.dbPath; },
+                        connectMongo : function () { return this.dbPath + this.dbName;}
+                    };
+                })(config.nconf);
 
-                if (dbDriver == 'mongo')
-                    var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbPath + dbName);
+                if (dbConfig.dbDriver == 'mongo')
+                    var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbConfig.connectMongo());
                 else if (dbDriver == 'knex') {
                     var knex = require('knex')({
-                        client: dbType,
+                        client: dbConfig.dbType,
                         connection: {
-                            host     : dbPath,
-                            database : dbName,
-                            user: dbUser,
-                            password: dbPassword,
+                            host     : dbConfig.dbPath,
+                            database : dbConfig.dbName,
+                            user: dbConfig.dbUser,
+                            password: dbConfig.dbPassword,
                         }});
                     var dbClient = Q(knex);
                 }
-                if (dbName && dbPath) {
+                if (dbConfig.isDBSet()) {
                     promises.push(dbClient
                         .then (function (db) {
-                            console.log("DB connection established to " + dbName);
+                            console.log("DB connection established to " + dbConfig.dbName);
                             function injectObjectTemplate (objectTemplate) {
-                                if (dbDriver == "knex")
+                                if (dbConfig.dbDriver == "knex")
                                     objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
                                 else
                                     objectTemplate.setDB(db);
                                 objectTemplate.setSchema(schema);
                                 objectTemplate.config = config;
-                                objectTemplate.logLevel = appConfig.get('logLevel') || 1;
+                                objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
                             }
 
                             amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),

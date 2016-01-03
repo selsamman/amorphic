@@ -1,3 +1,5 @@
+## 0.2.06
+* Changes in support of Postgres in Persistor
 ## 0.2.05
 * Attempt to destory knex connection on exit
 ## 0.2.04

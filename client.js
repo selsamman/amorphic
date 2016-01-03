@@ -69,7 +69,7 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
 
     var props = template.getProperties();
     for (var prop in props) {
-        var collection = template.__collection__;
+        var collection = template.__table__ || template.__collection__;
         var defineProperty = props[prop];
         var type = defineProperty.type;
         var of = defineProperty.of;
@@ -82,8 +82,10 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
         var crossChildren = schema && schema.children && schema.children[prop]  && schema.children[prop].crossDocument;
         var crossParent = schema && schema.parents && schema.parents[prop] && schema.parents[prop].crossDocument;
 
-        var isCrossDocRef =  (of && of.__collection__ && ((of.__collection__ != collection) || (childrenRef && crossChildren))) ||
-            (type && type.__collection__ && ((type.__collection__ != collection) || (parentsRef && crossParent)));
+        var isCrossDocRef =  (of && (of.__table__ || of.__collection__) &&
+            (((of.__table__ || of.__collection__) != collection) || (childrenRef && crossChildren))) ||
+            (type && (type.__table__ || type.__collection__) && (((type.__table__ || type.__collection__) != collection) ||
+            (parentsRef && crossParent)));
 
         if (defineProperty.autoFetch || (collection && isCrossDocRef)) {
             (function ()

@@ -97,6 +97,8 @@ describe("Banking Example", function () {
     it ("clears the bank and saves everything", function (done) {
         serverAssert = function (count) {
             expect(count).to.equal(0);
+            serverController.sam.roles[0].account.listTransactions();
+            serverController.sam.roles[1].account.listTransactions();
             expect(serverController.sam.roles[0].account.getBalance() +
                    serverController.sam.roles[1].account.getBalance()).to.equal(225);
             expect(serverController.preServerCallObjects['Controller']).to.equal(true);
@@ -110,6 +112,8 @@ describe("Banking Example", function () {
 
     it("fetch everything back", function (done) {
         serverAssert = function () {
+            serverController.sam.roles[0].account.listTransactions();
+            serverController.sam.roles[1].account.listTransactions();
             expect(serverController.sam.roles[0].account.getBalance() +
                    serverController.sam.roles[1].account.getBalance()).to.equal(225);
             expect(serverController.preServerCallObjects['Controller']).to.equal(true);
@@ -126,7 +130,7 @@ describe("Banking Example", function () {
     it("change results on server", function (done) {
         var version;
         serverAssert = function () {
-            serverController.sam.roles[0].account.transactions[0].amount += 1;
+            serverController.sam.roles[0].account.transactions[2].amount += 1;
             serverController.version = serverController.sam.roles[0].account.__version__;
         }
         PostCallAssert = function () {

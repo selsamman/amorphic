@@ -96,6 +96,18 @@ module.exports.model = function (objectTemplate, getTemplate)
         transferTo: function (amount, toAccount) {
             new Transaction(toAccount, 'xfer', amount, this);
         },
+        listTransactions: function () {
+            var str = "";
+            processTransactions(this.transactions);
+            processTransactions(this.fromAccountTransactions);
+            function processTransactions (transactions) {
+                transactions.forEach(function (transaction) {
+                    str += transaction.type + " " + transaction.amount + " " +
+                        (transaction.type.xfer ? transaction.fromAccount.__id__ : "") + " ";
+                });
+            }
+            console.log(str);
+        },
         getBalance: function () {
             var balance = 0;
             var thisAccount = this;

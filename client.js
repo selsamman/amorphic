@@ -27,6 +27,7 @@ RemoteObjectTemplate._initSchema = function (template)
     // Pick up schema unless this is a sub-class not defined in schema
     template.__schema__ = amorphic.schema[template.__name__] || null;
     template.__collection__ = template.__schema__ ? template.__schema__.table || template.__schema__.documentOf || template.__schema__.subDocumentOf : null;
+    var defaultTable = template.__schema__ ? template.__schema__.documentOf || template.__schema__.subDocumentOf || template.__name__ : null;
 
     // Walk through superclasses
     var parentTemplate = template.__parent__;
@@ -36,6 +37,7 @@ RemoteObjectTemplate._initSchema = function (template)
         if (!parentTemplate.__schema__)
             this._initSchema(parentTemplate);
         template.__collection__ = parentTemplate.__collection__;
+
 
         // Inherit children and parent specifications from superclass
         var schema = parentTemplate.__schema__;
@@ -55,8 +57,10 @@ RemoteObjectTemplate._initSchema = function (template)
             for (var key in schema.parents)
                 template.__schema__.parents[key] = schema.parents[key];
         }
+        var defaultTable = schema ? schema.documentOf || schema.subDocumentOf || parentTemplate.__name__ : defaultTable;
         parentTemplate = parentTemplate.__parent__;
     }
+    template.__table__ = template.__schema__ ? template.__schema__.table || defaultTable : defaultTable;
 }
 RemoteObjectTemplate._injectIntoTemplate = function (template)
 {

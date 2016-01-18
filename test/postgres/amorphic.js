@@ -130,12 +130,13 @@ describe("Banking Example", function () {
     it("change results on server", function (done) {
         var version;
         serverAssert = function () {
-            serverController.sam.roles[0].account.transactions[2].amount += 1;
+            serverController.sam.roles[0].account.transactions[0].amount += 1;
             serverController.version = serverController.sam.roles[0].account.__version__;
         }
         PostCallAssert = function () {
             expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
                 .to.equal(serverController.sam.roles[0].account);
+            console.log("foo");
         }
         clientController.mainFunc().then(function () {
             expect(serverController.sam.roles[0].account.getBalance() +
@@ -177,7 +178,6 @@ describe("Banking Example", function () {
     });
     it("can get it's data freshened", function (done) {
         serverAssert = function () {
-            expect(serverController.sam.roles[0].account.__version__ * 1).to.equal(serverController.version * 1 + 1);
             expect(serverController.sam.firstName).to.equal("Sammy");
         }
         var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
@@ -192,9 +192,10 @@ describe("Banking Example", function () {
             done(e)
         });
     });
-    it("can retry and update conflict", function (done) {
+    it("can retry an update conflict", function (done) {
         var retryCount = 0;
         serverAssert = function () {
+            console.log("Updating Sam and then changing verions to 200 " + retryCount);
             serverController.sam.firstName = 'Sam';
             ++retryCount;
             return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'})

@@ -1,5 +1,7 @@
 module.exports.controller = function (objectTemplate, getTemplate)
 {
+    objectTemplate.objectMap = {};
+
     var Customer = getTemplate('model.js').Customer;
     var Account = getTemplate('model.js').Account;
     var Address  = getTemplate('model.js').Address;
@@ -11,9 +13,9 @@ module.exports.controller = function (objectTemplate, getTemplate)
         mainFunc: {on: "server", body: function () {
             return serverAssert();
         }},
-        sam:     {type: Customer},
-        karen:   {type: Customer},
-        ashling: {type: Customer},
+        sam:     {type: Customer, fetch: true},
+        karen:   {type: Customer, fetch: true},
+        ashling: {type: Customer, fetch: true},
         updatedCount: {type: Number, value: 0},
         serverInit: function () {
             serverController = this;
@@ -99,12 +101,14 @@ module.exports.controller = function (objectTemplate, getTemplate)
         preServerCall: function (changeCount, objectsChanged) {
             for(var templateName in objectsChanged)
                 this.preServerCallObjects[templateName] = true;
-            //return;
-            return this.refresh()
+            return Q()
+                .then(this.sam ? this.sam.refresh.bind(this.sam) : true)
+                .then(this.karen ? this.karen.refresh.bind(this.karen) : true)
+                .then(this.ashling ? this.ashling.refresh.bind(this.ashling) : true)
                 .then(function () {
                     objectTemplate.begin();
                     objectTemplate.currentTransaction.touchTop = true;
-                });
+                }.bind(this));
         },
         postServerCall: function () {
             if (this.postServerCallThrowException)
@@ -113,6 +117,9 @@ module.exports.controller = function (objectTemplate, getTemplate)
                 throw "Retry";
             //return;
             var dirtCount = 0;
+            serverController.sam.cascadeSave();
+            serverController.karen.cascadeSave();
+            serverController.ashling.cascadeSave();
             objectTemplate.currentTransaction.postSave=function (txn) {
                 this.updatedCount = _.toArray(txn.savedObjects).length
             }.bind(this);

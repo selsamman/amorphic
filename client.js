@@ -22,83 +22,25 @@ Persistor = ObjectTemplate.create("Peristor",
     {
     });
 
-RemoteObjectTemplate._initSchema = function (template)
-{
-    // Pick up schema unless this is a sub-class not defined in schema
-    template.__schema__ = amorphic.schema[template.__name__] || null;
-    template.__collection__ = template.__schema__ ? template.__schema__.table || template.__schema__.documentOf || template.__schema__.subDocumentOf : null;
-    var defaultTable = template.__schema__ ? template.__schema__.documentOf || template.__schema__.subDocumentOf || template.__name__ : null;
 
-    // Walk through superclasses
-    var parentTemplate = template.__parent__;
-    while (parentTemplate)
-    {
-        // Update collection based on superclass
-        if (!parentTemplate.__schema__)
-            this._initSchema(parentTemplate);
-        template.__collection__ = parentTemplate.__collection__;
-
-
-        // Inherit children and parent specifications from superclass
-        var schema = parentTemplate.__schema__;
-        if (schema && schema.children) {
-            if (!template.__schema__)
-                template.__schema__ = {};
-            if (!template.__schema__.children)
-                template.__schema__.children = [];
-            for (var key in schema.children)
-                template.__schema__.children[key] = schema.children[key];
-        }
-        if (schema && schema.parents) {
-            if (!template.__schema__)
-                template.__schema__ = {};
-            if (!template.__schema__.parents)
-                template.__schema__.parents = [];
-            for (var key in schema.parents)
-                template.__schema__.parents[key] = schema.parents[key];
-        }
-        var defaultTable = schema ? schema.documentOf || schema.subDocumentOf || parentTemplate.__name__ : defaultTable;
-        parentTemplate = parentTemplate.__parent__;
-    }
-    template.__table__ = template.__schema__ ? template.__schema__.table || defaultTable : defaultTable;
-}
 RemoteObjectTemplate._injectIntoTemplate = function (template)
 {
-    // Extract schema and collection
-
-    this._initSchema(template);
-    var schema = template.__schema__;
-
     // Add persistors to foreign key references
-
+    var schema = amorphic.schema[template.__name__] || {}
     var props = template.getProperties();
     for (var prop in props) {
-        var collection = template.__table__ || template.__collection__;
+
         var defineProperty = props[prop];
-        var type = defineProperty.type;
-        var of = defineProperty.of;
-        if (of && of.__name__ && !of.__schema__)
-            this._initSchema(of);
-        if (type && type.__name__ && !type.__schema__)
-            this._initSchema(type);
-        var childrenRef = schema && schema.children && schema.children[prop];
-        var parentsRef = schema && schema.parents && schema.parents[prop];
-        var crossChildren = schema && schema.children && schema.children[prop]  && schema.children[prop].crossDocument;
-        var crossParent = schema && schema.parents && schema.parents[prop] && schema.parents[prop].crossDocument;
 
-        var isCrossDocRef =  (of && (of.__table__ || of.__collection__) &&
-            (((of.__table__ || of.__collection__) != collection) || (childrenRef && crossChildren))) ||
-            (type && (type.__table__ || type.__collection__) && (((type.__table__ || type.__collection__) != collection) ||
-            (parentsRef && crossParent)));
-
-        if (defineProperty.autoFetch || (collection && isCrossDocRef)) {
+        if (defineProperty.autoFetch || schema[prop]) {
             (function ()
             {
                 var closureProp = prop;
                 var closureDefineProperty = defineProperty;
 
                 if (!props[closureProp + 'Persistor'])
-                    template.createProperty(closureProp + 'Persistor', {type: Object, toServer: false, value:{isFetched: false, isFetching: false}});
+                    template.createProperty(closureProp + 'Persistor', {type: Object, toServer: false,
+                        value:{isFetched: defineProperty.autoFetch ? false : true, isFetching: false}});
 
                 if (!template.prototype[closureProp + 'Fetch'])
                     template.createProperty(closureProp + 'Fetch', {on: "server", body: function (){}});

@@ -161,6 +161,9 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                     },
                     getServerConfigString: function () {
                         return JSON.stringify(config.appConfig);
+                    },
+                    getPersistorProps: function () {
+                        return objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
                     }
                 }
             });
@@ -189,15 +192,15 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
 
     controller.__request = req;
     controller.__sessionExpiration = sessionExpiration;
-
+    var objectTemplate = controller.__template__.objectTemplate;
     var ret =
     {
         objectTemplate: controller.__template__.objectTemplate,
         getMessage: function () {
-            var message = controller.__template__.objectTemplate.getMessage(session.id, true);
+            var message = objectTemplate.getMessage(session.id, true);
             message.newSession = true;
             message.rootId = controller.__id__;
-            message.startingSequence = controller.__template__.objectTemplate.maxClientSequence + 100000;
+            message.startingSequence = objectTemplate.maxClientSequence + 100000;
             message.sessionExpiration = sessionExpiration;
             return message;
         },
@@ -222,7 +225,11 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             return restoreSession(path, session, controller.__template__);
         },
         newSession: newSession,
-        appVersion: appVersion
+        appVersion: appVersion,
+        getPersistorProps: function () {
+            return objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
+        }
+
     };
 
     if (newPage)
@@ -691,7 +698,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     var mainApp = nconf.get('application').split(';')[0];
     var promises = [];
     var isNonBatch = false;
-    var schemas = {};
     for (var appKey in appList)
     {
         if (appStartList.match(appKey + ';'))
@@ -703,7 +709,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                 var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
                 config.nconf = nconf; // global config
                 var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
-                schemas[appKey] = schema;
 
                 var dbName = nconf.get(appName + '_dbName') || config.dbName || dbname;
                 var dbPath = nconf.get(appName + '_dbPath') || config.dbPath || dbpath;
@@ -827,7 +832,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                             response.setHeader("Cache-Control", "public, max-age=0");
                             response.end(
                                 "amorphic.setApplication('" + appName + "');" +
-                                "amorphic.setSchema(" + JSON.stringify(schemas[appName]) + ");" +
+                                "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
                                 session.getModelSource() +
                                 "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
                                 "amorphic.setInitialMessage(" + session.getServerConnectString() +");"

@@ -1,4 +1,4 @@
-## 0.2.08
+## 0.2.09
 * Changed adding persistor properties to use a list passed from Peristor
 ## 0.2.07
 * Changes in support of Postgres in Persistor

@@ -1,4 +1,4 @@
-## 0.2.11
+## 0.2.13
 * Dependent on Persistor 0.2.68 or higher
 * Serializes objectMap on behalf of Persistor
 ## 0.2.10

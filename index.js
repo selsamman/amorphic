@@ -406,13 +406,15 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     // Inject into it any db or persist attributes needed for application
     initObjectTemplate(objectTemplate);
 
+    // Restore any saved objectMap
+    if (session.semotus.objectMap)
+        objectTemplate.objectMap = session.semotus.objectMap;
 
     // Get the controller and all of it's dependent requires which will populate a
     // key value pairs where the key is the require prefix and and the value is the
     // key value pairs of each exported template
     applicationSource[path] = "";
     var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config, path);
-
     var controllerTemplate = requires[prop].Controller;
     if (!controllerTemplate)
         throw  new Error("Missing controller template in " + prefix + prop + ".js");
@@ -433,6 +435,9 @@ function getController(path, controllerPath, initObjectTemplate, session, object
             objectTemplate.syncSession();
         if (typeof(controller.serverInit) == "function")
             controller.serverInit();
+        // With a brand new controller we don't want old object to persist id mappings
+        if (objectTemplate.objectMap)
+            objectTemplate.objectMap = {}
         log(1, sessionId, "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
@@ -458,7 +463,7 @@ function saveSession(path, session, controller) {
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
     var ourObjectTemplate = controller.__template__.objectTemplate;
     if (ourObjectTemplate.objectMap)
-        session.semotus.objectMap = JSON.stringify(ourObjectTemplate.objectMap);
+        session.semotus.objectMap = ourObjectTemplate.objectMap;
     var diff = process.hrtime(time);
     var took = (diff[0] * 1e9 + diff[1]) / 1000000;
     if (performanceLogging)
@@ -466,7 +471,6 @@ function saveSession(path, session, controller) {
 
     controller.__request = request;
 }
-
 function restoreSession(path, session, controllerTemplate) {
     var objectTemplate = controllerTemplate.objectTemplate;
 
@@ -477,12 +481,13 @@ function restoreSession(path, session, controllerTemplate) {
 
     // restore the controller from the session
     var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
+    if (session.semotus.objectMap)
+        objectTemplate.objectMap = session.semotus.objectMap;
     log(1, session.sessionId, "Explicit Restore of saved controller ");
     objectTemplate.syncSession();  // Clean tracking of changes
     objectTemplate.controller = controller;
     controller.__sessionId = session.sessionId;
-    if (session.objectMap)
-        objectTemplate.objectMap = JSON.parse(session.objectMap);
+
     // Set it up in the cache
     cachedController.controller = controller;
 

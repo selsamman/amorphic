@@ -178,6 +178,7 @@ describe("Banking Example", function () {
     });
     it("can get it's data freshened", function (done) {
         serverAssert = function () {
+            expect(serverController.sam.roles[0].account.__version__ * 1).to.equal(serverController.version * 1 + 1);
             expect(serverController.sam.firstName).to.equal("Sammy");
         }
         var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;

@@ -1,3 +1,6 @@
+## 0.2.11
+* Dependent on Persistor 0.2.68 or higher
+* Serializes objectMap on behalf of Persistor
 ## 0.2.10
 * Changed adding persistor properties to use a list passed from Peristor
 ## 0.2.07

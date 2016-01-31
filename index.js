@@ -456,14 +456,17 @@ function saveSession(path, session, controller) {
     var time = process.hrtime();
     session.semotus.controllers[path] = controller.toJSONString();
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
+    var ourObjectTemplate = controller.__template__.objectTemplate;
+    if (ourObjectTemplate.objectMap)
+        session.semotus.objectMap = JSON.stringify(ourObjectTemplate.objectMap);
     var diff = process.hrtime(time);
     var took = (diff[0] * 1e9 + diff[1]) / 1000000;
     if (performanceLogging)
         console.log("save session " + took + " ms - length = " + session.semotus.controllers[path].length);
 
     controller.__request = request;
-    var ourObjectTemplate = controller.__template__.objectTemplate;
 }
+
 function restoreSession(path, session, controllerTemplate) {
     var objectTemplate = controllerTemplate.objectTemplate;
 
@@ -478,7 +481,8 @@ function restoreSession(path, session, controllerTemplate) {
     objectTemplate.syncSession();  // Clean tracking of changes
     objectTemplate.controller = controller;
     controller.__sessionId = session.sessionId;
-
+    if (session.objectMap)
+        objectTemplate.objectMap = JSON.parse(session.objectMap);
     // Set it up in the cache
     cachedController.controller = controller;
 

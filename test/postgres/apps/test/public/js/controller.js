@@ -1,5 +1,6 @@
 module.exports.controller = function (objectTemplate, getTemplate)
 {
+    objectTemplate.debugInfo = "io;api"
     objectTemplate.objectMap = {};
 
     var Customer = getTemplate('model.js').Customer;

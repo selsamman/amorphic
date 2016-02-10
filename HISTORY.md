@@ -1,3 +1,5 @@
+## 0.2.14
+* don't mark restored data from session as __changed__
 ## 0.2.13
 * Dependent on Persistor 0.2.68 or higher
 * Serializes objectMap on behalf of Persistor

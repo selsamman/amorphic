@@ -428,11 +428,14 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     // Either restore the controller from the serialized string in the session or create a new one
 
     if (!session.semotus.controllers[path]) {
+        if (controllerId)
+            objectTemplate.__changeTracking__ = false;
         var controller = controllerId ?
             objectTemplate._createEmptyObject(controllerTemplate, controllerId) :
             new controllerTemplate();
         if (controllerId)
             objectTemplate.syncSession();
+        objectTemplate.__changeTracking__ = true;
         if (typeof(controller.serverInit) == "function")
             controller.serverInit();
         // With a brand new controller we don't want old object to persist id mappings
@@ -440,10 +443,12 @@ function getController(path, controllerPath, initObjectTemplate, session, object
             objectTemplate.objectMap = {}
         log(1, sessionId, "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
+        objectTemplate.__changeTracking__ = false;
         var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
         log(1, sessionId, "Restoring saved controller " + (newPage ? " new page " : "") + browser);
         if (!newPage) // No changes queued as a result unless we need it for init.js
             objectTemplate.syncSession();
+        objectTemplate.__changeTracking__ = true;
     }
     objectTemplate.controller = controller;
     controller.__sessionId = sessionId;
@@ -480,11 +485,14 @@ function restoreSession(path, session, controllerTemplate) {
     var cachedController = controllers[session.sessionId + path];
 
     // restore the controller from the session
+
+    objectTemplate.__changeTracking__ = false;
     var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
     if (session.semotus.objectMap)
         objectTemplate.objectMap = session.semotus.objectMap;
     log(1, session.sessionId, "Explicit Restore of saved controller ");
     objectTemplate.syncSession();  // Clean tracking of changes
+    objectTemplate.__changeTracking__ = true;
     objectTemplate.controller = controller;
     controller.__sessionId = session.sessionId;
 

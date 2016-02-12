@@ -701,6 +701,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     var dbtype = nconf.get('dbType') || nconf.get('dbtype');
     var dbuser = nconf.get('dbUser') || nconf.get('dbuser');
     var dbpassword = nconf.get('dbPassword') || nconf.get('dbpassword');
+    var dbconnections = nconf.get('dbConnections') || nconf.get('dbconnections');
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
@@ -733,6 +734,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                 var dbType = nconf.get(appName + '_dbType') || config.dbType || dbtype || 'mongo';
                 var dbUser = nconf.get(appName + '_dbUser') || config.dbUser || dbuser || 'nodejs';
                 var dbPassword = nconf.get(appName + '_dbPassword') || config.dbPassword || dbpassword || null;
+                var dbConnections = nconf.get(appName + '_dbConnections') || config.dbConnections || dbconnections || 20;
 
                 if (dbDriver == 'mongo')
                     var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbPath + dbName);
@@ -744,7 +746,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                             database : dbName,
                             user: dbUser,
                             password: dbPassword,
-                        }});
+                        }, pool: {min: 0, max: dbConnections}});
                     var dbClient = Q(knex);
                     (function () {
                         var closureKnex = knex;

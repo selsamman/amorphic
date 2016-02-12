@@ -1,3 +1,5 @@
+## 0.2.15
+* configurable connections with default set to 20
 ## 0.2.14
 * don't mark restored data from session as __changed__
 ## 0.2.13

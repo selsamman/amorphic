@@ -22,7 +22,9 @@
 var performanceLogging = false;
 var ObjectTemplate = require("supertype");
 var RemoteObjectTemplate = require("semotus");
+RemoteObjectTemplate.maxCallTime = 60 * 1000; // Max time for call interlock
 var PersistObjectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, ObjectTemplate);
+
 var formidable = require('formidable');
 var url = require('url');
 var fs = require('fs');

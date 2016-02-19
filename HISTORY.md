@@ -1,3 +1,5 @@
+## 0.2.16
+* set maximum time to block call for semotus
 ## 0.2.15
 * configurable connections with default set to 20
 ## 0.2.14

@@ -667,8 +667,6 @@ function log (level, sessionId, data) {
 
 function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 {
-    var sys = require('sys');
-    var exec = require('child_process').exec;
     var fs = require('fs');
     var Q = require('q');
     var url = require('url');
@@ -678,8 +676,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     var amorphic = require('amorphic');
     var path = require('path');
 
+    var configBuilder = require('./configBuilder').ConfigBuilder;
+    var configApi = require('./configBuilder').ConfigAPI;
+
+
     // Create temporary directory for file uploads
-    var downloads = path.join(path.dirname(require.main.filename), "download");
+    var downloads = path.join(path.dirname(require.main.filename), 'download');
     if (!fs.existsSync(downloads))
         fs.mkdirSync(downloads);
     var files = fs.readdirSync(downloads);
@@ -687,37 +689,30 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
         fs.unlinkSync(path.join(downloads, files[ix]));
     amorphic.setDownloadDir(downloads);
 
+    var builder = new configBuilder(new configApi());
+    var configStore = builder.build(dirname);
 
     // Configuraiton file
-    var nconf = require('nconf');
-    nconf.argv().env();
-    nconf.file('local', dirname +  '/config_secure.json');
-    nconf.file('checkedin', dirname + '/config.json');
-
+    var rootCfg = configStore['root'];
     // Global varibles
-    var sessionExpiration = nconf.get('sessionSeconds') * 1000;
-    var objectCacheExpiration = nconf.get('objectCacheSeconds') * 1000;
-    var dbname = nconf.get('dbName') || nconf.get('dbname');
-    var dbpath = nconf.get('dbPath') || nconf.get('dbpath');
-    var dbdriver = nconf.get('dbDriver') || nconf.get('dbdriver');
-    var dbtype = nconf.get('dbType') || nconf.get('dbtype');
-    var dbuser = nconf.get('dbUser') || nconf.get('dbuser');
-    var dbpassword = nconf.get('dbPassword') || nconf.get('dbpassword');
-    var dbconnections = nconf.get('dbConnections') || nconf.get('dbconnections');
+    var sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
+    var objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
-        {store: sessionStore, secret: nconf.get('sessionSecret'),
+        {store: sessionStore, secret: rootCfg.get('sessionSecret'),
             cookie: {maxAge: sessionExpiration}, rolling: true}
     );
 
     // Initialize applications
 
-    var appList = nconf.get('applications');
-    var appStartList = nconf.get('application') + ';';
-    var mainApp = nconf.get('application').split(';')[0];
+    var appList = rootCfg.get('applications');
+    var appStartList = rootCfg.get('application') + ';';
+    var mainApp = rootCfg.get('application').split(';')[0];
     var promises = [];
     var isNonBatch = false;
+    var schemas = {};
+    var app;
     for (var appKey in appList)
     {
         if (appStartList.match(appKey + ';'))
@@ -726,29 +721,38 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                 var path = dirname + '/' + appList[appName] + '/';
                 var cpath = dirname + '/apps/common/';
                 function readFile (file) {return file && fs.existsSync(file) ? fs.readFileSync(file) : null;}
-                var config = JSON.parse((readFile(path + "/config.json") || readFile(cpath + "/config.json")).toString());
-                config.nconf = nconf; // global config
+
+                var config = configStore[appKey].get();
+                config.nconf = configStore[appKey]; // global config
+                config.configStore = configStore;
+
                 var schema = JSON.parse((readFile(path + "/schema.json") || readFile(cpath + "/schema.json")).toString());
 
-                var dbName = nconf.get(appName + '_dbName') || config.dbName || dbname;
-                var dbPath = nconf.get(appName + '_dbPath') || config.dbPath || dbpath;
-                var dbDriver = nconf.get(appName + '_dbDriver') || config.dbDriver || dbdriver || 'mongo';
-                var dbType = nconf.get(appName + '_dbType') || config.dbType || dbtype || 'mongo';
-                var dbUser = nconf.get(appName + '_dbUser') || config.dbUser || dbuser || 'nodejs';
-                var dbPassword = nconf.get(appName + '_dbPassword') || config.dbPassword || dbpassword || null;
-                var dbConnections = nconf.get(appName + '_dbConnections') || config.dbConnections || dbconnections || 20;
+                var dbConfig = (function(config){
+                    return {
+                        dbName : config.get(appName + '_dbName') || config.get('dbName') || config.get('dbname'),
+                        dbPath : config.get(appName + '_dbPath') || config.get('dbPath') || config.get('dbpath'),
+                        dbDriver : config.get(appName + '_dbDriver') || config.get('dbDriver') || config.get('dbdriver') || 'mongo',
+                        dbType : config.get(appName + '_dbType') || config.get('dbType') || config.get('dbtype') || 'mongo',
+                        dbUser : config.get(appName + '_dbUser') || config.get('dbUser') || config.get('dbuser') || 'nodejs',
+                        dbPassword : config.get(appName + '_dbPassword') || config.get('dbPassword') || config.get('dbpassword') || null,
+                        isDBSet : function () { return this.dbName && this.dbPath; },
+                        connectMongo : function () { return this.dbPath + this.dbName;}
+                        dbConnections : nconf.get(appName + '_dbConnections') || || nconf.get('dbconnections') || 20;
+                    };
+                })(config.nconf);
 
-                if (dbDriver == 'mongo')
-                    var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbPath + dbName);
+                if (dbConfig.dbDriver == 'mongo')
+                    var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbConfig.connectMongo());
                 else if (dbDriver == 'knex') {
                     var knex = require('knex')({
-                        client: dbType,
+                        client: dbConfig.dbType,
                         connection: {
-                            host     : dbPath,
-                            database : dbName,
-                            user: dbUser,
-                            password: dbPassword,
-                        }, pool: {min: 0, max: dbConnections}});
+                            host     : dbConfig.dbPath,
+                            database : dbConfig.dbName,
+                            user: dbConfig.dbUser,
+                            password: dbConfig.dbPassword,
+                        }, pool: {min: 0, max: dbConfig.dbConnections}});
                     var dbClient = Q(knex);
                     (function () {
                         var closureKnex = knex;
@@ -758,19 +762,19 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                         });
                     })()
                 }
-                if (dbName && dbPath) {
+                if (dbConfig.isDBSet()) {
                     promises.push(dbClient
                         .then (function (db) {
-                                console.log("DB connection established to " + dbDriver + ":" + dbName);
-                                function injectObjectTemplate (objectTemplate) {
-                                    if (dbDriver == "knex")
-                                        objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
-                                    else
-                                        objectTemplate.setDB(db);
-                                    objectTemplate.setSchema(schema);
-                                    objectTemplate.config = config;
-                                    objectTemplate.logLevel = nconf.get('logLevel') || 1;
-                                }
+                            console.log("DB connection established to " + dbConfig.dbName);
+                            function injectObjectTemplate (objectTemplate) {
+                                if (dbConfig.dbDriver == "knex")
+                                    objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
+                                else
+                                    objectTemplate.setDB(db);
+                                objectTemplate.setSchema(schema);
+                                objectTemplate.config = config;
+                                objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+                            }
 
                                 amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
                                     cpath + '/js/', injectObjectTemplate,
@@ -792,7 +796,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
                     function injectObjectTemplate(objectTemplate) {
                         objectTemplate.config = config;
-                        objectTemplate.logLevel = nconf.get('logLevel') || 1;
+                        objectTemplate.logLevel = appConfig.get('logLevel') || 1;
                     }
 
                     amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
@@ -866,7 +870,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
         if (postSessionInject)
             postSessionInject.call(null, app);
 
-        app.listen(nconf.get('port'));
+        app.listen(rootCfg.get('port'));
     }).fail(function(e){console.log(e.message + " " + e.stack)});
 }
 module.exports = {

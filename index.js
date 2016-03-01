@@ -85,7 +85,7 @@ function establishDaemon (path) {
 
     // Inject into it any db or persist attributes needed for application
     initObjectTemplate(objectTemplate);
-    var requires = getTemplates(objectTemplate, config.appPath, [prop + ".js"], config);
+    var requires = getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, path);
 
     var controllerTemplate = requires[prop].Controller;
     if (!controllerTemplate)
@@ -265,13 +265,30 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
         if (ref[prop])
             throw  new Error("circular reference on " + file);
         ref[prop] = true;
-        if (fs.existsSync(appPath + file)) {
-            var clientPath = path;
-            var require_results = require(appPath + file);
-        } else {
-            var clientPath = 'common';
-            var require_results = require(config.commonPath + file);
+
+        // 1. If the file is to be 'required' from a specific app, use
+        // that app, otherwise
+        // 2. look for the file under the current app,
+        // 3. otherwise look under common
+        var clientPath, require_results;
+        if(options && options.app){
+            clientPath = options.app;
+            var daemonPath =  config.commonPath + '/../../' + clientPath + '/js/' + file;
+            var interactivePath = config.commonPath + '/../../' + clientPath + '/public/js/' + file;
+            if (fs.existsSync(daemonPath)) {
+                require_results = require(daemonPath);
+            } else {
+                require_results = require(interactivePath);
+            }
         }
+        else if (fs.existsSync(appPath + file)) {
+            clientPath = path;
+            require_results = require(appPath + file);
+        } else {
+            clientPath = 'common';
+            require_results = require(config.commonPath + file);
+        }
+
         var initializer = (require_results[prop]);
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
@@ -737,14 +754,14 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                         dbUser : config.get(appName + '_dbUser') || config.get('dbUser') || config.get('dbuser') || 'nodejs',
                         dbPassword : config.get(appName + '_dbPassword') || config.get('dbPassword') || config.get('dbpassword') || null,
                         isDBSet : function () { return this.dbName && this.dbPath; },
-                        connectMongo : function () { return this.dbPath + this.dbName;}
-                        dbConnections : nconf.get(appName + '_dbConnections') || || nconf.get('dbconnections') || 20;
+                        connectMongo : function () { return this.dbPath + this.dbName },
+                        dbConnections : config.get(appName + '_dbConnections') || config.get('dbconnections') || 20
                     };
                 })(config.nconf);
 
                 if (dbConfig.dbDriver == 'mongo')
                     var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbConfig.connectMongo());
-                else if (dbDriver == 'knex') {
+                else if (dbConfig.dbDriver == 'knex') {
                     var knex = require('knex')({
                         client: dbConfig.dbType,
                         connection: {

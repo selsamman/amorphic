@@ -1,3 +1,5 @@
+## 0.2.20
+* New config file scheme allows config file settings to be overriddent at the app directory level
 ## 0.2.16
 * set maximum time to block call for semotus
 ## 0.2.15

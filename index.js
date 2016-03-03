@@ -130,7 +130,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     {
         var referer = req.headers['referer'] ? url.parse(req.headers['referer'], true).path : "";
         var match = config.appConfig.createControllerFor;
-        if (!referer.match(match))
+        if (!referer.match(match) && match != "yes")
         {
             // Create the templates to get the source but don't instantiate a controller yet
             var requires = {};
@@ -553,6 +553,36 @@ function processFile(req, resp, next)
         resp.end('<html><body><script>parent.amorphic.prepareFileUpload(\'package\');parent.amorphic.uploadFunction.call(null, "' +  fileName + '"' + ')</script></body></html>');
     });
 }
+/**
+ * Process a post request by establishing a session and calling the controllers processPost method
+ * which can return a response to be sent back
+ * @param req
+ * @param resp
+ */
+function processPost(req, resp)
+{
+    var session = req.session;
+    var message = req.body;
+    var path = url.parse(req.url, true).query.path;
+
+    establishServerSession(req, path, false, false, null).then (function (semotus)
+    {
+        var ourObjectTemplate = semotus.objectTemplate;
+        var remoteSessionId = req.session.id;
+        if (typeof(ourObjectTemplate.controller.processPost) == "function") {
+            var controllerResp = ourObjectTemplate.controller.processPost(req.body)
+            ourObjectTemplate.setSession(remoteSessionId);
+            semotus.save(path, session);
+            resp.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
+            resp.end(controllerResp.body);
+        } else
+            throw "Not Accepting Posts";
+    }).fail(function(error){
+        log(0, req.sessionId, error);
+        resp.writeHead(500, {"Content-Type": "text/plain"});
+        resp.end(error.toString());
+    }).done();
+}
 
 /**
  * Process JSON request message
@@ -652,7 +682,12 @@ function uploadRoute(req, resp, next) {
     else
         next();
 }
-function downloadRoute(req, resp, next) {
+function postRoute(req, resp, next) {
+    if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.form && req.method=='POST')
+        processPost(req, resp,next)
+    else
+        next();
+}function downloadRoute(req, resp, next) {
     var file = url.parse(req.url, true).query.file;
     if (req.url.match(/amorphic\/xhr\?path\=/) && file && req.method=='GET')
         processContentRequest(req, resp, next, file)
@@ -813,7 +848,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
                     function injectObjectTemplate(objectTemplate) {
                         objectTemplate.config = config;
-                        objectTemplate.logLevel = appConfig.get('logLevel') || 1;
+                        objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
                     }
 
                     amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
@@ -863,6 +898,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
             .use(amorphic.uploadRouter)
             .use(amorphic.downloadRouter)
             .use(connect.bodyParser())
+            .use(amorphic.postRouter)
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
                 if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
@@ -870,15 +906,22 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                     console.log("Establishing " + appName);
                     amorphic.establishServerSession(request, appName, "initial")
                         .then (function (session) {
-                            response.setHeader("Content-Type", "application/javascript");
-                            response.setHeader("Cache-Control", "public, max-age=0");
-                            response.end(
-                                "amorphic.setApplication('" + appName + "');" +
-                                "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
-                                session.getModelSource() +
-                                "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
-                                "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
-                            );
+                            if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
+                                var controllerResp = session.objectTemplate.controller.processPost(request.originalUrl, request.body)
+                                session.save(appName, request.session);
+                                response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
+                                response.end(controllerResp.body || "");
+                            } else {
+                                response.setHeader("Content-Type", "application/javascript");
+                                response.setHeader("Cache-Control", "public, max-age=0");
+                                response.end(
+                                    "amorphic.setApplication('" + appName + "');" +
+                                    "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
+                                    session.getModelSource() +
+                                    "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
+                                    "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
+                                );
+                            }
                         }).done();
                 }
             })
@@ -898,6 +941,7 @@ module.exports = {
     processMessage: processMessage,
     router: route,
     uploadRouter: uploadRoute,
+    postRouter: postRoute,
     downloadRouter: downloadRoute,
     getTemplates: getTemplates,
     setDownloadDir: setDownloadDir,

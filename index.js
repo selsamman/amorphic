@@ -570,11 +570,12 @@ function processPost(req, resp)
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
         if (typeof(ourObjectTemplate.controller.processPost) == "function") {
-            var controllerResp = ourObjectTemplate.controller.processPost(req.body)
-            ourObjectTemplate.setSession(remoteSessionId);
-            semotus.save(path, session);
-            resp.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
-            resp.end(controllerResp.body);
+            Q(ourObjectTemplate.controller.processPost(req.body)).then(function (controllerResp) {
+                ourObjectTemplate.setSession(remoteSessionId);
+                semotus.save(path, session);
+                resp.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
+                resp.end(controllerResp.body);
+            })
         } else
             throw "Not Accepting Posts";
     }).fail(function(error){
@@ -907,10 +908,11 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                     amorphic.establishServerSession(request, appName, "initial")
                         .then (function (session) {
                             if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
-                                var controllerResp = session.objectTemplate.controller.processPost(request.originalUrl, request.body)
-                                session.save(appName, request.session);
-                                response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
-                                response.end(controllerResp.body || "");
+                                Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body)).then( function (controllerResp) {
+                                    session.save(appName, request.session);
+                                    response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
+                                    response.end(controllerResp.body || "");
+                                });
                             } else {
                                 response.setHeader("Content-Type", "application/javascript");
                                 response.setHeader("Cache-Control", "public, max-age=0");
@@ -925,10 +927,11 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                         }).done();
                 }
             })
-            .use(amorphic.router);
 
         if (postSessionInject)
             postSessionInject.call(null, app);
+
+        app.use(amorphic.router);
 
         app.listen(rootCfg.get('port'));
     }).fail(function(e){console.log(e.message + " " + e.stack)});

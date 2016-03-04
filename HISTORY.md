@@ -1,3 +1,7 @@
+## 0.2.24
+* Put post session inject before amorphic processing to allow requestion injection
+## 0.2.23
+* Allow post processing to be asynchronous
 ## 0.2.22
 * Added config.set in sumulated nconf
 ## 0.2.21

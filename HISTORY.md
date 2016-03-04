@@ -1,3 +1,5 @@
+## 0.2.22
+* Added config.set in sumulated nconf
 ## 0.2.21
 * Added post handling
 ## 0.2.20

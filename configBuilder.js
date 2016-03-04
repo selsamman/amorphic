@@ -13,7 +13,9 @@ function ConfigAPI(){
 ConfigAPI.prototype.get = function (key){
     return this._configProvider.get(key);
 };
-
+ConfigAPI.prototype.set = function (key, value){
+    return this._configProvider.set(key, value);
+};
 ConfigAPI.prototype.loadFile = function (fileKey, file){
     this._configProvider.file(fileKey, file);
 };

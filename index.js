@@ -19,7 +19,6 @@
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 /*  @type RemoteObjectTemplate */
-var performanceLogging = false;
 var ObjectTemplate = require("supertype");
 var RemoteObjectTemplate = require("semotus");
 RemoteObjectTemplate.maxCallTime = 60 * 1000; // Max time for call interlock
@@ -54,6 +53,12 @@ var applicationSource = {};
 var deferred = {};
 var logger = null;
 var sourceMode = 'debug'
+var zlib = require('zlib');
+var amorphicOptions = {
+    performanceLogging: false,
+    compressSession: false
+}
+
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig) {
     applicationConfig[appPath] = {
         appPath: path,
@@ -182,10 +187,11 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
         var time = process.hrtime();
         var controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, true, newControllerId, req);
         controller.__template__.objectTemplate.reqSession = req.session;
-        var diff = process.hrtime(time);
-        var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-        if (performanceLogging)
-            console.log("create controller took " + took + " ms");
+        if (amorphicOptions.performanceLogging){
+            var diff = process.hrtime(time);
+            var took = (diff[0] * 1e9 + diff[1]) / 1000000;
+            console.log("performanceLogging: create controller took " + took + " ms");
+        }
 
     } else {
         var controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, false, null, req);
@@ -426,8 +432,10 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     initObjectTemplate(objectTemplate);
 
     // Restore any saved objectMap
-    if (session.semotus.objectMap)
+    if (session.semotus.objectMap){
+        session.semotus.objectMap = decompressSessionData(session.semotus.objectMap);
         objectTemplate.objectMap = session.semotus.objectMap;
+    }
 
     // Get the controller and all of it's dependent requires which will populate a
     // key value pairs where the key is the require prefix and and the value is the
@@ -463,7 +471,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         log(1, sessionId, "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         objectTemplate.__changeTracking__ = false;
-        var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
+        var controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
         log(1, sessionId, "Restoring saved controller " + (newPage ? " new page " : "") + browser);
         if (!newPage) // No changes queued as a result unless we need it for init.js
             objectTemplate.syncSession();
@@ -479,36 +487,63 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     return controller;
 }
 
+function compressSessionData(data){
+
+    if(amorphicOptions.compressSession){
+        return zlib.deflateSync(data);
+    }
+
+    return data;
+}
+
+function decompressSessionData(objData){
+
+    if(amorphicOptions.compressSession && objData.data){
+        var buffer = new Buffer(objData.data)
+        return zlib.inflateSync(buffer); 
+    }
+
+    return objData;
+}
+
 function saveSession(path, session, controller) {
     var request = controller.__request;
     controller.__request = null;
     var time = process.hrtime();
-    session.semotus.controllers[path] = controller.toJSONString();
+    session.semotus.controllers[path] = compressSessionData(controller.toJSONString());
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
     var ourObjectTemplate = controller.__template__.objectTemplate;
-    if (ourObjectTemplate.objectMap)
-        session.semotus.objectMap = ourObjectTemplate.objectMap;
-    var diff = process.hrtime(time);
-    var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-    if (performanceLogging)
-        console.log("save session " + took + " ms - length = " + session.semotus.controllers[path].length);
+    if (ourObjectTemplate.objectMap){
+        session.semotus.objectMap = compressSessionData(JSON.stringify(ourObjectTemplate.objectMap));
+    }
+
+    if (amorphicOptions.performanceLogging){
+        var diff = process.hrtime(time);
+        var took = (diff[0] * 1e9 + diff[1]) / 1000000;
+        console.log("performanceLogging: save session " + took + " ms - length = " + session.semotus.controllers[path].length);
+    }
 
     controller.__request = request;
 }
 function restoreSession(path, session, controllerTemplate) {
+    
     var objectTemplate = controllerTemplate.objectTemplate;
 
+    var time = process.hrtime();
     // Get the cached controller
-    if (!controllers[session.sessionId + path])
+    if (!controllers[session.sessionId + path]){
         controllers[session.sessionId + path] = {};
+    }
     var cachedController = controllers[session.sessionId + path];
 
     // restore the controller from the session
 
     objectTemplate.__changeTracking__ = false;
-    var controller = objectTemplate.fromJSON(session.semotus.controllers[path], controllerTemplate);
-    if (session.semotus.objectMap)
+    var controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
+    if (session.semotus.objectMap){
+        session.semotus.objectMap = decompressSessionData(session.semotus.objectMap);
         objectTemplate.objectMap = session.semotus.objectMap;
+    }
     log(1, session.sessionId, "Explicit Restore of saved controller ");
     objectTemplate.syncSession();  // Clean tracking of changes
     objectTemplate.__changeTracking__ = true;
@@ -517,6 +552,12 @@ function restoreSession(path, session, controllerTemplate) {
 
     // Set it up in the cache
     cachedController.controller = controller;
+
+    if (amorphicOptions.performanceLogging){
+        var diff = process.hrtime(time);
+        var took = (diff[0] * 1e9 + diff[1]) / 1000000;
+        console.log("performanceLogging: restore session " + took + " ms - length = " + session.semotus.controllers[path].length);
+    }
 
     return controller;
 }
@@ -609,10 +650,12 @@ function processMessage(req, resp)
 
     establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus)
     {
-        var diff = process.hrtime(start);
-        var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-        if (performanceLogging)
-            console.log("establish session " + took);
+        if (amorphicOptions.performanceLogging){
+            var diff = process.hrtime(start);
+            var took = (diff[0] * 1e9 + diff[1]) / 1000000;
+
+            console.log("performanceLogging: establish session " + took + "ms");
+        }
 
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
@@ -645,10 +688,11 @@ function processMessage(req, resp)
             message.ver = semotus.appVersion;
             var respstr = JSON.stringify(message)
             resp.end(respstr);
-            var diff = process.hrtime(start);
-            var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-            if (performanceLogging)
-                console.log("processing request took " + took + " response length = " + respstr.length);
+            if (amorphicOptions.performanceLogging){
+                var diff = process.hrtime(start);
+                var took = (diff[0] * 1e9 + diff[1]) / 1000000;
+                console.log("performanceLogging: processing request took " + took + " response length = " + respstr.length);
+            }
         }
 
         var forwardedIpsStr = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
@@ -750,6 +794,13 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     // Global varibles
     var sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
     var objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
+
+    amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
+    amorphicOptions.performanceLogging = rootCfg.get('performanceLogging') || amorphicOptions.performanceLogging;
+    console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
+    if(amorphicOptions.compressSession){
+        console.log('Compress Session data requires node 0.11 or greater, current version is: ' + process.version);
+    }
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(

@@ -1,3 +1,6 @@
+## 0.2.25
+* Added option to compress session data with zlib (--compressSession)
+* All configs included in global config even if application not invoked
 ## 0.2.24
 * Put post session inject before amorphic processing to allow requestion injection
 ## 0.2.23

@@ -433,7 +433,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
 
     // Restore any saved objectMap
     if (session.semotus.objectMap){
-        session.semotus.objectMap = decompressSessionData(session.semotus.objectMap);
+        //session.semotus.objectMap = decompressSessionData(session.semotus.objectMap);
         objectTemplate.objectMap = session.semotus.objectMap;
     }
 
@@ -513,9 +513,8 @@ function saveSession(path, session, controller) {
     session.semotus.controllers[path] = compressSessionData(controller.toJSONString());
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
     var ourObjectTemplate = controller.__template__.objectTemplate;
-    if (ourObjectTemplate.objectMap){
-        session.semotus.objectMap = compressSessionData(JSON.stringify(ourObjectTemplate.objectMap));
-    }
+    if (ourObjectTemplate.objectMap)
+        session.semotus.objectMap = ourObjectTemplate.objectMap;
 
     if (amorphicOptions.performanceLogging){
         var diff = process.hrtime(time);
@@ -540,10 +539,8 @@ function restoreSession(path, session, controllerTemplate) {
 
     objectTemplate.__changeTracking__ = false;
     var controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
-    if (session.semotus.objectMap){
-        session.semotus.objectMap = decompressSessionData(session.semotus.objectMap);
+    if (session.semotus.objectMap)
         objectTemplate.objectMap = session.semotus.objectMap;
-    }
     log(1, session.sessionId, "Explicit Restore of saved controller ");
     objectTemplate.syncSession();  // Clean tracking of changes
     objectTemplate.__changeTracking__ = true;

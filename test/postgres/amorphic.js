@@ -195,6 +195,7 @@ describe("Banking Example", function () {
     });
     it("can retry an update conflict", function (done) {
         var retryCount = 0;
+        this.timeout(4000);
         serverAssert = function () {
             console.log("Updating Sam and then changing verions to 200 " + retryCount);
             serverController.sam.firstName = 'Sam';

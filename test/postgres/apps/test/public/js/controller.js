@@ -108,6 +108,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
                 .then(this.ashling ? this.ashling.refresh.bind(this.ashling) : true)
                 .then(function () {
                     objectTemplate.begin();
+                    console.log(this.sam ? this.sam.__version__ : "");
                     objectTemplate.currentTransaction.touchTop = true;
                 }.bind(this));
         },

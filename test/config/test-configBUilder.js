@@ -27,7 +27,7 @@ describe('configBuilder', function() {
 
         });
 
-        it('should return only the global "root" config', function(){
+        it('should return the global "root" config and all available configs', function(){
             var builder = new configBuilder(myCfg);
             mockfs({
                 '/my/root': {
@@ -42,8 +42,9 @@ describe('configBuilder', function() {
             var configStore = builder.build('/my/root');
 
             var props = Object.getOwnPropertyNames(configStore);
-            expect(props.length).to.equal(1);
+            expect(props.length).to.equal(2);
             expect(props[0]).to.equal('root');
+            expect(props[1]).to.equal('customer');
 
             expect(configStore['root']).to.not.be.null;
             expect(configStore['root']).to.deep.equal(myCfg);
@@ -63,7 +64,7 @@ describe('configBuilder', function() {
 
         });
 
-        it('should return only the "root" config', function(){
+        it('should return the "root" config and all available configs', function(){
         
             var builder = new configBuilder(myCfg);
             mockfs({
@@ -79,11 +80,14 @@ describe('configBuilder', function() {
             var configStore = builder.build('/my/root');
 
             var props = Object.getOwnPropertyNames(configStore);
-            expect(props.length).to.equal(1);
+            expect(props.length).to.equal(2);
             expect(props[0]).to.equal('root');
+            expect(props[1]).to.equal('app1');
 
             expect(configStore['root']).to.not.be.null;
             expect(configStore['root']).to.deep.equal(myCfg);
+
+            expect(configStore['app1']).to.not.be.null;
             
         });
 
@@ -103,7 +107,7 @@ describe('configBuilder', function() {
 
         });
 
-        it('should return "root" and the app config', function(){
+        it('should return "root" and all available configs including startup app', function(){
             var builder = new configBuilder(myCfg);
             mockfs({
                 '/my/root': {
@@ -121,20 +125,25 @@ describe('configBuilder', function() {
             var configStore = builder.build('/my/root');
             
             var props = Object.getOwnPropertyNames(configStore);
-            expect(props.length).to.equal(2);
+            expect(props.length).to.equal(4);
             expect(props[0]).to.equal('root');
-            expect(props[1]).to.equal('app2');
+            expect(props[1]).to.equal('app1');
+            expect(props[2]).to.equal('app2');
+            expect(props[3]).to.equal('app3');
 
             expect(configStore['root']).to.not.be.null;
             expect(configStore['root']).to.deep.equal(myCfg);
 
+            expect(configStore['app1']).to.not.be.null;
             //without overrides it will be same as root config
             expect(configStore['app2']).to.not.be.null;
             expect(configStore['app2'].get('testkey')).to.equal('rootvalue');
 
+            expect(configStore['app3']).to.not.be.null;
+            
         });
 
-        it('should return the app config with the app level override', function(){
+        it('should return the app config with the app level override, including all available', function(){
             var builder = new configBuilder(myCfg);
             mockfs({
                 '/my/root': {
@@ -157,14 +166,20 @@ describe('configBuilder', function() {
             var configStore = builder.build('/my/root');
             
             var props = Object.getOwnPropertyNames(configStore);
-            expect(props.length).to.equal(2);
+            expect(props.length).to.equal(4);
             expect(props[0]).to.equal('root');
-            expect(props[1]).to.equal('app2');
+            expect(props[1]).to.equal('app1');
+            expect(props[2]).to.equal('app2');
+            expect(props[3]).to.equal('app3');
+            
+            expect(configStore['root']).to.not.be.null;
+            expect(configStore['app1']).to.not.be.null;
             
             //without overrides it will be same as root config
             expect(configStore['app2']).to.not.be.null;
             expect(configStore['app2'].get('testkey')).to.equal('dir_app2_value');
-            mockfs.restore();
+
+            expect(configStore['app3']).to.not.be.null;
         });
 
        it('should return the app config with the common level override', function(){
@@ -190,9 +205,11 @@ describe('configBuilder', function() {
             var configStore = builder.build('/my/root');
             
             var props = Object.getOwnPropertyNames(configStore);
-            expect(props.length).to.equal(2);
+            expect(props.length).to.equal(4);
             expect(props[0]).to.equal('root');
-            expect(props[1]).to.equal('app2');
+            expect(props[1]).to.equal('app1');
+            expect(props[2]).to.equal('app2');
+            expect(props[3]).to.equal('app3');
 
             expect(configStore['app2']).to.not.be.null;
             expect(configStore['app2'].get('testkey')).to.equal('dir_common_value');
@@ -216,7 +233,7 @@ describe('configBuilder', function() {
 
         });
 
-        it('should return "root" and the number of configured apps', function(){
+        it('should return "root" and all of avaible configured apps, not just what is starting up', function(){
             var builder = new configBuilder(myCfg);
             mockfs({
                 '/my/root': {
@@ -259,11 +276,16 @@ describe('configBuilder', function() {
             var configStore = builder.build('/my/root');
             
             var props = Object.getOwnPropertyNames(configStore);
-            expect(props.length).to.equal(4);
+            expect(props.length).to.equal(6);
             expect(props[0]).to.equal('root');
-            expect(props[1]).to.equal('app2');
-            expect(props[2]).to.equal('app3');
-            expect(props[3]).to.equal('app4');
+            expect(props[1]).to.equal('app1');
+            expect(props[2]).to.equal('app2');
+            expect(props[3]).to.equal('app3');
+            expect(props[4]).to.equal('app4');
+            expect(props[5]).to.equal('app5');
+
+            expect(configStore['root']).to.not.be.null;
+            expect(configStore['app1']).to.not.be.null;
 
             expect(configStore['app2']).to.not.be.null;
             expect(configStore['app2'].get('testkey')).to.equal('dir_common_value');
@@ -281,6 +303,8 @@ describe('configBuilder', function() {
             expect(configStore['app4'].get('testkey')).to.equal('dir_common_value');
             expect(configStore['app4'].get('testObj:testObjkey1')).to.equal('value_app_4_1');
             expect(configStore['app4'].get('testObj:testObjkey2')).to.equal('value_root_2');
+
+            expect(configStore['app5']).to.not.be.null;
 
         });
 

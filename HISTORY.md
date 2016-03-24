@@ -1,3 +1,5 @@
+## 0.2.26
+* Including alpha client for ionic
 ## 0.2.25
 * Added option to compress session data with zlib (--compressSession)
 * All configs included in global config even if application not invoked

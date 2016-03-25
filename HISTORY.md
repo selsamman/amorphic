@@ -1,3 +1,6 @@
+## 0.2.27
+* Added --sourceMode prod option cosolidate model source into a single file
+* Added --compressXHR true option to compress XHR responses.
 ## 0.2.26
 * Including alpha client for ionic
 ## 0.2.25

@@ -32,6 +32,7 @@ var logLevel = 1;
 var path = require('path');
 var onDeath = require('death');
 var deathWatch = [];
+var Concat = require('concat-with-sourcemaps');
 onDeath(function () {
     console.log("exiting gracefully " + deathWatch.length + " tasks to perform");
     return Q()
@@ -50,13 +51,15 @@ onDeath(function () {
 });
 var applicationConfig = {};
 var applicationSource = {};
+var applicationSourceMap = {};
 var deferred = {};
 var logger = null;
-var sourceMode = 'debug'
 var zlib = require('zlib');
 var amorphicOptions = {
     performanceLogging: false,
-    compressSession: false
+    compressSession: false,
+    compressXHR: false,
+    sourceMode: 'debug'
 }
 
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig) {
@@ -115,7 +118,6 @@ function establishDaemon (path) {
  * @param hasReset - client has reset and is sending a controller
  * @return {*}
  */
-
 function establishServerSession (req, path, newPage, reset, newControllerId)
 {
     // Retrieve configuration information
@@ -152,6 +154,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             // key value pairs where the key is the require prefix and and the value is the
             // key value pairs of each exported template
             applicationSource[path] = "";
+            applicationSourceMap[path] = "";
             var requires = getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, path);
 
             return Q.fcall(function ()
@@ -162,9 +165,6 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                             url: "/amorphic/xhr?path=" + path,
                             message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
                         })
-                    },
-                    getModelSource: function () {
-                        return applicationSource[path];
                     },
                     getServerConfigString: function () {
                         return JSON.stringify(config.appConfig);
@@ -223,9 +223,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
         getServerConfigString: function () {
             return JSON.stringify(config.appConfig);
         },
-        getModelSource: function () {
-            return applicationSource[path];
-        },
+
         save: function (path, session) {
             saveSession(path, session, controller);
         },
@@ -253,7 +251,8 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
     var mixins = [];
     var ignoringClient = false;
     var filesNeeded = {};
-    var applicationSourceMap = {};
+    var applicationSourceCandidate = {};
+    var concat = amorphicOptions.sourceMode == 'prod' ? new Concat(true, 'foo.js', '\n') : null;
 
     function getTemplate(file, options) {
         var previousIgnoringClient = ignoringClient;
@@ -305,11 +304,20 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
             mixins.push(mixins_initializer);
 
         if (typeof(path) != 'undefined') {
-            if (sourceMode == 'debug') {
-                applicationSourceMap[prop] =  "document.write(\"<script src='/" + clientPath + "/js/" + file + "?ver=" + config.appVersion + "'></script>\");\n\n";
-            } else {
-                applicationSourceMap[prop] = "module.exports." + prop + " = " + require_results[prop] + "\n\n" +
-                    (mixins_initializer ? "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n" : "");
+            if (filesNeeded[prop])
+                if (amorphicOptions.sourceMode == 'debug') {
+                    applicationSource[path] += "document.write(\"<script src='/" + clientPath + "/js/" + file + "?ver=" + config.appVersion + "'></script>\");\n\n";
+                } else {
+                    addAppSource("module.exports." + prop + " = " + require_results[prop] + "\n\n" +
+                        (mixins_initializer ? "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n" : ""),
+                        "/" + clientPath + "/js/" + file + "?ver=" + config.appVersion);
+                }
+            else {
+                for (var template in requires[prop])
+                    if (requires[prop][template])
+                        requires[prop][template].__toClient__ = false;
+                    else
+                        console.log(template + " not found in requires for " + prop);
             }
         }
 
@@ -320,21 +328,12 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
     for (var ix = 0; ix < templates.length; ++ix)
         getTemplate(templates[ix]);
 
-    for (var prop in applicationSourceMap)
-        if (filesNeeded[prop])
-            applicationSource[path] += applicationSourceMap[prop];
-        else {
-            for (var template in requires[prop])
-                if (requires[prop][template])
-                    requires[prop][template].__toClient__ = false;
-                else
-                    console.log(template + " not found in requires for " + prop);
-        }
 
     for (var ix = 0;ix < mixins.length;++ix)
         if (mixins[ix])
             (mixins[ix])(objectTemplate, requires);
 
+    // Handle NPM includes
     if (config && config.appConfig && config.appConfig.modules)
         for(var mixin in config.appConfig.modules)
             if (!config.appConfig.modules[mixin].require)
@@ -347,15 +346,24 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
                 var results = require(requireName);
                 results[mixin + "_mixins"](objectTemplate, requires, config.appConfig.modules[mixin], config.appConfig.nconf);
                 if (typeof(path) != 'undefined')
-                    if (sourceMode == 'debug') {
-                        applicationSource[path] += "document.write(\"<script src='/modules/" + requireName + "/index.js'></script>\");\n\n";
+                    if (amorphicOptions.sourceMode == 'debug') {
+                        applicationSource[path] += "document.write(\"<script src='/modules/" + requireName + "/index.js?ver=" + config.appVersion + "'></script>\");\n\n";
                     } else {
-                        applicationSource[path] += "module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n";
+                        addAppSource("module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n", '/modules/' + requireName + '/index.js?ver=' + config.appVersion);
                     }
             }
 
+    // Record source and source map
+    if (concat) {
+        applicationSource[path] = concat.content;
+        applicationSourceMap[path] = concat.sourceMap;
+    }
     objectTemplate.performInjections();
     return requires;
+
+    function addAppSource(data, file) {
+        concat.add(file, data);
+    }
 }
 /**
  * Create a controller template that has a unique RemoteObjectTemplate instance that is
@@ -487,6 +495,14 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     return controller;
 }
 
+function getModelSource  (path) {
+    return applicationSource[path];
+}
+
+function getModelSourceMap (path) {
+    return applicationSourceMap[path];
+}
+
 function compressSessionData(data){
 
     if(amorphicOptions.compressSession){
@@ -500,7 +516,7 @@ function decompressSessionData(objData){
 
     if(amorphicOptions.compressSession && objData.data){
         var buffer = new Buffer(objData.data)
-        return zlib.inflateSync(buffer); 
+        return zlib.inflateSync(buffer);
     }
 
     return objData;
@@ -525,7 +541,7 @@ function saveSession(path, session, controller) {
     controller.__request = request;
 }
 function restoreSession(path, session, controllerTemplate) {
-    
+
     var objectTemplate = controllerTemplate.objectTemplate;
 
     var time = process.hrtime();
@@ -792,6 +808,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     var sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
     var objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
 
+    amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
+    amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
     amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
     amorphicOptions.performanceLogging = rootCfg.get('performanceLogging') || amorphicOptions.performanceLogging;
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
@@ -866,16 +884,16 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                 if (dbConfig.isDBSet()) {
                     promises.push(dbClient
                         .then (function (db) {
-                            console.log("DB connection established to " + dbConfig.dbName);
-                            function injectObjectTemplate (objectTemplate) {
-                                if (dbConfig.dbDriver == "knex")
-                                    objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
-                                else
-                                    objectTemplate.setDB(db);
-                                objectTemplate.setSchema(schema);
-                                objectTemplate.config = config;
-                                objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
-                            }
+                                console.log("DB connection established to " + dbConfig.dbName);
+                                function injectObjectTemplate (objectTemplate) {
+                                    if (dbConfig.dbDriver == "knex")
+                                        objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
+                                    else
+                                        objectTemplate.setDB(db);
+                                    objectTemplate.setSchema(schema);
+                                    objectTemplate.config = config;
+                                    objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+                                }
 
                                 amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
                                     cpath + '/js/', injectObjectTemplate,
@@ -919,6 +937,9 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
     {
         var app = connect();
 
+        if (amorphicOptions.compressXHR)
+            app.use(require('compression')());
+
         if (preSessionInject)
             preSessionInject.call(null, app);
 
@@ -950,7 +971,13 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
             .use(amorphic.postRouter)
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
-                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
+                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js.map/)) {
+                    var appName = RegExp.$1;
+                    response.setHeader("Content-Type", "application/javascript");
+                    response.setHeader("Cache-Control", "public, max-age=0");
+                    response.end(amorphic.getModelSourceMap(appName));
+                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
+                    var url = request.originalUrl;
                     var appName = RegExp.$1;
                     console.log("Establishing " + appName);
                     amorphic.establishServerSession(request, appName, "initial")
@@ -964,10 +991,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                             } else {
                                 response.setHeader("Content-Type", "application/javascript");
                                 response.setHeader("Cache-Control", "public, max-age=0");
+                                if (amorphicOptions.sourceMode != 'debug')
+                                    response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".js.map?ver=" + (url.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
                                 response.end(
                                     "amorphic.setApplication('" + appName + "');" +
                                     "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
-                                    session.getModelSource() +
+                                    amorphic.getModelSource(appName) +
                                     "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
                                     "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
                                 );
@@ -996,5 +1025,7 @@ module.exports = {
     downloadRouter: downloadRoute,
     getTemplates: getTemplates,
     setDownloadDir: setDownloadDir,
-    listen: listen
+    listen: listen,
+    getModelSource: getModelSource,
+    getModelSourceMap: getModelSourceMap
 }

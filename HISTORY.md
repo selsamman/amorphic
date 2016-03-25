@@ -1,4 +1,4 @@
-## 0.2.27
+## 0.2.28
 * Added --sourceMode prod option cosolidate model source into a single file
 * Added --compressXHR true option to compress XHR responses.
 ## 0.2.26

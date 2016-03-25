@@ -304,20 +304,12 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
             mixins.push(mixins_initializer);
 
         if (typeof(path) != 'undefined') {
-            if (filesNeeded[prop])
-                if (amorphicOptions.sourceMode == 'debug') {
-                    applicationSource[path] += "document.write(\"<script src='/" + clientPath + "/js/" + file + "?ver=" + config.appVersion + "'></script>\");\n\n";
-                } else {
-                    addAppSource("module.exports." + prop + " = " + require_results[prop] + "\n\n" +
-                        (mixins_initializer ? "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n" : ""),
-                        "/" + clientPath + "/js/" + file + "?ver=" + config.appVersion);
-                }
-            else {
-                for (var template in requires[prop])
-                    if (requires[prop][template])
-                        requires[prop][template].__toClient__ = false;
-                    else
-                        console.log(template + " not found in requires for " + prop);
+            if (amorphicOptions.sourceMode == 'debug') {
+                applicationSourceCandidate[prop] = ["document.write(\"<script src='/" + clientPath + "/js/" + file + "?ver=" + config.appVersion + "'></script>\");\n\n"];
+            } else {
+                applicationSourceCandidate[prop] = ["module.exports." + prop + " = " + require_results[prop] + "\n\n" +
+                (mixins_initializer ? "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n" : ""),
+                    "/" + clientPath + "/js/" + file + "?ver=" + config.appVersion];
             }
         }
 
@@ -328,6 +320,19 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
     for (var ix = 0; ix < templates.length; ++ix)
         getTemplate(templates[ix]);
 
+    for (var prop in applicationSourceCandidate)
+        if (filesNeeded[prop]) {
+            if (amorphicOptions.sourceMode == 'debug')
+                applicationSource[path] += applicationSourceCandidate[prop][0];
+            else
+                addAppSource(applicationSourceCandidate[prop][0], applicationSourceCandidate[prop][1]);
+        } else {
+            for (var template in requires[prop])
+                if (requires[prop][template])
+                    requires[prop][template].__toClient__ = false;
+                else
+                    console.log(template + " not found in requires for " + prop);
+        }
 
     for (var ix = 0;ix < mixins.length;++ix)
         if (mixins[ix])

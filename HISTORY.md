@@ -1,3 +1,6 @@
+## 0.2.29
+* improved on --sourceMode prod by having two files, one dynaamic and one cached
+* Fixed source map mismatch
 ## 0.2.28
 * Added --sourceMode prod option cosolidate model source into a single file
 * Added --compressXHR true option to compress XHR responses.

@@ -976,10 +976,15 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
             .use(amorphic.postRouter)
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
-                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js.map/)) {
+                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
                     var appName = RegExp.$1;
                     response.setHeader("Content-Type", "application/javascript");
-                    response.setHeader("Cache-Control", "public, max-age=0");
+                    response.setHeader("Cache-Control", "public, max-age=31556926");
+                    response.end(amorphic.getModelSource(appName));
+                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js.map/)) {
+                    var appName = RegExp.$1;
+                    response.setHeader("Content-Type", "application/javascript");
+                    response.setHeader("Cache-Control", "public, max-age=31556926");
                     response.end(amorphic.getModelSourceMap(appName));
                 } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
                     var url = request.originalUrl;
@@ -999,9 +1004,9 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                                 if (amorphicOptions.sourceMode != 'debug')
                                     response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".js.map?ver=" + (url.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
                                 response.end(
+                                    "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n" +
                                     "amorphic.setApplication('" + appName + "');" +
                                     "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
-                                    amorphic.getModelSource(appName) +
                                     "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
                                     "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
                                 );

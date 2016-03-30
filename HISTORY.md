@@ -1,3 +1,5 @@
+## 0.2.30
+* Use Uglify to compress source when set to production
 ## 0.2.29
 * improved on --sourceMode prod by having two files, one dynaamic and one cached
 * Fixed source map mismatch

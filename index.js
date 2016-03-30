@@ -25,6 +25,7 @@ RemoteObjectTemplate.maxCallTime = 60 * 1000; // Max time for call interlock
 var PersistObjectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, ObjectTemplate);
 
 var formidable = require('formidable');
+var UglifyJS = require('uglify-js');
 var url = require('url');
 var fs = require('fs');
 var Q = require('q');
@@ -32,7 +33,6 @@ var logLevel = 1;
 var path = require('path');
 var onDeath = require('death');
 var deathWatch = [];
-var Concat = require('concat-with-sourcemaps');
 onDeath(function () {
     console.log("exiting gracefully " + deathWatch.length + " tasks to perform");
     return Q()
@@ -252,7 +252,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
     var ignoringClient = false;
     var filesNeeded = {};
     var applicationSourceCandidate = {};
-    var concat = amorphicOptions.sourceMode == 'prod' ? new Concat(true, 'foo.js', '\n') : null;
+    var ast = null;
 
     function getTemplate(file, options) {
         var previousIgnoringClient = ignoringClient;
@@ -359,15 +359,21 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
             }
 
     // Record source and source map
-    if (concat) {
-        applicationSource[path] = concat.content;
-        applicationSourceMap[path] = concat.sourceMap;
+    if (ast) {
+        ast.figure_out_scope();
+        var compressor = UglifyJS.Compressor();
+        ast = ast.transform(compressor);
+        var source_map = UglifyJS.SourceMap();
+        var stream = UglifyJS.OutputStream({source_map: source_map});
+        ast.print(stream);
+        applicationSource[path] = stream.toString();
+        applicationSourceMap[path] = source_map.toString();
     }
     objectTemplate.performInjections();
     return requires;
 
     function addAppSource(data, file) {
-        concat.add(file, data);
+        ast = UglifyJS.parse(data, { filename: file, toplevel: ast });
     }
 }
 /**
@@ -976,16 +982,18 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
             .use(amorphic.postRouter)
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
-                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
-                    var appName = RegExp.$1;
-                    response.setHeader("Content-Type", "application/javascript");
-                    response.setHeader("Cache-Control", "public, max-age=31556926");
-                    response.end(amorphic.getModelSource(appName));
-                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js.map/)) {
+                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
                     var appName = RegExp.$1;
                     response.setHeader("Content-Type", "application/javascript");
                     response.setHeader("Cache-Control", "public, max-age=31556926");
                     response.end(amorphic.getModelSourceMap(appName));
+                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
+                    var appName = RegExp.$1;
+                    response.setHeader("Content-Type", "application/javascript");
+                    response.setHeader("Cache-Control", "public, max-age=31556926");
+                    response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
+                        (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
+                    response.end(amorphic.getModelSource(appName));
                 } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
                     var url = request.originalUrl;
                     var appName = RegExp.$1;
@@ -1001,10 +1009,10 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                             } else {
                                 response.setHeader("Content-Type", "application/javascript");
                                 response.setHeader("Cache-Control", "public, max-age=0");
-                                if (amorphicOptions.sourceMode != 'debug')
-                                    response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".js.map?ver=" + (url.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
                                 response.end(
-                                    "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n" +
+                                    (amorphicOptions.sourceMode != 'debug'
+                                        ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
+                                        : amorphic.getModelSource(appName)) +
                                     "amorphic.setApplication('" + appName + "');" +
                                     "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
                                     "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +

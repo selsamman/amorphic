@@ -75,6 +75,18 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
     };
     logger = loggerCall ? loggerCall : logger;
     log(1, "", "semotus extablishing application for " + appPath);
+
+    if (amorphicOptions.sourceMode != 'debug') {
+        var config = applicationConfig[appPath];
+        var controllerPath = config.appPath + "controller.js";
+        controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
+        var prop = RegExp.$2
+        var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+        applicationSource[appPath] = "";
+        applicationSourceMap[appPath] = "";
+        initObjectTemplate(objectTemplate);
+        getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, appPath);
+    }
 }
 function establishDaemon (path) {
     // Retrieve configuration information
@@ -153,8 +165,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             // Get the controller and all of it's dependent requires which will populate a
             // key value pairs where the key is the require prefix and and the value is the
             // key value pairs of each exported template
-            applicationSource[path] = "";
-            applicationSourceMap[path] = "";
+
             var requires = getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, path);
 
             return Q.fcall(function ()
@@ -359,21 +370,49 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
             }
 
     // Record source and source map
-    if (ast) {
+    if (ast && !applicationSource[path]) {
         ast.figure_out_scope();
         var compressor = UglifyJS.Compressor();
         ast = ast.transform(compressor);
+        var walker = new UglifyJS.TreeTransformer(before);
+        ast = ast.transform(walker);
         var source_map = UglifyJS.SourceMap();
         var stream = UglifyJS.OutputStream({source_map: source_map});
         ast.print(stream);
         applicationSource[path] = stream.toString();
         applicationSourceMap[path] = source_map.toString();
+        function before (node,  descend) {
+
+            if (node instanceof UglifyJS.AST_ObjectProperty && node.key == "body" && findOnServer(walker.parent())) {
+                var emptyFunction = node.clone();
+                emptyFunction.value.variables = {};
+                emptyFunction.value.body = [];
+                emptyFunction.value.argNames = []
+                emptyFunction.value.start = UglifyJS.AST_Token({type: 'string', value: '{'})
+                emptyFunction.value.end =   UglifyJS.AST_Token({type: 'string', value: '}'})
+                return emptyFunction;
+            }
+            node = node.clone();
+            descend(node, this);
+            return node;
+            function findOnServer(node) {
+                var ret = null;
+                if (node.properties)
+                    node.properties.forEach(isOnServer);
+                return ret;
+                function isOnServer(node) {
+                    if (node.key == "on" && node.value && node.value.value == "server")
+                        ret = node;
+                }
+            }
+
+        }
     }
     objectTemplate.performInjections();
     return requires;
 
     function addAppSource(data, file) {
-        ast = UglifyJS.parse(data, { filename: file, toplevel: ast });
+        ast = applicationSource[path] ? ast : UglifyJS.parse(data, { filename: file, toplevel: ast });
     }
 }
 /**
@@ -459,7 +498,6 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     // Get the controller and all of it's dependent requires which will populate a
     // key value pairs where the key is the require prefix and and the value is the
     // key value pairs of each exported template
-    applicationSource[path] = "";
     var requires = getTemplates(objectTemplate, prefix, [prop + ".js"], config, path);
     var controllerTemplate = requires[prop].Controller;
     if (!controllerTemplate)

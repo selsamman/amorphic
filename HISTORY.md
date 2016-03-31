@@ -1,3 +1,5 @@
+## 0.2.31
+* Pre-uglify things for better performance
 ## 0.2.30
 * Use Uglify to compress source when set to production
 ## 0.2.29

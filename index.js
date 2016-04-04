@@ -264,7 +264,8 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
     var filesNeeded = {};
     var applicationSourceCandidate = {};
     var ast = null;
-
+    if (amorphicOptions.sourceMode == 'debug')
+        applicationSource[path] = "";
     function getTemplate(file, options) {
         var previousIgnoringClient = ignoringClient;
         if(options && (options.client === false))

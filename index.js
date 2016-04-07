@@ -310,8 +310,14 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
             throw  new Error(prop + " not exported in " + appPath + file);
+
+        // Call the initialize function in the template
+        var previousToClient = objectTemplate.__toClient__;
+        objectTemplate.__toClient__ = ignoringClient;
         var templates = initializer(objectTemplate, getTemplate);
+        objectTemplate.__toClient__ = previousToClient;
         requires[prop] = templates;
+
         if (mixins_initializer)
             mixins.push(mixins_initializer);
 

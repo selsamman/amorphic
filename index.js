@@ -36,18 +36,18 @@ var deathWatch = [];
 onDeath(function () {
     console.log("exiting gracefully " + deathWatch.length + " tasks to perform");
     return Q()
-        .then(function () {
-            return deathWatch.reduce(function(p, task) {
-                return p.then(task)
-            }, Q(true));
-        }).then(function () {
-            console.log("All done");
-            return Q.delay(1000);
-        }).then(function () {
-            process.exit(0);
-        }).fail(function (e){
-            console.log("on death caught exception: " + e.message + e.stack);
-        });
+      .then(function () {
+          return deathWatch.reduce(function(p, task) {
+              return p.then(task)
+          }, Q(true));
+      }).then(function () {
+          console.log("All done");
+          return Q.delay(1000);
+      }).then(function () {
+          process.exit(0);
+      }).fail(function (e){
+          console.log("on death caught exception: " + e.message + e.stack);
+      });
 });
 var applicationConfig = {};
 var applicationSource = {};
@@ -76,7 +76,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
     logger = loggerCall ? loggerCall : logger;
     log(1, "", "semotus extablishing application for " + appPath);
 
-    if (amorphicOptions.sourceMode != 'debug') {
+    if (amorphicOptions.sourceMode != 'debug' && !appConfig.isDaemon) {
         var config = applicationConfig[appPath];
         var controllerPath = config.appPath + "controller.js";
         controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
@@ -264,7 +264,8 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
     var filesNeeded = {};
     var applicationSourceCandidate = {};
     var ast = null;
-
+    if (amorphicOptions.sourceMode == 'debug')
+        applicationSource[path] = "";
     function getTemplate(file, options) {
         var previousIgnoringClient = ignoringClient;
         if(options && (options.client === false))
@@ -310,6 +311,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
         if (typeof(initializer) != "function")
             throw  new Error(prop + " not exported in " + appPath + file);
 
+        // Call the initialize function in the template
         var previousToClient = objectTemplate.__toClient__;
         objectTemplate.__toClient__ = ignoringClient;
         var templates = initializer(objectTemplate, getTemplate);
@@ -361,7 +363,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
                 console.log("Module " + mixin + " missing a requires property ");
             else if (typeof(require(config.appConfig.modules[mixin].require)[mixin + "_mixins"]) != "function")
                 console.log(config.appConfig.modules[mixin].require + " must export a " + mixin +
-                    "_mixins property which is an initialization function");
+                  "_mixins property which is an initialization function");
             else {
                 var requireName = config.appConfig.modules[mixin].require;
                 var results = require(requireName);
@@ -375,7 +377,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
             }
 
     // Record source and source map
-    if (ast && !applicationSource[path]) {
+    if (ast && !applicationSource[path] && !config.appConfig.isDaemon) {
         ast.figure_out_scope();
         var compressor = UglifyJS.Compressor();
         ast = ast.transform(compressor);
@@ -520,8 +522,8 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         if (controllerId)
             objectTemplate.__changeTracking__ = false;
         var controller = controllerId ?
-            objectTemplate._createEmptyObject(controllerTemplate, controllerId) :
-            new controllerTemplate();
+          objectTemplate._createEmptyObject(controllerTemplate, controllerId) :
+          new controllerTemplate();
         if (controllerId)
             objectTemplate.syncSession();
         objectTemplate.__changeTracking__ = true;
@@ -740,7 +742,7 @@ function processMessage(req, resp)
         if (semotus.newSession || newPage || forceReset)
         {
             log(1, remoteSessionId, "Force reset on " + message.type + " " + (semotus.newSession ? 'new session' : '') +
-                " [" + message.sequence + "]");
+              " [" + message.sequence + "]");
             semotus.save(path, session);
             var outbound = semotus.getMessage();
             outbound.ver = semotus.appVersion;
@@ -826,7 +828,7 @@ function log (level, sessionId, data) {
         return;
     var t = new Date();
     var time = t.getFullYear() + "-" + (t.getMonth() + 1) + "-" + t.getDate() + " " +
-        t.toTimeString().replace(/ .*/, '') + ":" + t.getMilliseconds();
+      t.toTimeString().replace(/ .*/, '') + ":" + t.getMilliseconds();
     var message = (time + "(" + sessionId +") " + "Semotus:" + data);
     console.log(message);
     if (level == 0 && logger)
@@ -878,8 +880,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
-        {store: sessionStore, secret: rootCfg.get('sessionSecret'),
-            cookie: {maxAge: sessionExpiration}, rolling: true}
+      {store: sessionStore, secret: rootCfg.get('sessionSecret'),
+          cookie: {maxAge: sessionExpiration}, rolling: true}
     );
 
     // Initialize applications
@@ -942,32 +944,32 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                 }
                 if (dbConfig.isDBSet()) {
                     promises.push(dbClient
-                        .then (function (db) {
-                                console.log("DB connection established to " + dbConfig.dbName);
-                                function injectObjectTemplate (objectTemplate) {
-                                    if (dbConfig.dbDriver == "knex")
-                                        objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
-                                    else
-                                        objectTemplate.setDB(db);
-                                    objectTemplate.setSchema(schema);
-                                    objectTemplate.config = config;
-                                    objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
-                                }
+                      .then (function (db) {
+                            console.log("DB connection established to " + dbConfig.dbName);
+                            function injectObjectTemplate (objectTemplate) {
+                                if (dbConfig.dbDriver == "knex")
+                                    objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
+                                else
+                                    objectTemplate.setDB(db);
+                                objectTemplate.setSchema(schema);
+                                objectTemplate.config = config;
+                                objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+                            }
 
-                                amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
-                                    cpath + '/js/', injectObjectTemplate,
-                                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
+                            amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
+                              cpath + '/js/', injectObjectTemplate,
+                              sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
-                                if (config.isDaemon) {
-                                    amorphic.establishDaemon(appName);
-                                    console.log(appName + " started as a daemon");
-                                } else
-                                    promises.push(Q(true));
+                            if (config.isDaemon) {
+                                amorphic.establishDaemon(appName);
+                                console.log(appName + " started as a daemon");
+                            } else
+                                promises.push(Q(true));
 
-                            },
-                            function(e) {
-                                console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)
-                        })
+                        },
+                        function(e) {
+                            console.log(e.message)}).fail(function (e) {console.log(e.message + e.stack)
+                      })
                     )} else {
 
                     // No database case
@@ -978,8 +980,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                     }
 
                     amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
-                        cpath + '/js/', injectObjectTemplate,
-                        sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
+                      cpath + '/js/', injectObjectTemplate,
+                      sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
 
                     if (config.isDaemon) {
                         amorphic.establishDaemon(appName);
@@ -1016,60 +1018,60 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
         rootSemotus = fs.existsSync(dirname + "/node_modules/semotus") ? dirname : __dirname;
 
         app
-            .use('/modules/', connect.static(dirname + "/node_modules"))
-            .use('/bindster/', connect.static(__dirname + "/node_modules/amorphic-bindster"))
-            .use('/amorphic/', connect.static(__dirname))
-            .use('/common/', connect.static(dirname + "/apps/common"))
-            .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
-            .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
-            .use(connect.cookieParser())
-            .use(sessionRouter)
-            .use(amorphic.uploadRouter)
-            .use(amorphic.downloadRouter)
-            .use(connect.bodyParser())
-            .use(amorphic.postRouter)
-            .use('/amorphic/init/' , function (request, response) {
-                console.log ("Requesting " + request.originalUrl);
-                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
-                    var appName = RegExp.$1;
-                    response.setHeader("Content-Type", "application/javascript");
-                    response.setHeader("Cache-Control", "public, max-age=31556926");
-                    response.end(amorphic.getModelSourceMap(appName));
-                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
-                    var appName = RegExp.$1;
-                    response.setHeader("Content-Type", "application/javascript");
-                    response.setHeader("Cache-Control", "public, max-age=31556926");
-                    response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
-                        (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
-                    response.end(amorphic.getModelSource(appName));
-                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
-                    var url = request.originalUrl;
-                    var appName = RegExp.$1;
-                    console.log("Establishing " + appName);
-                    amorphic.establishServerSession(request, appName, "initial")
-                        .then (function (session) {
-                            if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
-                                Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body)).then( function (controllerResp) {
-                                    session.save(appName, request.session);
-                                    response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
-                                    response.end(controllerResp.body || "");
-                                });
-                            } else {
-                                response.setHeader("Content-Type", "application/javascript");
-                                response.setHeader("Cache-Control", "public, max-age=0");
-                                response.end(
-                                    (amorphicOptions.sourceMode != 'debug'
-                                        ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
-                                        : amorphic.getModelSource(appName)) +
-                                    "amorphic.setApplication('" + appName + "');" +
-                                    "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
-                                    "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
-                                    "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
-                                );
-                            }
-                        }).done();
-                }
-            })
+          .use('/modules/', connect.static(dirname + "/node_modules"))
+          .use('/bindster/', connect.static(__dirname + "/node_modules/amorphic-bindster"))
+          .use('/amorphic/', connect.static(__dirname))
+          .use('/common/', connect.static(dirname + "/apps/common"))
+          .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
+          .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
+          .use(connect.cookieParser())
+          .use(sessionRouter)
+          .use(amorphic.uploadRouter)
+          .use(amorphic.downloadRouter)
+          .use(connect.bodyParser())
+          .use(amorphic.postRouter)
+          .use('/amorphic/init/' , function (request, response) {
+              console.log ("Requesting " + request.originalUrl);
+              if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
+                  var appName = RegExp.$1;
+                  response.setHeader("Content-Type", "application/javascript");
+                  response.setHeader("Cache-Control", "public, max-age=31556926");
+                  response.end(amorphic.getModelSourceMap(appName));
+              } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
+                  var appName = RegExp.$1;
+                  response.setHeader("Content-Type", "application/javascript");
+                  response.setHeader("Cache-Control", "public, max-age=31556926");
+                  response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
+                    (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
+                  response.end(amorphic.getModelSource(appName));
+              } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
+                  var url = request.originalUrl;
+                  var appName = RegExp.$1;
+                  console.log("Establishing " + appName);
+                  amorphic.establishServerSession(request, appName, "initial")
+                    .then (function (session) {
+                        if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
+                            Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body)).then( function (controllerResp) {
+                                session.save(appName, request.session);
+                                response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
+                                response.end(controllerResp.body || "");
+                            });
+                        } else {
+                            response.setHeader("Content-Type", "application/javascript");
+                            response.setHeader("Cache-Control", "public, max-age=0");
+                            response.end(
+                              (amorphicOptions.sourceMode != 'debug'
+                                ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
+                                : amorphic.getModelSource(appName)) +
+                              "amorphic.setApplication('" + appName + "');" +
+                              "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
+                              "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
+                              "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
+                            );
+                        }
+                    }).done();
+              }
+          })
 
         if (postSessionInject)
             postSessionInject.call(null, app);

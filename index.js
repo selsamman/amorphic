@@ -309,8 +309,13 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
             throw  new Error(prop + " not exported in " + appPath + file);
+
+        var previousToClient = objectTemplate.__toClient__;
+        objectTemplate.__toClient__ = ignoringClient;
         var templates = initializer(objectTemplate, getTemplate);
+        objectTemplate.__toClient__ = previousToClient;
         requires[prop] = templates;
+
         if (mixins_initializer)
             mixins.push(mixins_initializer);
 
@@ -575,8 +580,13 @@ function saveSession(path, session, controller) {
     var request = controller.__request;
     controller.__request = null;
     var time = process.hrtime();
-    session.semotus.controllers[path] = compressSessionData(controller.toJSONString());
+
+    var serialSession = typeof(ourObjectTemplate.serializeAndGarbageCollect) == 'function' ?
+        ourObjectTemplate.serializeAndGarbageCollect() : controller.toJSONString();
+    session.semotus.controllers[path] = compressSessionData(serialSession);
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
+
+
     var ourObjectTemplate = controller.__template__.objectTemplate;
     if (ourObjectTemplate.objectMap)
         session.semotus.objectMap = ourObjectTemplate.objectMap;

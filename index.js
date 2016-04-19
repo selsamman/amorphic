@@ -58,8 +58,8 @@ var zlib = require('zlib');
 var amorphicOptions = {
     performanceLogging: false,
     compressSession: false,
-    compressXHR: false,
-    sourceMode: 'debug'
+    compressXHR: true,
+    sourceMode: 'prod'
 }
 
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig) {
@@ -583,13 +583,12 @@ function saveSession(path, session, controller) {
     controller.__request = null;
     var time = process.hrtime();
 
+    var ourObjectTemplate = controller.__template__.objectTemplate;
     var serialSession = typeof(ourObjectTemplate.serializeAndGarbageCollect) == 'function' ?
-        ourObjectTemplate.serializeAndGarbageCollect() : controller.toJSONString();
+      ourObjectTemplate.serializeAndGarbageCollect() : controller.toJSONString();
     session.semotus.controllers[path] = compressSessionData(serialSession);
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
 
-
-    var ourObjectTemplate = controller.__template__.objectTemplate;
     if (ourObjectTemplate.objectMap)
         session.semotus.objectMap = ourObjectTemplate.objectMap;
 
@@ -1041,8 +1040,9 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                   var appName = RegExp.$1;
                   response.setHeader("Content-Type", "application/javascript");
                   response.setHeader("Cache-Control", "public, max-age=31556926");
-                  response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
-                    (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
+                  if (amorphicOptions.sourceMode == 'prod')
+                      response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
+                        (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
                   response.end(amorphic.getModelSource(appName));
               } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
                   var url = request.originalUrl;

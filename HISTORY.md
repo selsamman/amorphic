@@ -1,3 +1,8 @@
+## 1.0.0-beta.1
+* Moving to semver convention
+* Call to semotus for serialization and garbage collection
+* Option to not have source maps prodns
+* Default to compressed uglified source
 ## 0.2.33
 * Pre-uglify things for better performance
 ## 0.2.30

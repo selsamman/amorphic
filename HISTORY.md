@@ -1,3 +1,5 @@
+## 1.0.0-beta.8
+* Latest versions of persistor and semotus
 ## 1.0.0-beta.7
 * Include updated dependencies
 ## 1.0.0-beta.1

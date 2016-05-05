@@ -1,3 +1,5 @@
+## 1.0.0-beta.6
+* Include updated dependencies
 ## 1.0.0-beta.1
 * Moving to semver convention
 * Call to semotus for serialization and garbage collection

@@ -1,4 +1,4 @@
-## 1.0.0-beta.6
+## 1.0.0-beta.7
 * Include updated dependencies
 ## 1.0.0-beta.1
 * Moving to semver convention

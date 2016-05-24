@@ -39,11 +39,10 @@ var securityPrincipal;
 
 // Utility function to clear a collection via mongo native
 function clearCollection(collectionName) {
-	return Q.ninvoke(db, "collection", collectionName).then(function (collection) {
-		return Q.ninvoke(collection, "remove").then (function () {
-			return Q.ninvoke(collection, "count")
-		});
-	});
+    var collection = db.collection(collectionName);
+    return collection.remove({}, {w:1}).then (function () {
+        return collection.count()
+    });
 }
 
 describe("Ticket System Test Suite", function () {
@@ -57,7 +56,8 @@ describe("Ticket System Test Suite", function () {
     });
 
     it ("opens the database", function (done) {
-        Q.ninvoke(MongoClient, "connect", "mongodb://localhost:27017/testamorphic").then(function (dbopen) {
+        var MongoClient = require('mongodb-bluebird');
+        MongoClient.connect("mongodb://localhost:27017/testamorphic").then(function (dbopen) {
             db = dbopen;
             PersistObjectTemplate.setDB(db);
             done();
@@ -139,7 +139,7 @@ describe("Ticket System Test Suite", function () {
         }.bind(this)).then( function (id) {
             expect(projectTravel._id.length).to.equal(24);
             done();
-        }.bind(this)).fail(function(e){done(e)});
+        }.bind(this)).catch(function(e){done(e)});
     });
 
     it("can read stuff back", function (done) {
@@ -163,7 +163,7 @@ describe("Ticket System Test Suite", function () {
             expect(project.tickets[0].ticketItems[0].attachments[1].name).to.equal("attachment2");
             done();
 
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e)
         });
     });
@@ -201,11 +201,12 @@ describe("Ticket System Test Suite", function () {
                     done();
             }
             return processTickets(project);
-        }).fail(function(e){done(e)});
+        }).catch(function(e){done(e)});
     })
 
     it ("closes the database", function (done) {
-        db.close(function () {
+        this.timeout(10000);
+        db.close().then(function () {
             console.log("ending ticket test");
             done()
         });

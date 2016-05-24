@@ -30,10 +30,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
                 }).then(function (count) {
                     total += count;
                     return clearCollection(Customer)
-                }).then(function (count) {
-                    total += count;
-                    return clearCollection(Account)
-                }).then(function (count) {
+                 }).then(function (count) {
                     total += count;
                     return clearCollection(Transaction)
                 }).then(function (count) {
@@ -49,7 +46,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
             function clearCollection(template) {
                 return objectTemplate.dropKnexTable(template)
                     .then(function () {
-                        return objectTemplate.createKnexTable(template).then(function(){return 0});
+                        return objectTemplate.synchronizeKnexTableFromTemplate(template).then(function(){return 0});
                     });
             }
         }},

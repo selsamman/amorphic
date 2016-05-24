@@ -1,3 +1,10 @@
+## 1.0.1
+* Took care of non-database case
+* Added timeout default
+* Prevent multiple schema updates on sourceMode==prod
+* Added full request in call to controller's post method
+## 1.0.0-rc.1
+* No change
 ## 1.0.0-beta.8
 * Latest versions of persistor and semotus
 ## 1.0.0-beta.7

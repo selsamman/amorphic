@@ -85,7 +85,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
         applicationSource[appPath] = "";
         applicationSourceMap[appPath] = "";
         initObjectTemplate(objectTemplate);
-        getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, appPath);
+        getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, appPath, true);
     }
 }
 function establishDaemon (path) {
@@ -255,7 +255,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
 }
 var controllers = {};
 
-function getTemplates(objectTemplate, appPath, templates, config, path) {
+function getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly) {
 
     var requires = {};
     var ref = {};
@@ -415,7 +415,8 @@ function getTemplates(objectTemplate, appPath, templates, config, path) {
 
         }
     }
-    objectTemplate.performInjections();
+    if (!sourceOnly)
+        objectTemplate.performInjections();
     return requires;
 
     function addAppSource(data, file) {
@@ -917,31 +918,33 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                         dbPassword : config.get(appName + '_dbPassword') || config.get('dbPassword') || config.get('dbpassword') || null,
                         isDBSet : function () { return this.dbName && this.dbPath; },
                         connectMongo : function () { return this.dbPath + this.dbName },
-                        dbConnections : config.get(appName + '_dbConnections') || config.get('dbconnections') || 20
+                        dbConnections : config.get(appName + '_dbConnections') || config.get('dbconnections') || 20,
+                        dbConcurrency : config.get(appName + '_dbConcurrency') || config.get('dbconcurrency') || 5
                     };
                 })(config.nconf);
 
-                if (dbConfig.dbDriver == 'mongo')
-                    var dbClient = Q.ninvoke(require('mongodb').MongoClient, "connect", dbConfig.connectMongo());
-                else if (dbConfig.dbDriver == 'knex') {
-                    var knex = require('knex')({
-                        client: dbConfig.dbType,
-                        connection: {
-                            host     : dbConfig.dbPath,
-                            database : dbConfig.dbName,
-                            user: dbConfig.dbUser,
-                            password: dbConfig.dbPassword,
-                        }, pool: {min: 0, max: dbConfig.dbConnections}});
-                    var dbClient = Q(knex);
-                    (function () {
-                        var closureKnex = knex;
-                        deathWatch.push(function () {
-                            console.log("closing knex connection");
-                            return closureKnex.destroy();
-                        });
-                    })()
-                }
                 if (dbConfig.isDBSet()) {
+                    if (dbConfig.dbDriver == 'mongo') {
+                        var MongoClient = require('mongodb-bluebird');
+                        var dbClient = MongoClient.connect(dbConfig.connectMongo());
+                    } else if (dbConfig.dbDriver == 'knex') {
+                        var knex = require('knex')({
+                            client: dbConfig.dbType,
+                            connection: {
+                                host     : dbConfig.dbPath,
+                                database : dbConfig.dbName,
+                                user: dbConfig.dbUser,
+                                password: dbConfig.dbPassword,
+                            }, pool: {min: 0, max: dbConfig.dbConnections}});
+                        var dbClient = Q(knex);
+                        (function () {
+                            var closureKnex = knex;
+                            deathWatch.push(function () {
+                                console.log("closing knex connection");
+                                return closureKnex.destroy();
+                            });
+                        })()
+                    }
                     promises.push(dbClient
                       .then (function (db) {
                             console.log("DB connection established to " + dbConfig.dbName);
@@ -953,6 +956,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                                 objectTemplate.setSchema(schema);
                                 objectTemplate.config = config;
                                 objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+                                objectTemplate.concurrency = dbConfig.dbConcurrency;
                             }
 
                             amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
@@ -1051,7 +1055,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                   amorphic.establishServerSession(request, appName, "initial")
                     .then (function (session) {
                         if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
-                            Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body)).then( function (controllerResp) {
+                            Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then( function (controllerResp) {
                                 session.save(appName, request.session);
                                 response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
                                 response.end(controllerResp.body || "");

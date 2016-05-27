@@ -1,3 +1,5 @@
+## 1.0.2
+* Added module.exports.objectTemplateInitialize function call in controllers to deal with client ordering of templates
 ## 1.0.1
 * Took care of non-database case
 * Added timeout default

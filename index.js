@@ -264,6 +264,8 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     var filesNeeded = {};
     var applicationSourceCandidate = {};
     var ast = null;
+    objectTemplate.__initialized__ = false;
+
     if (amorphicOptions.sourceMode == 'debug')
         applicationSource[path] = "";
     function getTemplate(file, options) {
@@ -305,11 +307,16 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             clientPath = 'common';
             require_results = require(config.commonPath + file);
         }
-
+        var objectTemplateInitialize = sourceOnly ? null : require_results['objectTemplateInitialize']
         var initializer = (require_results[prop]);
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
             throw  new Error(prop + " not exported in " + appPath + file);
+
+        // Call application code that can poke properties into objecTemplate
+        if (!objectTemplate.__initialized__ && objectTemplateInitialize)
+            objectTemplateInitialize(objectTemplate);
+        objectTemplate.__initialized__ = true;
 
         // Call the initialize function in the template
         var previousToClient = objectTemplate.__toClient__;
@@ -326,6 +333,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 applicationSourceCandidate[prop] = ["document.write(\"<script src='/" + clientPath + "/js/" + file + "?ver=" + config.appVersion + "'></script>\");\n\n"];
             } else {
                 applicationSourceCandidate[prop] = ["module.exports." + prop + " = " + require_results[prop] + "\n\n" +
+                (objectTemplateInitialize ? "module.exports.objectTemplateInitialize = " + objectTemplateInitialize + "\n\n" : "") +
                 (mixins_initializer ? "module.exports." + prop + "_mixins = " + mixins_initializer + "\n\n" : ""),
                     "/" + clientPath + "/js/" + file + "?ver=" + config.appVersion];
             }

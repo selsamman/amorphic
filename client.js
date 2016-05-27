@@ -19,8 +19,8 @@
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 Persistor = ObjectTemplate.create("Peristor",
-    {
-    });
+  {
+  });
 
 
 RemoteObjectTemplate._injectIntoTemplate = function (template)
@@ -155,13 +155,13 @@ amorphic = // Needs to be global to make mocha tests work
                 var message = JSON.parse(request.responseText);
                 if (self.logLevel > 0)
                     console.log("receiving " + message.type + " " + message.name + " serverAppVersion=" + message.ver +
-                        "executionTime=" + ((new Date()).getTime() - self.lastServerInteraction) +
-                        "ms messageSize=" + Math.round(request.responseText.length / 1000) + "K");
+                      "executionTime=" + ((new Date()).getTime() - self.lastServerInteraction) +
+                      "ms messageSize=" + Math.round(request.responseText.length / 1000) + "K");
 
                 // If app version in message not uptodate
                 if (self.appVersion && message.ver != self.appVersion) {
                     console.log("Application version " + self.appVersion + " out of date - " +
-                        message.ver + " is available - reloading in 5 seconds");
+                      message.ver + " is available - reloading in 5 seconds");
                     self.shutdown = true;
                     self.reload();
                     return;
@@ -232,7 +232,7 @@ amorphic = // Needs to be global to make mocha tests work
     // Anytime we see some other windows session has been stored we become a zombie
     _zombieCheck: function () {
         if (RemoteObjectTemplate.getPendingCallCount() == 0 &&
-            this.getCookie('session' + this.app) != this.session) {
+          this.getCookie('session' + this.app) != this.session) {
             if (this.state != 'zombie') {
                 this.state = 'zombie'
                 this.expireController();
@@ -315,7 +315,7 @@ amorphic = // Needs to be global to make mocha tests work
         RemoteObjectTemplate.controller = this.controller;
         if (appVersion && message.ver != appVersion) {
             console.log("Application version " + appVersion + " out of date - " +
-                message.ver + " is available - reloading in 5 seconds");
+              message.ver + " is available - reloading in 5 seconds");
             this.shutdown = true;
             this.bindController.call(null, this.controller, message.sessionExpiration);
             reload();
@@ -386,6 +386,10 @@ amorphic = // Needs to be global to make mocha tests work
      * and starting with the non _mixin
      */
     importTemplates: function () {
+
+        if (module.exports.objectTemplateInitialize)
+            module.exports.objectTemplateInitialize(RemoteObjectTemplate);
+
         var requires = {}
         for (var exp in module.exports) {
             if (!exp.match(/_mixins/)) {

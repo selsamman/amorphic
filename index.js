@@ -307,14 +307,14 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             clientPath = 'common';
             require_results = require(config.commonPath + file);
         }
-        var objectTemplateInitialize = sourceOnly ? null : require_results['objectTemplateInitialize']
+        var objectTemplateInitialize = require_results['objectTemplateInitialize']
         var initializer = (require_results[prop]);
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
             throw  new Error(prop + " not exported in " + appPath + file);
 
         // Call application code that can poke properties into objecTemplate
-        if (!objectTemplate.__initialized__ && objectTemplateInitialize)
+        if (!objectTemplate.__initialized__ && objectTemplateInitialize && !sourceOnly)
             objectTemplateInitialize(objectTemplate);
         objectTemplate.__initialized__ = true;
 

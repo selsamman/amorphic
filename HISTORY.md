@@ -1,3 +1,4 @@
+## 1.0.3
 ## 1.0.2
 * Added module.exports.objectTemplateInitialize function call in controllers to deal with client ordering of templates
 ## 1.0.1

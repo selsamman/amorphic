@@ -23,7 +23,8 @@ var ObjectTemplate = require("supertype");
 var RemoteObjectTemplate = require("semotus");
 RemoteObjectTemplate.maxCallTime = 60 * 1000; // Max time for call interlock
 var PersistObjectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, ObjectTemplate);
-
+var os = require('os');
+var hostName = os.hostname();
 var formidable = require('formidable');
 var UglifyJS = require('uglify-js');
 var url = require('url');
@@ -194,7 +195,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     {
         newSession = newControllerId ? false : true;
         if (!session.semotus)
-            session.semotus = {controllers: {}};
+            session.semotus = {controllers: {}, loggingContext: getLoggingContext(path)};
         var time = process.hrtime();
         var controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, true, newControllerId, req);
         controller.__template__.objectTemplate.reqSession = req.session;
@@ -502,6 +503,9 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     // Create a new unique object template utility
     var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
 
+    // Add logging context
+    objectTemplate.logger.startContext(session.semotus.loggingContext);
+
     // Inject into it any db or persist attributes needed for application
     initObjectTemplate(objectTemplate);
 
@@ -545,11 +549,13 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         // With a brand new controller we don't want old object to persist id mappings
         if (objectTemplate.objectMap)
             objectTemplate.objectMap = {}
-        log(1, sessionId, "Creating new controller " + (newPage ? " new page " : "") + browser);
+        objectTemplate.logger.info({compontent: 'amorphic', module: 'getController', activity: 'new'},
+            "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         objectTemplate.withoutChangeTracking(function () {
             controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
-            log(1, sessionId, "Restoring saved controller " + (newPage ? " new page " : "") + browser);
+            objectTemplate.logger.info({compontent: 'amorphic', module: 'getController', activity: 'restore'},
+                "Restoreing saved controller " + (newPage ? " new page " : "") + browser);
             if (!newPage) // No changes queued as a result unless we need it for init.js
                 objectTemplate.syncSession();
         });
@@ -565,6 +571,15 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     return controller;
 }
 
+function getLoggingContext(app, context) {
+    context = context || {}
+    context.environment = process.env.NODE_ENV || 'local';
+    context.name = app;
+    context.hostname = hostName;
+    context.pid = process.pid;
+    return context;
+}
+
 function getModelSource  (path) {
     return applicationSource[path];
 }
@@ -573,22 +588,18 @@ function getModelSourceMap (path) {
     return applicationSourceMap[path];
 }
 
-function compressSessionData(data){
-
-    if(amorphicOptions.compressSession){
+function compressSessionData(data) {
+    if(amorphicOptions.compressSession) {
         return zlib.deflateSync(data);
     }
-
     return data;
 }
 
-function decompressSessionData(objData){
-
-    if(amorphicOptions.compressSession && objData.data){
+function decompressSessionData(objData) {
+    if(amorphicOptions.compressSession && objData.data) {
         var buffer = new Buffer(objData.data)
         return zlib.inflateSync(buffer);
     }
-
     return objData;
 }
 
@@ -609,11 +620,13 @@ function saveSession(path, session, controller) {
     if (amorphicOptions.performanceLogging){
         var diff = process.hrtime(time);
         var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-        console.log("performanceLogging: save session " + took + " ms - length = " + session.semotus.controllers[path].length);
+        ourObjectTemplate.logger.info({compontent: 'amorphic', module: 'saveSession', activity: 'performanceLogging'},
+            "performanceLogging: save session " + took + " ms - length = " + session.semotus.controllers[path].length);
     }
 
     controller.__request = request;
 }
+
 function restoreSession(path, session, controllerTemplate) {
 
     var objectTemplate = controllerTemplate.objectTemplate;
@@ -644,15 +657,18 @@ function restoreSession(path, session, controllerTemplate) {
     if (amorphicOptions.performanceLogging){
         var diff = process.hrtime(time);
         var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-        console.log("performanceLogging: restore session " + took + " ms - length = " + session.semotus.controllers[path].length);
+        objectTemplate.logger.info({compontent: 'amorphic', module: 'restoreSession', activity: 'performanceLogging'},
+            "performanceLogging: restore session " + took + " ms - length = " + session.semotus.controllers[path].length);
     }
 
     return controller;
 }
+
 var downloads;
 function setDownloadDir(dir) {
     downloads = dir;
 }
+
 function processFile(req, resp, next)
 {
     if (!downloads) {
@@ -682,6 +698,7 @@ function processFile(req, resp, next)
         resp.end('<html><body><script>parent.amorphic.prepareFileUpload(\'package\');parent.amorphic.uploadFunction.call(null, "' +  fileName + '"' + ')</script></body></html>');
     });
 }
+
 /**
  * Process a post request by establishing a session and calling the controllers processPost method
  * which can return a response to be sent back
@@ -704,14 +721,26 @@ function processPost(req, resp)
                 semotus.save(path, session);
                 resp.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
                 resp.end(controllerResp.body);
-            })
+            }).catch(function (e) {
+                ourObjectTemplate.logger.info({compontent: 'amorphic', module: 'processPost', activity: 'error'}, "Error " + e.message + e.stack);
+                resp.writeHead(500, {"Content-Type": "text/plain"});
+                resp.end("Internal Error");
+            });
         } else
             throw "Not Accepting Posts";
     }).fail(function(error){
-        log(0, req.sessionId, error);
+        console.log("Error establishing session for processPost ", req.sessionId, error.message + error.stack);
         resp.writeHead(500, {"Content-Type": "text/plain"});
-        resp.end(error.toString());
+        resp.end("Internal Error");
     }).done();
+}
+
+function processLoggingMessage(req, resp) {
+    var session = req.session;
+    var message = req.body;
+    var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+    objectTemplate.logger.startContext(session.semotus.loggingContext);
+
 }
 
 /**
@@ -738,11 +767,15 @@ function processMessage(req, resp)
 
     establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus)
     {
+        var context = semotus.objectTemplate.logger.setContextProps({sequence: message.sequence, session: req.session.id,
+        ipaddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress});
+
         if (amorphicOptions.performanceLogging){
             var diff = process.hrtime(start);
             var took = (diff[0] * 1e9 + diff[1]) / 1000000;
 
-            console.log("performanceLogging: establish session " + took + "ms");
+            semotus.objectTemplate.logger.info({compontent: 'amorphic', module: 'processsMessage', activity: 'performanceLogging'},
+                "performanceLogging: establish session " + took + "ms");
         }
 
         var ourObjectTemplate = semotus.objectTemplate;
@@ -755,11 +788,13 @@ function processMessage(req, resp)
         // If we expired just return a message telling the client to reset itself
         if (semotus.newSession || newPage || forceReset)
         {
-            log(1, remoteSessionId, "Force reset on " + message.type + " " + (semotus.newSession ? 'new session' : '') +
+            objectTemplate.logger.info({compontent: 'amorphic', module: 'processMessage', activity: 'reset'},
+                remoteSessionId, "Force reset on " + message.type + " " + (semotus.newSession ? 'new session' : '') +
               " [" + message.sequence + "]");
             semotus.save(path, session);
             var outbound = semotus.getMessage();
             outbound.ver = semotus.appVersion;
+            objectTemplate.logger.clearContextProps(context);
             resp.end(JSON.stringify(outbound));  // return a sync message assuming no queued messages
             return;
         }
@@ -775,11 +810,13 @@ function processMessage(req, resp)
             semotus.save(path, session);
             message.ver = semotus.appVersion;
             var respstr = JSON.stringify(message)
+            ourObjectTemplate.logger.clearContextProps(context);
             resp.end(respstr);
             if (amorphicOptions.performanceLogging){
                 var diff = process.hrtime(start);
                 var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-                console.log("performanceLogging: processing request took " + took + " response length = " + respstr.length);
+                ourObjectTemplate.logger.info({compontent: 'amorphic', module: 'processMessage', activity: 'performanceLogging'},
+                    "performanceLogging: processing request took " + took + " response length = " + respstr.length);
             }
         }
 
@@ -793,12 +830,14 @@ function processMessage(req, resp)
         try {
             ourObjectTemplate.processMessage(message, null, semotus.restoreSession);
         } catch (error) {
-            log(0, req.sessionId, error);
+            ourObjectTemplate.logger.info({compontent: 'amorphic', module: 'processMessage', activity: 'error'},
+                error.message + error.stack);
             resp.writeHead(500, {"Content-Type": "text/plain"});
+            objectTemplate.logger.clearContextProps(context);
             resp.end(error.toString());
         }
     }).fail(function(error){
-        log(0, req.sessionId, error);
+        log(0, req.sessionId, error.message + error.stack);
         resp.writeHead(500, {"Content-Type": "text/plain"});
         resp.end(error.toString());
     }).done();
@@ -837,6 +876,7 @@ function processContentRequest(request, response, next) {
     });
 }
 
+// Logging for rare situations where we don't have an objectTemplate
 function log (level, sessionId, data) {
     if (level > logLevel)
         return;

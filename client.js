@@ -125,7 +125,19 @@ amorphic = // Needs to be global to make mocha tests work
             alert("Can't find " + controllerTemplate);
             return;
         }
-
+        this.sendLoggingMessage = function (level, data) {
+            var message = {type: 'logging', loggingLevel: level, loggingContext: RemoteObjectTemplate.logger.context, loggingData: data};
+            this._post(self._url, message);
+        }
+        this.setLoggingContext = function (context) {
+            this.loggingContext = context;
+        }
+        /*
+        RemoteObjectTemplate.logger.sendToLog = function (level, data) {
+            console.log(RemoteObjectTemplate.logger.prettyPrint(level, data));
+            this.sendLoggingMessage(level, data);
+        }
+        */
         /**
          * Send message to server and process response
          *
@@ -135,6 +147,7 @@ amorphic = // Needs to be global to make mocha tests work
         this.sendMessage = function (message)
         {
             message.sequence = self.sequence++;
+            message.loggingContext = RemoteObjectTemplate.logger.context;
 
             // Sending rootId will reset the server
             if (self.rootId) {
@@ -326,6 +339,8 @@ amorphic = // Needs to be global to make mocha tests work
         this.bindController.call(null, this.controller, message.sessionExpiration);
     },
     _post: function (url, message, success, failure, retries, retryInterval) {
+        success = success || function () {};
+        failure = failure || function () {};
         retries = retries || 30;
         retryInterval = retryInterval || 2000;
         if (this.shutdown)

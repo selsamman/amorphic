@@ -1,3 +1,5 @@
+## 1.2.1
+* Logging
 ## 1.1.0
 * Use new pattern for change tracking
 ## 1.0.2

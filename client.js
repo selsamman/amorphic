@@ -94,6 +94,7 @@ amorphic = // Needs to be global to make mocha tests work
     state: 'live',
     app: 'generic',
     sessionId: 0,
+    loggingContext: {},
     /**
      * start a session with the server and process any initial messages
      *
@@ -126,18 +127,24 @@ amorphic = // Needs to be global to make mocha tests work
             return;
         }
         this.sendLoggingMessage = function (level, data) {
-            var message = {type: 'logging', loggingLevel: level, loggingContext: RemoteObjectTemplate.logger.context, loggingData: data};
-            this._post(self._url, message);
+            var message = {type: 'logging', loggingLevel: level, loggingContext: this.loggingContext, loggingData: data};
+            this.loggingContext = {};
+            this._post(self.url, message);
         }
-        this.setLoggingContext = function (context) {
-            this.loggingContext = context;
-        }
-        /*
+
         RemoteObjectTemplate.logger.sendToLog = function (level, data) {
             console.log(RemoteObjectTemplate.logger.prettyPrint(level, data));
-            this.sendLoggingMessage(level, data);
-        }
-        */
+            if (level == 'error' || level == 'fatal')
+                this.sendLoggingMessage(level, data);
+        }.bind(this)
+
+        this.setContextProps = RemoteObjectTemplate.logger.setContextProps;
+        RemoteObjectTemplate.logger.setContextProps = function (props) {
+            for (var prop in props)
+                this.loggingContext[prop] = props[prop];
+            this.setContextProps.call(RemoteObjectTemplate.logger, props);
+        }.bind(this)
+
         /**
          * Send message to server and process response
          *
@@ -147,7 +154,8 @@ amorphic = // Needs to be global to make mocha tests work
         this.sendMessage = function (message)
         {
             message.sequence = self.sequence++;
-            message.loggingContext = RemoteObjectTemplate.logger.context;
+            message.loggingContext = self.loggingContext;
+            self.loggingContext = {};
 
             // Sending rootId will reset the server
             if (self.rootId) {

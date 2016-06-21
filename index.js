@@ -549,12 +549,12 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         // With a brand new controller we don't want old object to persist id mappings
         if (objectTemplate.objectMap)
             objectTemplate.objectMap = {}
-        objectTemplate.logger.info({compontent: 'amorphic', module: 'getController', activity: 'new'},
+        objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new'},
             "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         objectTemplate.withoutChangeTracking(function () {
             controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
-            objectTemplate.logger.info({compontent: 'amorphic', module: 'getController', activity: 'restore'},
+            objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'restore'},
                 "Restoreing saved controller " + (newPage ? " new page " : "") + browser);
             if (!newPage) // No changes queued as a result unless we need it for init.js
                 objectTemplate.syncSession();
@@ -620,7 +620,7 @@ function saveSession(path, session, controller) {
     if (amorphicOptions.performanceLogging){
         var diff = process.hrtime(time);
         var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-        ourObjectTemplate.logger.info({compontent: 'amorphic', module: 'saveSession', activity: 'performanceLogging'},
+        ourObjectTemplate.logger.info({component: 'amorphic', module: 'saveSession', activity: 'performanceLogging'},
             "performanceLogging: save session " + took + " ms - length = " + session.semotus.controllers[path].length);
     }
 
@@ -657,7 +657,7 @@ function restoreSession(path, session, controllerTemplate) {
     if (amorphicOptions.performanceLogging){
         var diff = process.hrtime(time);
         var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-        objectTemplate.logger.info({compontent: 'amorphic', module: 'restoreSession', activity: 'performanceLogging'},
+        objectTemplate.logger.info({component: 'amorphic', module: 'restoreSession', activity: 'performanceLogging'},
             "performanceLogging: restore session " + took + " ms - length = " + session.semotus.controllers[path].length);
     }
 
@@ -722,7 +722,7 @@ function processPost(req, resp)
                 resp.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
                 resp.end(controllerResp.body);
             }).catch(function (e) {
-                ourObjectTemplate.logger.info({compontent: 'amorphic', module: 'processPost', activity: 'error'}, "Error " + e.message + e.stack);
+                ourObjectTemplate.logger.info({component: 'amorphic', module: 'processPost', activity: 'error'}, "Error " + e.message + e.stack);
                 resp.writeHead(500, {"Content-Type": "text/plain"});
                 resp.end("Internal Error");
             });
@@ -736,11 +736,15 @@ function processPost(req, resp)
 }
 
 function processLoggingMessage(req, resp) {
+    var path = url.parse(req.url, true).query.path;
     var session = req.session;
     var message = req.body;
     var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+    if (!session.semotus)
+        session.semotus = {controllers: {}, loggingContext: getLoggingContext(path)};
     objectTemplate.logger.startContext(session.semotus.loggingContext);
-
+    objectTemplate.logger.setContextProps(message.loggingContext);
+    objectTemplate.logger[message.loggingLevel](message.loggingData);
 }
 
 /**
@@ -767,6 +771,7 @@ function processMessage(req, resp)
 
     establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus)
     {
+        semotus.objectTemplate.logger.setContextProps(message.loggingContext);
         var context = semotus.objectTemplate.logger.setContextProps({sequence: message.sequence, session: req.session.id,
         ipaddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress});
 
@@ -774,7 +779,7 @@ function processMessage(req, resp)
             var diff = process.hrtime(start);
             var took = (diff[0] * 1e9 + diff[1]) / 1000000;
 
-            semotus.objectTemplate.logger.info({compontent: 'amorphic', module: 'processsMessage', activity: 'performanceLogging'},
+            semotus.objectTemplate.logger.info({component: 'amorphic', module: 'processsMessage', activity: 'performanceLogging'},
                 "performanceLogging: establish session " + took + "ms");
         }
 
@@ -788,7 +793,7 @@ function processMessage(req, resp)
         // If we expired just return a message telling the client to reset itself
         if (semotus.newSession || newPage || forceReset)
         {
-            objectTemplate.logger.info({compontent: 'amorphic', module: 'processMessage', activity: 'reset'},
+            objectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
                 remoteSessionId, "Force reset on " + message.type + " " + (semotus.newSession ? 'new session' : '') +
               " [" + message.sequence + "]");
             semotus.save(path, session);
@@ -815,7 +820,7 @@ function processMessage(req, resp)
             if (amorphicOptions.performanceLogging){
                 var diff = process.hrtime(start);
                 var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-                ourObjectTemplate.logger.info({compontent: 'amorphic', module: 'processMessage', activity: 'performanceLogging'},
+                ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'performanceLogging'},
                     "performanceLogging: processing request took " + took + " response length = " + respstr.length);
             }
         }
@@ -830,7 +835,7 @@ function processMessage(req, resp)
         try {
             ourObjectTemplate.processMessage(message, null, semotus.restoreSession);
         } catch (error) {
-            ourObjectTemplate.logger.info({compontent: 'amorphic', module: 'processMessage', activity: 'error'},
+            ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'error'},
                 error.message + error.stack);
             resp.writeHead(500, {"Content-Type": "text/plain"});
             objectTemplate.logger.clearContextProps(context);
@@ -844,7 +849,7 @@ function processMessage(req, resp)
 }
 function route(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/))
-        processMessage(req, resp);
+        req.body.type == 'logging' ? processLoggingMessage(req, resp) : processMessage(req, resp);
     else
         next();
 }

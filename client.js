@@ -73,6 +73,10 @@ amorphic = // Needs to be global to make mocha tests work
     },
     setConfig: function (config) {
         this.config = config;
+        RemoteObjectTemplate.config = {nconf: {get: get}};
+        function get (key) {
+            return config[key];
+        }
     },
     setSchema: function (schema) {
         this.schema = schema;
@@ -424,7 +428,7 @@ amorphic = // Needs to be global to make mocha tests work
         }
         for (var exp in module.exports) {
             if (exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config ? this.config[exp.replace(/_mixins/,'')] : null);
+                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config ? this.config.modules[exp.replace(/_mixins/,'')] : null);
                 for (var template in  templates)
                     window[template] = templates[template];
             }

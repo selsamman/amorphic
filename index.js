@@ -34,6 +34,7 @@ var logLevel = 1;
 var path = require('path');
 var onDeath = require('death');
 var deathWatch = [];
+var sendToLog = null;
 onDeath(function () {
     console.log("exiting gracefully " + deathWatch.length + " tasks to perform");
     return Q()
@@ -63,7 +64,7 @@ var amorphicOptions = {
     sourceMode: 'prod'
 }
 
-function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig) {
+function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
     applicationConfig[appPath] = {
         appPath: path,
         commonPath: cpath,
@@ -72,7 +73,8 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
         objectCacheExpiration: objectCacheExpiration,
         sessionStore: sessionStore,
         appVersion: appVersion,
-        appConfig: appConfig
+        appConfig: appConfig,
+        logLevel: logLevel || 'info'
     };
     logger = loggerCall ? loggerCall : logger;
     log(1, "", "semotus extablishing application for " + appPath);
@@ -178,9 +180,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                             message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
                         })
                     },
-                    getServerConfigString: function () {
-                        return JSON.stringify(config.appConfig);
-                    },
+                    getServerConfigString: function () {return getServerConfigString(config)},
                     getPersistorProps: function () {
                         return objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
                     }
@@ -195,7 +195,10 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     {
         newSession = newControllerId ? false : true;
         if (!session.semotus)
-            session.semotus = {controllers: {}, loggingContext: getLoggingContext(path)};
+            session.semotus = {controllers: {}, loggingContext: {}};
+        if (!session.semotus.loggingContext[path])
+            session.semotus.loggingContext[path] = getLoggingContext(path);
+
         var time = process.hrtime();
         var controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, true, newControllerId, req);
         controller.__template__.objectTemplate.reqSession = req.session;
@@ -232,9 +235,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                 message: message
             })
         },
-        getServerConfigString: function () {
-            return JSON.stringify(config.appConfig);
-        },
+        getServerConfigString: function () {return getServerConfigString(config)},
 
         save: function (path, session) {
             saveSession(path, session, controller);
@@ -255,6 +256,15 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     return Q.fcall(function () {return ret});
 }
 var controllers = {};
+
+function getServerConfigString(config) {
+    var browserConfig = {}
+    var whitelist = (config.appConfig.toBrowser || {});
+    whitelist.modules = true;
+    for (var key in whitelist)
+        browserConfig[key] = config.appConfig[key];
+    return JSON.stringify(browserConfig);
+}
 
 function getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly) {
 
@@ -503,8 +513,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     // Create a new unique object template utility
     var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
 
-    // Add logging context
-    objectTemplate.logger.startContext(session.semotus.loggingContext);
+    setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
 
     // Inject into it any db or persist attributes needed for application
     initObjectTemplate(objectTemplate);
@@ -550,12 +559,12 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         if (objectTemplate.objectMap)
             objectTemplate.objectMap = {}
         objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new'},
-            "Creating new controller " + (newPage ? " new page " : "") + browser);
+          "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         objectTemplate.withoutChangeTracking(function () {
             controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
             objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'restore'},
-                "Restoreing saved controller " + (newPage ? " new page " : "") + browser);
+              "Restoreing saved controller " + (newPage ? " new page " : "") + browser);
             if (!newPage) // No changes queued as a result unless we need it for init.js
                 objectTemplate.syncSession();
         });
@@ -621,7 +630,7 @@ function saveSession(path, session, controller) {
         var diff = process.hrtime(time);
         var took = (diff[0] * 1e9 + diff[1]) / 1000000;
         ourObjectTemplate.logger.info({component: 'amorphic', module: 'saveSession', activity: 'performanceLogging'},
-            "performanceLogging: save session " + took + " ms - length = " + session.semotus.controllers[path].length);
+          "performanceLogging: save session " + took + " ms - length = " + session.semotus.controllers[path].length);
     }
 
     controller.__request = request;
@@ -658,7 +667,7 @@ function restoreSession(path, session, controllerTemplate) {
         var diff = process.hrtime(time);
         var took = (diff[0] * 1e9 + diff[1]) / 1000000;
         objectTemplate.logger.info({component: 'amorphic', module: 'restoreSession', activity: 'performanceLogging'},
-            "performanceLogging: restore session " + took + " ms - length = " + session.semotus.controllers[path].length);
+          "performanceLogging: restore session " + took + " ms - length = " + session.semotus.controllers[path].length);
     }
 
     return controller;
@@ -741,10 +750,19 @@ function processLoggingMessage(req, resp) {
     var message = req.body;
     var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
     if (!session.semotus)
-        session.semotus = {controllers: {}, loggingContext: getLoggingContext(path)};
-    objectTemplate.logger.startContext(session.semotus.loggingContext);
+        session.semotus = {controllers: {}, loggingContext: {}};
+    if (!session.semotus.loggingContext[path])
+        session.semotus.loggingContext[path] = getLoggingContext(path);
+    setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
     objectTemplate.logger.setContextProps(message.loggingContext);
     objectTemplate.logger[message.loggingLevel](message.loggingData);
+}
+
+function setupLogger(logger, path, context) {
+    logger.startContext(context);
+    logger.setLevel(applicationConfig[path].logLevel);
+    if (sendToLog)
+        logger.sendToLog = sendToLog;
 }
 
 /**
@@ -773,14 +791,15 @@ function processMessage(req, resp)
     {
         semotus.objectTemplate.logger.setContextProps(message.loggingContext);
         var context = semotus.objectTemplate.logger.setContextProps({sequence: message.sequence, session: req.session.id,
-        ipaddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress});
+            ipaddress: ((req.headers['x-forwarded-for'] || req.connection.remoteAddress) + "")
+              .split(',')[0].replace(/(.*)[:](.*)/,'$2') || "unknown"});
 
         if (amorphicOptions.performanceLogging){
             var diff = process.hrtime(start);
             var took = (diff[0] * 1e9 + diff[1]) / 1000000;
 
             semotus.objectTemplate.logger.info({component: 'amorphic', module: 'processsMessage', activity: 'performanceLogging'},
-                "performanceLogging: establish session " + took + "ms");
+              "performanceLogging: establish session " + took + "ms");
         }
 
         var ourObjectTemplate = semotus.objectTemplate;
@@ -794,7 +813,7 @@ function processMessage(req, resp)
         if (semotus.newSession || newPage || forceReset)
         {
             objectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
-                remoteSessionId, "Force reset on " + message.type + " " + (semotus.newSession ? 'new session' : '') +
+              remoteSessionId, "Force reset on " + message.type + " " + (semotus.newSession ? 'new session' : '') +
               " [" + message.sequence + "]");
             semotus.save(path, session);
             var outbound = semotus.getMessage();
@@ -821,22 +840,19 @@ function processMessage(req, resp)
                 var diff = process.hrtime(start);
                 var took = (diff[0] * 1e9 + diff[1]) / 1000000;
                 ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'performanceLogging'},
-                    "performanceLogging: processing request took " + took + " response length = " + respstr.length);
+                  "performanceLogging: processing request took " + took + " response length = " + respstr.length);
             }
         }
 
-        var forwardedIpsStr = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-        if (forwardedIpsStr && false)
-            ourObjectTemplate.incomingIP = forwardedIpsStr.split(',')[0];
-        else
-            ourObjectTemplate.incomingIP = 'unknown';
+        ourObjectTemplate.incomingIP = ((req.headers['x-forwarded-for'] || req.connection.remoteAddress) + "")
+            .split(',')[0].replace(/(.*)[:](.*)/,'$2') || "unknown";
 
         ourObjectTemplate.enableSendMessage(true, sendMessage);  // Enable the sending of the message in the response
         try {
             ourObjectTemplate.processMessage(message, null, semotus.restoreSession);
         } catch (error) {
             ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'error'},
-                error.message + error.stack);
+              error.message + error.stack);
             resp.writeHead(500, {"Content-Type": "text/plain"});
             objectTemplate.logger.clearContextProps(context);
             resp.end(error.toString());
@@ -895,7 +911,7 @@ function log (level, sessionId, data) {
 
 }
 
-function listen(dirname, sessionStore, preSessionInject, postSessionInject)
+function listen(dirname, sessionStore, preSessionInject, postSessionInject, sendToLogFunction)
 {
     var fs = require('fs');
     var Q = require('q');
@@ -908,6 +924,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
     var configBuilder = require('./configBuilder').ConfigBuilder;
     var configApi = require('./configBuilder').ConfigAPI;
+    sendToLog = sendToLogFunction;
 
 
     // Create temporary directory for file uploads
@@ -1020,7 +1037,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
                             amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
                               cpath + '/js/', injectObjectTemplate,
-                              sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
+                              sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                              config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
 
                             if (config.isDaemon) {
                                 amorphic.establishDaemon(appName);
@@ -1043,7 +1061,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
 
                     amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
                       cpath + '/js/', injectObjectTemplate,
-                      sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config);
+                      sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                      config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
 
                     if (config.isDaemon) {
                         amorphic.establishDaemon(appName);
@@ -1128,7 +1147,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject)
                                 : amorphic.getModelSource(appName)) +
                               "amorphic.setApplication('" + appName + "');" +
                               "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
-                              "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString()).modules) +");" +
+                              "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString())) +");" +
                               "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
                             );
                         }

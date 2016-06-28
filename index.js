@@ -812,13 +812,13 @@ function processMessage(req, resp)
         // If we expired just return a message telling the client to reset itself
         if (semotus.newSession || newPage || forceReset)
         {
-            objectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
+            ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
               remoteSessionId, "Force reset on " + message.type + " " + (semotus.newSession ? 'new session' : '') +
               " [" + message.sequence + "]");
             semotus.save(path, session);
             var outbound = semotus.getMessage();
             outbound.ver = semotus.appVersion;
-            objectTemplate.logger.clearContextProps(context);
+            ourObjectTemplate.logger.clearContextProps(context);
             resp.end(JSON.stringify(outbound));  // return a sync message assuming no queued messages
             return;
         }

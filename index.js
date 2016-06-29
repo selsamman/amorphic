@@ -654,7 +654,7 @@ function restoreSession(path, session, controllerTemplate) {
         controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
         if (session.semotus.objectMap)
             objectTemplate.objectMap = session.semotus.objectMap;
-        log(1, session.sessionId, "Explicit Restore of saved controller ");
+        objectTemplate.logger.info({component: 'amorphic', module: 'restoreSession', activity: 'restoring'});
         objectTemplate.syncSession();  // Clean tracking of changes
     });
     objectTemplate.controller = controller;

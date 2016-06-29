@@ -755,6 +755,7 @@ function processLoggingMessage(req, resp) {
         session.semotus.loggingContext[path] = getLoggingContext(path);
     setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
     objectTemplate.logger.setContextProps(message.loggingContext);
+    message.loggingData.from = "browser";
     objectTemplate.logger[message.loggingLevel](message.loggingData);
     resp.writeHead(200, {"Content-Type": "text/plain"});
     resp.end("");

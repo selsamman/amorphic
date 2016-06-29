@@ -756,6 +756,7 @@ function processLoggingMessage(req, resp) {
     setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
     objectTemplate.logger.setContextProps(message.loggingContext);
     objectTemplate.logger[message.loggingLevel](message.loggingData);
+    resp.end();
 }
 
 function setupLogger(logger, path, context) {

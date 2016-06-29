@@ -855,7 +855,7 @@ function processMessage(req, resp)
             ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'error'},
               error.message + error.stack);
             resp.writeHead(500, {"Content-Type": "text/plain"});
-            objectTemplate.logger.clearContextProps(context);
+            ourObjectTemplate.logger.clearContextProps(context);
             resp.end(error.toString());
         }
     }).fail(function(error){

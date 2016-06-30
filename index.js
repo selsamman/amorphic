@@ -558,7 +558,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         // With a brand new controller we don't want old object to persist id mappings
         if (objectTemplate.objectMap)
             objectTemplate.objectMap = {}
-        objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new'},
+        objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
           "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         objectTemplate.withoutChangeTracking(function () {

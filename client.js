@@ -197,6 +197,9 @@ amorphic = // Needs to be global to make mocha tests work
                 if (message.type == "pinged")
                     return;
 
+                if (message.sessionExpired)
+                    RemoteObjectTemplate.clearPendingCalls();
+
                 // Handle resets and refreshes
                 if (message.newSession || message.type == "refresh")
                     self._reset(message);

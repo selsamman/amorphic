@@ -810,7 +810,9 @@ function processMessage(req, resp)
 
         ourObjectTemplate.expireSession = function () {
             req.session.destroy();
+            ourObjectTemplate.sessionExpired = true;
         }
+        ourObjectTemplate.sessionExpired = false;
 
         // If we expired just return a message telling the client to reset itself
         if (semotus.newSession || newPage || forceReset)
@@ -836,6 +838,7 @@ function processMessage(req, resp)
             ourObjectTemplate.enableSendMessage(false);
             semotus.save(path, session);
             message.ver = semotus.appVersion;
+            message.sessionExpired = ourObjectTemplate.sessionExpired;
             var respstr = JSON.stringify(message)
             ourObjectTemplate.logger.clearContextProps(context);
             resp.end(respstr);

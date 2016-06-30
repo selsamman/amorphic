@@ -1,3 +1,5 @@
+## 1.2.11
+* Fixed bug where session expiration could cause controller id mismatch if pending calls
 ## 1.2.1
 * Logging
 ## 1.1.0

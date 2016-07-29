@@ -119,6 +119,7 @@ describe("Banking Example", function () {
             expect(serverController.preServerCallObjects['Controller']).to.equal(true);
         }
         clientController.mainFunc().then(function () {
+            clientController.__template__.__objectTemplate__.logger.error('Just a foobar');
             expect(serverController.sam.roles[0].account.getBalance() +
                 serverController.sam.roles[1].account.getBalance()).to.equal(225);
             expect(serverController.preServerCallObjects['Controller']).to.equal(true);
@@ -195,6 +196,7 @@ describe("Banking Example", function () {
     });
     it("can retry an update conflict", function (done) {
         var retryCount = 0;
+        this.timeout(4000);
         serverAssert = function () {
             console.log("Updating Sam and then changing verions to 200 " + retryCount);
             serverController.sam.firstName = 'Sam';

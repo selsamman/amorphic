@@ -48,7 +48,6 @@ ConfigBuilder.prototype.build = function (rootDir){
     
     for (var appKey in appList) {
         var appCfg = {};
-        if (appStartList.match(appKey + ';')) {
             appCfg.appName = appKey;
             appCfg.appPath = rootDir + '/' + appList[appCfg.appName];
             appCfg.appCommonPath = rootDir + '/apps/common';
@@ -66,8 +65,6 @@ ConfigBuilder.prototype.build = function (rootDir){
 
 
             configStore[appKey] = appCfgApi;
-        }
-
     }
 
     return configStore;

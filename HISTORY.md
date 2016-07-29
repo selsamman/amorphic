@@ -1,3 +1,44 @@
+## 1.2.13
+* Addeed call to controller.displayError for amorphic errors
+## 1.2.11
+* Fixed bug where session expiration could cause controller id mismatch if pending calls
+## 1.2.1
+* Logging
+## 1.1.0
+* Use new pattern for change tracking
+## 1.0.2
+* Added module.exports.objectTemplateInitialize function call in controllers to deal with client ordering of templates
+## 1.0.1
+* Took care of non-database case
+* Added timeout default
+* Prevent multiple schema updates on sourceMode==prod
+* Added full request in call to controller's post method
+## 1.0.0-rc.1
+* No change
+## 1.0.0-beta.8
+* Latest versions of persistor and semotus
+## 1.0.0-beta.7
+* Include updated dependencies
+## 1.0.0-beta.1
+* Moving to semver convention
+* Call to semotus for serialization and garbage collection
+* Option to not have source maps prodns
+* Default to compressed uglified source
+## 0.2.33
+* Pre-uglify things for better performance
+## 0.2.30
+* Use Uglify to compress source when set to production
+## 0.2.29
+* improved on --sourceMode prod by having two files, one dynaamic and one cached
+* Fixed source map mismatch
+## 0.2.28
+* Added --sourceMode prod option cosolidate model source into a single file
+* Added --compressXHR true option to compress XHR responses.
+## 0.2.26
+* Including alpha client for ionic
+## 0.2.25
+* Added option to compress session data with zlib (--compressSession)
+* All configs included in global config even if application not invoked
 ## 0.2.24
 * Put post session inject before amorphic processing to allow requestion injection
 ## 0.2.23

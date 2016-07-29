@@ -30,10 +30,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
                 }).then(function (count) {
                     total += count;
                     return clearCollection(Customer)
-                }).then(function (count) {
-                    total += count;
-                    return clearCollection(Account)
-                }).then(function (count) {
+                 }).then(function (count) {
                     total += count;
                     return clearCollection(Transaction)
                 }).then(function (count) {
@@ -49,7 +46,7 @@ module.exports.controller = function (objectTemplate, getTemplate)
             function clearCollection(template) {
                 return objectTemplate.dropKnexTable(template)
                     .then(function () {
-                        return objectTemplate.createKnexTable(template).then(function(){return 0});
+                        return objectTemplate.synchronizeKnexTableFromTemplate(template).then(function(){return 0});
                     });
             }
         }},
@@ -103,11 +100,12 @@ module.exports.controller = function (objectTemplate, getTemplate)
             for(var templateName in objectsChanged)
                 this.preServerCallObjects[templateName] = true;
             return Q()
-                .then(this.sam ? this.sam.refresh.bind(this.sam) : true)
-                .then(this.karen ? this.karen.refresh.bind(this.karen) : true)
-                .then(this.ashling ? this.ashling.refresh.bind(this.ashling) : true)
+                .then(this.sam ? this.sam.refresh.bind(this.sam, null) : true)
+                .then(this.karen ? this.karen.refresh.bind(this.karen, null) : true)
+                .then(this.ashling ? this.ashling.refresh.bind(this.ashling, null) : true)
                 .then(function () {
                     objectTemplate.begin();
+                    console.log(this.sam ? this.sam.__version__ : "");
                     objectTemplate.currentTransaction.touchTop = true;
                 }.bind(this));
         },

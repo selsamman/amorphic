@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var path = require('path');
+var rootdir = process.argv[2];
+var ncp = require('ncp').ncp;
+
+// Copy app directory files to nodejs
+ncp.limit = 16;
+ncp(rootdir + "/www/apps", rootdir + "/nodejs/apps", function (err) {
+  if (err) {
+    return console.error(err);
+  }
+});
+
+// Copy amorphic files to be packaged up
+
+fs.writeFileSync(rootdir + "/www/lib/supertype.js",
+  fs.readFileSync(rootdir + "/nodejs/node_modules/amorphic/node_modules/supertype/index.js"));
+
+fs.writeFileSync(rootdir + "/www/lib/semotus.js",
+  fs.readFileSync(rootdir + "/nodejs/node_modules/amorphic/node_modules/semotus/index.js"));
+
+fs.writeFileSync(rootdir + "/www/lib/amorphic.js",
+  fs.readFileSync(rootdir + "/nodejs/node_modules/amorphic/ionic/amorphicClient.js"));
+
+fs.writeFileSync(rootdir + "/www/lib/q.js",
+  fs.readFileSync(rootdir + "/nodejs/node_modules/q/q.js"));
+

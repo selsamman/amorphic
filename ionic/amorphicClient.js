@@ -18,10 +18,16 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-Persistor = ObjectTemplate.create("Peristor",
-  {
-  });
 
+/**
+ * This version of client can be used with an ionic 1 project (sample service and app coming soon)
+ *
+ */
+
+
+Persistor = ObjectTemplate.create("Peristor",
+    {
+    });
 
 RemoteObjectTemplate._injectIntoTemplate = function (template)
 {
@@ -62,6 +68,7 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
         }
     }
 }
+
 var module = {exports: {}}
 
 amorphic = // Needs to be global to make mocha tests work
@@ -73,10 +80,6 @@ amorphic = // Needs to be global to make mocha tests work
     },
     setConfig: function (config) {
         this.config = config;
-        RemoteObjectTemplate.config = {nconf: {get: get}};
-        function get (key) {
-            return config[key];
-        }
     },
     setSchema: function (schema) {
         this.schema = schema;
@@ -98,7 +101,6 @@ amorphic = // Needs to be global to make mocha tests work
     state: 'live',
     app: 'generic',
     sessionId: 0,
-    loggingContext: {},
     /**
      * start a session with the server and process any initial messages
      *
@@ -130,28 +132,6 @@ amorphic = // Needs to be global to make mocha tests work
             alert("Can't find " + controllerTemplate);
             return;
         }
-        this.sendLoggingMessage = function (level, data) {
-            var message = {type: 'logging', loggingLevel: level, loggingContext: this.loggingContext, loggingData: data};
-            this.loggingContext = {};
-            this._post(self.url, message);
-        }
-
-        RemoteObjectTemplate.logger.sendToLog = function (level, data) {
-            var output = RemoteObjectTemplate.logger.prettyPrint(level, data);
-            console.log(output);
-            if (level == 'error' || level == 'fatal') {
-                this.sendLoggingMessage(level, data);
-                if (this.controller && typeof(this.controller.displayError) == "function")
-                    this.controller.displayError(output);
-            }
-        }.bind(this)
-
-        this.setContextProps = RemoteObjectTemplate.logger.setContextProps;
-        RemoteObjectTemplate.logger.setContextProps = function (props) {
-            for (var prop in props)
-                this.loggingContext[prop] = props[prop];
-            this.setContextProps.call(RemoteObjectTemplate.logger, props);
-        }.bind(this)
 
         /**
          * Send message to server and process response
@@ -162,8 +142,6 @@ amorphic = // Needs to be global to make mocha tests work
         this.sendMessage = function (message)
         {
             message.sequence = self.sequence++;
-            message.loggingContext = self.loggingContext;
-            self.loggingContext = {};
 
             // Sending rootId will reset the server
             if (self.rootId) {
@@ -184,13 +162,13 @@ amorphic = // Needs to be global to make mocha tests work
                 var message = JSON.parse(request.responseText);
                 if (self.logLevel > 0)
                     console.log("receiving " + message.type + " " + message.name + " serverAppVersion=" + message.ver +
-                      "executionTime=" + ((new Date()).getTime() - self.lastServerInteraction) +
-                      "ms messageSize=" + Math.round(request.responseText.length / 1000) + "K");
+                        "executionTime=" + ((new Date()).getTime() - self.lastServerInteraction) +
+                        "ms messageSize=" + Math.round(request.responseText.length / 1000) + "K");
 
                 // If app version in message not uptodate
                 if (self.appVersion && message.ver != self.appVersion) {
                     console.log("Application version " + self.appVersion + " out of date - " +
-                      message.ver + " is available - reloading in 5 seconds");
+                        message.ver + " is available - reloading in 5 seconds");
                     self.shutdown = true;
                     self.reload();
                     return;
@@ -200,9 +178,6 @@ amorphic = // Needs to be global to make mocha tests work
                 self._setSessionTimeout();
                 if (message.type == "pinged")
                     return;
-
-                if (message.sessionExpired)
-                    RemoteObjectTemplate.clearPendingCalls();
 
                 // Handle resets and refreshes
                 if (message.newSession || message.type == "refresh")
@@ -226,13 +201,13 @@ amorphic = // Needs to be global to make mocha tests work
 
         // Kick everything off by processing initial message
         this._reset(this.initializationData.message, appVersion, reload);
-
-        // Manage events for session expiration
-        this.addEvent(document.body, 'click', function() {self._windowActivity();self.activity = true});
-        this.addEvent(document.body, 'mousemove', function() {self._windowActivity();self.activity = true});
-        this.addEvent(window, 'focus', function () {self._windowActivity()});
-        setInterval(function () {self._zombieCheck()}, 50);
-
+        /*
+         // Manage events for session expiration
+         this.addEvent(document.body, 'click', function() {self._windowActivity();self.activity = true});
+         this.addEvent(document.body, 'mousemove', function() {self._windowActivity();self.activity = true});
+         this.addEvent(window, 'focus', function () {self._windowActivity()});
+         setInterval(function () {self._zombieCheck()}, 50);
+         */
         // For file uploads we use an iFrame
 
 
@@ -264,7 +239,7 @@ amorphic = // Needs to be global to make mocha tests work
     // Anytime we see some other windows session has been stored we become a zombie
     _zombieCheck: function () {
         if (RemoteObjectTemplate.getPendingCallCount() == 0 &&
-          this.getCookie('session' + this.app) != this.session) {
+            this.getCookie('session' + this.app) != this.session) {
             if (this.state != 'zombie') {
                 this.state = 'zombie'
                 this.expireController();
@@ -347,7 +322,7 @@ amorphic = // Needs to be global to make mocha tests work
         RemoteObjectTemplate.controller = this.controller;
         if (appVersion && message.ver != appVersion) {
             console.log("Application version " + appVersion + " out of date - " +
-              message.ver + " is available - reloading in 5 seconds");
+                message.ver + " is available - reloading in 5 seconds");
             this.shutdown = true;
             this.bindController.call(null, this.controller, message.sessionExpiration);
             reload();
@@ -358,8 +333,6 @@ amorphic = // Needs to be global to make mocha tests work
         this.bindController.call(null, this.controller, message.sessionExpiration);
     },
     _post: function (url, message, success, failure, retries, retryInterval) {
-        success = success || function () {};
-        failure = failure || function () {};
         retries = retries || 30;
         retryInterval = retryInterval || 2000;
         if (this.shutdown)
@@ -420,10 +393,6 @@ amorphic = // Needs to be global to make mocha tests work
      * and starting with the non _mixin
      */
     importTemplates: function () {
-
-        if (module.exports.objectTemplateInitialize)
-            module.exports.objectTemplateInitialize(RemoteObjectTemplate);
-
         var requires = {}
         for (var exp in module.exports) {
             if (!exp.match(/_mixins/)) {
@@ -435,7 +404,7 @@ amorphic = // Needs to be global to make mocha tests work
         }
         for (var exp in module.exports) {
             if (exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config ? this.config.modules[exp.replace(/_mixins/,'')] : null);
+                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config ? this.config[exp.replace(/_mixins/,'')] : null);
                 for (var template in  templates)
                     window[template] = templates[template];
             }

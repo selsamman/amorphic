@@ -137,9 +137,13 @@ amorphic = // Needs to be global to make mocha tests work
         }
 
         RemoteObjectTemplate.logger.sendToLog = function (level, data) {
-            console.log(RemoteObjectTemplate.logger.prettyPrint(level, data));
-            if (level == 'error' || level == 'fatal')
+            var output = RemoteObjectTemplate.logger.prettyPrint(level, data);
+            console.log(output);
+            if (level == 'error' || level == 'fatal') {
                 this.sendLoggingMessage(level, data);
+                if (this.controller && typeof(this.controller.displayError) == "function")
+                    this.controller.displayError(output);
+            }
         }.bind(this)
 
         this.setContextProps = RemoteObjectTemplate.logger.setContextProps;

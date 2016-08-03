@@ -1,6 +1,8 @@
 ## 1.3.0
 * New bindster
 * Fixed browser logging on server to include session
+## 1.2.13
+* Addeed call to controller.displayError for amorphic errors
 ## 1.2.11
 * Fixed bug where session expiration could cause controller id mismatch if pending calls
 ## 1.2.1

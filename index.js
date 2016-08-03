@@ -755,6 +755,9 @@ function processLoggingMessage(req, resp) {
         session.semotus.loggingContext[path] = getLoggingContext(path);
     setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
     objectTemplate.logger.setContextProps(message.loggingContext);
+    objectTemplate.logger.setContextProps({session: req.session.id,
+        ipaddress: ((req.headers['x-forwarded-for'] || req.connection.remoteAddress) + "")
+        .split(',')[0].replace(/(.*)[:](.*)/,'$2') || "unknown"});
     message.loggingData.from = "browser";
     objectTemplate.logger[message.loggingLevel](message.loggingData);
     resp.writeHead(200, {"Content-Type": "text/plain"});

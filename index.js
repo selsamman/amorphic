@@ -563,6 +563,11 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     } else {
         objectTemplate.withoutChangeTracking(function () {
             controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
+            // Make sure no duplicate ids are issued
+            var semotusSession = objectTemplate._getSession();
+            for (var obj in semotusSession.objects)
+                if (obj.match(/^server-[\w]*?-([0-9]+)/))
+                    semotusSession.nextObjId = Math.max(semotusSession.nextObjId, RegExp.$1 + 1);
             objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'restore'},
               "Restoreing saved controller " + (newPage ? " new page " : "") + browser);
             if (!newPage) // No changes queued as a result unless we need it for init.js
@@ -755,6 +760,9 @@ function processLoggingMessage(req, resp) {
         session.semotus.loggingContext[path] = getLoggingContext(path);
     setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
     objectTemplate.logger.setContextProps(message.loggingContext);
+    objectTemplate.logger.setContextProps({session: req.session.id,
+        ipaddress: ((req.headers['x-forwarded-for'] || req.connection.remoteAddress) + "")
+            .split(',')[0].replace(/(.*)[:](.*)/,'$2') || "unknown"});
     message.loggingData.from = "browser";
     objectTemplate.logger[message.loggingLevel](message.loggingData);
     resp.writeHead(200, {"Content-Type": "text/plain"});

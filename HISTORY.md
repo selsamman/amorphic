@@ -1,3 +1,8 @@
+## 1.2.15
+* Fixed bug where duplicate ids could be generated
+* Added logging context for client logging
+## 1.2.14
+* Fixed bad dependency
 ## 1.2.13
 * Addeed call to controller.displayError for amorphic errors
 ## 1.2.11

@@ -563,6 +563,11 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     } else {
         objectTemplate.withoutChangeTracking(function () {
             controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
+            // Make sure no duplicate ids are issued
+            var semotusSession = objectTemplate._getSession();
+            for (var obj in semotusSession.objects)
+                if (obj.match(/^server-[\w]*?-([0-9]+)/))
+                    semotusSession.nextObjId = Math.max(semotusSession.nextObjId, RegExp.$1 + 1);
             objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'restore'},
               "Restoreing saved controller " + (newPage ? " new page " : "") + browser);
             if (!newPage) // No changes queued as a result unless we need it for init.js

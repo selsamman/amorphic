@@ -1111,10 +1111,11 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
         rootSuperType = fs.existsSync(dirname + "/node_modules/supertype") ? dirname : __dirname;
         rootSemotus = fs.existsSync(dirname + "/node_modules/semotus") ? dirname : __dirname;
+        rootBindster = fs.existsSync(dirname + "/node_modules/amorphic-bindster") ? dirname : __dirname;
 
         app
           .use('/modules/', connect.static(dirname + "/node_modules"))
-          .use('/bindster/', connect.static(__dirname + "/node_modules/amorphic-bindster"))
+          .use('/bindster/', connect.static(rootBindster + "/node_modules/amorphic-bindster"))
           .use('/amorphic/', connect.static(__dirname))
           .use('/common/', connect.static(dirname + "/apps/common"))
           .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))

@@ -1,4 +1,6 @@
-## 1.3.1
+## 1.3.8
+* Find amorphic-bindster in the root
+## 1.3.2
 * New bindster
 * Fixed browser logging on server to include session
 ## 1.2.15

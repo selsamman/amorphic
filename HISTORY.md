@@ -1,3 +1,5 @@
+## 1.2.16
+* Separate object maps by application
 ## 1.2.15
 * Fixed bug where duplicate ids could be generated
 * Added logging context for client logging

@@ -519,9 +519,9 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     initObjectTemplate(objectTemplate);
 
     // Restore any saved objectMap
-    if (session.semotus.objectMap){
+    if (session.semotus.objectMap && session.semotus.objectMap[path]){
         //session.semotus.objectMap = decompressSessionData(session.semotus.objectMap);
-        objectTemplate.objectMap = session.semotus.objectMap;
+        objectTemplate.objectMap = session.semotus.objectMap[path];
     }
 
     // Get the controller and all of it's dependent requires which will populate a
@@ -628,8 +628,11 @@ function saveSession(path, session, controller) {
     session.semotus.controllers[path] = compressSessionData(serialSession);
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
 
-    if (ourObjectTemplate.objectMap)
-        session.semotus.objectMap = ourObjectTemplate.objectMap;
+    if (ourObjectTemplate.objectMap) {
+        if (!session.semotus.objectMap)
+            session.semotus.objectMap = {}
+        session.semotus.objectMap[path] = ourObjectTemplate.objectMap;
+    }
 
     if (amorphicOptions.performanceLogging){
         var diff = process.hrtime(time);
@@ -657,8 +660,8 @@ function restoreSession(path, session, controllerTemplate) {
     var controller;
     objectTemplate.withoutChangeTracking(function () {
         controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
-        if (session.semotus.objectMap)
-            objectTemplate.objectMap = session.semotus.objectMap;
+        if (session.semotus.objectMap && session.semotus.objectMap[path])
+            objectTemplate.objectMap = session.semotus.objectMap[path];
         objectTemplate.logger.info({component: 'amorphic', module: 'restoreSession', activity: 'restoring'});
         objectTemplate.syncSession();  // Clean tracking of changes
     });

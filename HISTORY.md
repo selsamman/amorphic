@@ -1,8 +1,12 @@
+## 1.3.9
+* Cherry picked 1.2.16
 ## 1.3.8
 * Find amorphic-bindster in the root
 ## 1.3.2
 * New bindster
 * Fixed browser logging on server to include session
+## 1.2.16
+* Fixed bug where objectMaps were not separated by application
 ## 1.2.15
 * Fixed bug where duplicate ids could be generated
 * Added logging context for client logging

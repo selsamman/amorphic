@@ -1,3 +1,5 @@
+## 1.2.17
+* Bump to force npm update to include new persistor with filter fix
 ## 1.2.16
 * Separate object maps by application
 ## 1.2.15

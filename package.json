@@ -23,6 +23,7 @@
         "compression":"x"
     },
     "devDependencies": {
+        "restify": "2.x",
         "chai": "3.x",
         "pg": "x",
         "knex": "x",

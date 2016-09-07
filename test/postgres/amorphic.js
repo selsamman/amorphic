@@ -51,7 +51,7 @@ require('../../node_modules/amorphic/client.js');
 
 describe("Banking Example", function () {
 
-    it ("It can load the browser", function (done) {
+    before(function (done) {
         var isDone = false;
         request("http://localhost:3001/amorphic/init/test.js",function (error, response, body) {
             if (!error && response.statusCode == 200) {
@@ -94,6 +94,7 @@ describe("Banking Example", function () {
             }
         });
     });
+    
     it ("clears the bank and saves everything", function (done) {
         serverAssert = function (count) {
             expect(count).to.equal(0);

@@ -1,8 +1,8 @@
 module.exports.model = function (objectTemplate, getTemplate)
 {
-    Doctor = objectTemplate.create("Doctor", {});
-    Patient = objectTemplate.create("Patient", {});
-    Appointment = objectTemplate.create("Appointment", {});
+    var Doctor = objectTemplate.create("Doctor", {});
+    var Patient = objectTemplate.create("Patient", {});
+    var Appointment = objectTemplate.create("Appointment", {});
 
     Doctor.mixin({
         name:           {type: String},

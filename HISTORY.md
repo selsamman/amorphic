@@ -1,3 +1,5 @@
+## 1.2.18
+* Added extra parameters to getTemplate to allow optimized pattern
 ## 1.2.17
 * Bump to force npm update to include new persistor with filter fix
 ## 1.2.16

@@ -279,7 +279,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
     if (amorphicOptions.sourceMode == 'debug')
         applicationSource[path] = "";
-    function getTemplate(file, options) {
+    function getTemplate(file, options, uses) {
         var previousIgnoringClient = ignoringClient;
         if(options && (options.client === false))
             ignoringClient = true;
@@ -293,7 +293,10 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             return requires[prop];
         }
         if (ref[prop])
-            throw  new Error("circular reference on " + file);
+            if (uses)
+                return;
+            else
+                throw  new Error("circular reference on " + file);
         ref[prop] = true;
 
         // 1. If the file is to be 'required' from a specific app, use
@@ -332,7 +335,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         // Call the initialize function in the template
         var previousToClient = objectTemplate.__toClient__;
         objectTemplate.__toClient__ = ignoringClient;
-        var templates = initializer(objectTemplate, getTemplate);
+        var templates = initializer(objectTemplate, getTemplate, uses);
         objectTemplate.__toClient__ = previousToClient;
         requires[prop] = templates;
 
@@ -352,6 +355,10 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
         ignoringClient = previousIgnoringClient;
         return templates;
+
+        function uses (file, options) {
+            getTemplate(file, options, true);
+        }
     }
 
     for (var ix = 0; ix < templates.length; ++ix)
@@ -370,10 +377,10 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 else
                     console.log(template + " not found in requires for " + prop);
         }
-
+    var templates = flatten(requires);
     for (var ix = 0;ix < mixins.length;++ix)
         if (mixins[ix])
-            (mixins[ix])(objectTemplate, requires);
+            (mixins[ix])(objectTemplate, requires, templates);
 
     // Handle NPM includes
     if (config && config.appConfig && config.appConfig.modules)
@@ -440,6 +447,13 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
     function addAppSource(data, file) {
         ast = applicationSource[path] ? ast : UglifyJS.parse(data, { filename: file, toplevel: ast });
+    }
+    function flatten (requires) {
+        classes = {};
+        for (var f in requires)
+            for (var c in requires[f])
+                classes[c] = requires[f][c];
+        return classes;
     }
 }
 /**

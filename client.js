@@ -433,14 +433,23 @@ amorphic = // Needs to be global to make mocha tests work
                     window[template] = templates[template];
             }
         }
+        var templates = flatten(requires);
         for (var exp in module.exports) {
             if (exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config ? this.config.modules[exp.replace(/_mixins/,'')] : null);
+                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, templates);
                 for (var template in  templates)
                     window[template] = templates[template];
             }
         }
         RemoteObjectTemplate.performInjections();
+        function flatten (requires) {
+            classes = {};
+            for (var f in requires)
+                for (var c in requires[f])
+                    classes[c] = requires[f][c];
+            return classes;
+        }
+
     },
     addEvent: function (elem, evName, evFunc) {
         if(elem.attachEvent)

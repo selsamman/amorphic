@@ -5,6 +5,8 @@
 ## 1.3.2
 * New bindster
 * Fixed browser logging on server to include session
+## 1.2.18
+* Added extra parameters to getTemplate to allow optimized pattern
 ## 1.2.16
 * Fixed bug where objectMaps were not separated by application
 ## 1.2.15

@@ -1,13 +1,9 @@
-module.exports.controller = function (objectTemplate, getTemplate)
+module.exports.controller = function (objectTemplate, uses)
 {
-	var BaseController = getTemplate('./baseController.js').BaseController;
-	var World = getTemplate('./world.js').World;
-    if (typeof(require) != 'undefined') {
-        var fs = require('fs');
-        var Q = require('q');
-    }
+	var BaseController = uses('./baseController.js', "BaseController");
+	var World = uses('./world.js', "World");
 
-    Controller = BaseController.extend("Controller",
+    var Controller = BaseController.extend("Controller",
 	{
 		worlds:        {type: Array, of: World, value: []},
         posted:        {type: String, value: ""},
@@ -20,7 +16,5 @@ module.exports.controller = function (objectTemplate, getTemplate)
             return {status: 303, headers: {location: uri.replace(/amorphic.*/, '')}};
         }}
     });
-
-    return {Controller: Controller};
 }
 

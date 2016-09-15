@@ -424,30 +424,66 @@ amorphic = // Needs to be global to make mocha tests work
         if (module.exports.objectTemplateInitialize)
             module.exports.objectTemplateInitialize(RemoteObjectTemplate);
 
-        var requires = {}
-        for (var exp in module.exports) {
-            if (!exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, function () {return window});
-                requires[exp] = templates;
-                for (var template in  templates)
+        var objectTemplateSubClass = RemoteObjectTemplate._createObject();
+        if (this.config.templateMode != "lecacy") {
+            for (var exp in module.exports || {}) {
+                objectTemplateSubClass.prototype.create = function (name) {
+                    var template = RemoteObjectTemplate.create(name);
                     window[template] = templates[template];
+                    return template;
+                }
+                var templates = (module.exports[exp])(objectTemplateSubClass, usesV2Pass1);
+                function usesV2Pass1 (file, p2, p3) {
+                    var usesV2ReturnPass1 = {
+                        mixin: function () {
+                            return usesV2ReturnPass1;
+                        },
+                        extend: function(name) {
+                            var template = this.extend(name);
+                        }
+                    }
+                    var options = p3 || p2;
+                    getTemplate(file, options, true);
+                    return usesV2ReturnPass1;
+                }
             }
-        }
-        var templates = flatten(requires);
-        for (var exp in module.exports) {
-            if (exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, templates);
-                for (var template in  templates)
-                    window[template] = templates[template];
+            for (var exp in module.exports) {
+                objectTemplateSubClass.prototype.create = function () {
+                    return objectTemplate.mixin.apply(objectTemplate, arguments);
+                }
+                (module.exports[exp])(objectTemplateSubClass, usesV2Pass2);
+                function usesV2Pass2 (file, p2, p3) {
+                    var options = p3 || p2;
+                    var templateName = p3 ? p2 : file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+                    return RemoteObjectTemplate.__dictionary__[templateName];
+                }
             }
-        }
-        RemoteObjectTemplate.performInjections();
-        function flatten (requires) {
-            classes = {};
-            for (var f in requires)
-                for (var c in requires[f])
-                    classes[c] = requires[f][c];
-            return classes;
+        } else {
+            var requires = {}
+            for (var exp in module.exports || {}) {
+                if (!exp.match(/_mixins/)) {
+                    var templates = (module.exports[exp])(RemoteObjectTemplate, function () {return window});
+                    requires[exp] = templates;
+                    for (var template in  templates)
+                        window[template] = templates[template];
+                }
+            }
+            var templates = flatten(requires);
+            for (var exp in module.exports) {
+                if (exp.match(/_mixins/)) {
+                    var templates = (module.exports[exp])(RemoteObjectTemplate, requires, templates);
+                    for (var template in  templates)
+                        window[template] = templates[template];
+                }
+            }
+            RemoteObjectTemplate.performInjections();
+            function flatten (requires) {
+                classes = {};
+                for (var f in requires)
+                    for (var c in requires[f])
+                        classes[c] = requires[f][c];
+                return classes;
+            }
         }
 
     },

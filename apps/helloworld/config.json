@@ -1,3 +1,4 @@
 {
-    "createControllerFor": "yes"
+    "createControllerFor": "yes",
+    "templateMode": "auto"
 }

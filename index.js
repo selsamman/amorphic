@@ -261,6 +261,7 @@ function getServerConfigString(config) {
     var browserConfig = {}
     var whitelist = (config.appConfig.toBrowser || {});
     whitelist.modules = true;
+    whitelist.templateMode = true;
     for (var key in whitelist)
         browserConfig[key] = config.appConfig[key];
     return JSON.stringify(browserConfig);
@@ -271,11 +272,31 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     var requires = {};
     var ref = {};
     var mixins = [];
+    var all_require_results = {};
     var ignoringClient = false;
     var filesNeeded = {};
     var applicationSourceCandidate = {};
     var ast = null;
     objectTemplate.__initialized__ = false;
+    var objectTemplateSubClass = objectTemplate._createObject();
+
+    var deferredExtends = [];
+
+    // An object for creating request to extend classes to be done at thend of V2 pass1
+    function usesV2ReturnPass1 (base) {
+        this.baseName = base
+    }
+        usesV2ReturnPass1.prototype.mixin = function () {};
+        usesV2ReturnPass1.prototype.extend = function(name) {
+            this.extendedName = name;
+            deferredExtends.push(this);
+            return new usesV2ReturnPass1(name);
+        };
+        usesV2ReturnPass1.prototype.doExtend = function() {
+            if (!objectTemplate.__dictionary__[this.baseName])
+                throw Error("Attempt to extend " + this.baseName + " which was never defined");
+            objectTemplate.__dictionary__[this.baseName].extend(this.extendedName, {});
+        };
 
     if (amorphicOptions.sourceMode == 'debug')
         applicationSource[path] = "";
@@ -321,26 +342,57 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             clientPath = 'common';
             require_results = require(config.commonPath + file);
         }
-        var objectTemplateInitialize = require_results['objectTemplateInitialize']
+
+        // There is a legacy mode where recursive templates are handled with a two-phase two-function call
+        // in the templates which return an object with an xxx prop and an xxx_mixin prop named the same as the file
+        // In the current mode (V2), a function is returned which is called in two passes.  On the first pass
+        // an ObjectTemplate subclass is passed in that only creates templates but does not process their properties
+        // and on a second pass converts all create calls to mixins and returns the actual templates when referenced
+        // via the getTemplate second parameter
+        var objectTemplateInitialize = require_results['objectTemplateInitialize'];
         var initializer = (require_results[prop]);
         var mixins_initializer = (require_results[prop + "_mixins"]);
         if (typeof(initializer) != "function")
             throw  new Error(prop + " not exported in " + appPath + file);
 
-        // Call application code that can poke properties into objecTemplate
-        if (!objectTemplate.__initialized__ && objectTemplateInitialize && !sourceOnly)
-            objectTemplateInitialize(objectTemplate);
-        objectTemplate.__initialized__ = true;
+        if ( config.appConfig.templateMode == "auto") {
 
-        // Call the initialize function in the template
-        var previousToClient = objectTemplate.__toClient__;
-        objectTemplate.__toClient__ = ignoringClient;
-        var templates = initializer(objectTemplate, getTemplate, uses);
-        objectTemplate.__toClient__ = previousToClient;
-        requires[prop] = templates;
-
-        if (mixins_initializer)
-            mixins.push(mixins_initializer);
+            objectTemplateSubClass.create = function (name) {
+                var template = objectTemplate.create(name, {});
+                var originalExtend = template.extend;
+                template.extend = function (name, props)  {
+                    var templateToMixin = objectTemplate.__dictionary__[name];
+                    if (templateToMixin)
+                        templateToMixin.mixin(props);
+                    else
+                        originalExtend.call(this, name, props);
+                }
+                addTemplateToRequires(prop, template);
+                return template;
+            }
+            var previousToClient = objectTemplate.__toClient__;
+            objectTemplate.__toClient__ = ignoringClient;
+            require_results[prop](objectTemplateSubClass, usesV2Pass1);
+            all_require_results[prop] = require_results[prop];
+            objectTemplate.__toClient__ = previousToClient;
+ 
+        } else {
+            
+            // Call application code that can poke properties into objecTemplate
+            if (!objectTemplate.__initialized__ && objectTemplateInitialize && !sourceOnly)
+                objectTemplateInitialize(objectTemplate);
+            objectTemplate.__initialized__ = true;
+    
+            // Call the initialize function in the template
+            var previousToClient = objectTemplate.__toClient__;
+            objectTemplate.__toClient__ = ignoringClient;
+            var templates = initializer(objectTemplate, getTemplate, usesV1);
+            objectTemplate.__toClient__ = previousToClient;
+            requires[prop] = templates;
+    
+            if (mixins_initializer)
+                mixins.push(mixins_initializer);
+        }
 
         if (typeof(path) != 'undefined') {
             if (amorphicOptions.sourceMode == 'debug') {
@@ -356,20 +408,35 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         ignoringClient = previousIgnoringClient;
         return templates;
 
-        function uses (file, options) {
+        function usesV1 (file, options) {
             getTemplate(file, options, true);
+        }
+        function addTemplateToRequires (prop, template) {
+            requires[prop] = requires[prop] || {}
+            requires[prop][template.__name__] = template;
+        }
+        function usesV2Pass1 (file, templateName, options) {
+            var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+            getTemplate(file, options, true);
+            return new usesV2ReturnPass1(templateName);
         }
     }
 
+    // Process each template passed in (except for unit tests there generally is just the controller)
     for (var ix = 0; ix < templates.length; ++ix)
         getTemplate(templates[ix]);
 
+    // Extended classes can't be processed until now when we know we have all the base classes defined
+    for (var ix = 0; ix < deferredExtends.length; ++ix)
+        deferredExtends[ix].doExtend();
+
+    // Add the sources to either a structure to be uglified or to an object for including one at a time
     for (var prop in applicationSourceCandidate)
         if (filesNeeded[prop]) {
             if (amorphicOptions.sourceMode == 'debug')
                 applicationSource[path] += applicationSourceCandidate[prop][0];
             else
-                addAppSource(applicationSourceCandidate[prop][0], applicationSourceCandidate[prop][1]);
+                addUglifiedSource(applicationSourceCandidate[prop][0], applicationSourceCandidate[prop][1]);
         } else {
             for (var template in requires[prop])
                 if (requires[prop][template])
@@ -377,11 +444,24 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 else
                     console.log(template + " not found in requires for " + prop);
         }
-    var templates = flatten(requires);
+
+    // Process V1 style mixins
     for (var ix = 0;ix < mixins.length;++ix)
         if (mixins[ix])
-            (mixins[ix])(objectTemplate, requires, templates);
+            (mixins[ix])(objectTemplate, requires, flatten(requires));
 
+    // Process V2 pass 2
+    if (config.appConfig.templateMode == "auto")
+        for (var prop in all_require_results) {
+            objectTemplateSubClass.create = function (name, props) {
+                return objectTemplate.__dictionary__[name].mixin(name, props);
+            }
+            all_require_results[prop](objectTemplateSubClass, usesV2Pass2);
+            function usesV2Pass2 (file, templateName, options) {
+                var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+                return objectTemplate.__dictionary__[templateName];
+            }
+        }
     // Handle NPM includes
     if (config && config.appConfig && config.appConfig.modules)
         for(var mixin in config.appConfig.modules)
@@ -398,7 +478,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                     if (amorphicOptions.sourceMode == 'debug') {
                         applicationSource[path] += "document.write(\"<script src='/modules/" + requireName + "/index.js?ver=" + config.appVersion + "'></script>\");\n\n";
                     } else {
-                        addAppSource("module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n", '/modules/' + requireName + '/index.js?ver=' + config.appVersion);
+                        addUglifiedSource("module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n", '/modules/' + requireName + '/index.js?ver=' + config.appVersion);
                     }
             }
 
@@ -445,7 +525,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         objectTemplate.performInjections();
     return requires;
 
-    function addAppSource(data, file) {
+    function addUglifiedSource(data, file) {
         ast = applicationSource[path] ? ast : UglifyJS.parse(data, { filename: file, toplevel: ast });
     }
     function flatten (requires) {

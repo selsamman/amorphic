@@ -9,6 +9,5 @@ module.exports.world = function (objectTemplate, uses)
 			this.foo = new Foo();
 		}
 	});
-	console.log('World');
 }
 

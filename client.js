@@ -429,6 +429,7 @@ amorphic = // Needs to be global to make mocha tests work
         if (this.config.templateMode == "auto") {
 
             var deferredExtends = [];
+            RemoteObjectTemplate.__statics__ = {};
 
             // An object for creating request to extend classes to be done at thend of V2 pass1
             function usesV2ReturnPass1 (base) {
@@ -460,11 +461,15 @@ amorphic = // Needs to be global to make mocha tests work
                     }
                     return template;
                 }
-                var templates = (module.exports[exp])(objectTemplateSubClass, usesV2Pass1);
+                var initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass1);
                 function usesV2Pass1 (file, templateName, options) {
                     var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
                     return new usesV2ReturnPass1(templateName);
                 }
+                for (var returnVariable in initializerReturnValues)
+                    if (!RemoteObjectTemplate.__dictionary__[returnVariable])
+                        RemoteObjectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
+
             }
             var objectTemplateSubClass = RemoteObjectTemplate._createObject();
             for (var exp in module.exports) {
@@ -477,7 +482,7 @@ amorphic = // Needs to be global to make mocha tests work
                 (module.exports[exp])(objectTemplateSubClass, usesV2Pass2);
                 function usesV2Pass2 (file, templateName, options) {
                     var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
-                    return RemoteObjectTemplate.__dictionary__[templateName];
+                    return RemoteObjectTemplate.__dictionary__[templateName] || RemoteObjectTemplate.__statics__[templateName];
                 }
             }
             for (var name in RemoteObjectTemplate.__dictionary__)

@@ -276,6 +276,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     var all_file_paths = {};
     var ignoringClient = false;
     var filesNeeded = {};
+    objectTemplate.__statics__ = objectTemplate.__statics__ || {};
     var applicationSourceCandidate = {};
     var ast = null;
     objectTemplate.__initialized__ = false;
@@ -391,13 +392,19 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 var previousToClient = objectTemplate.__toClient__;
                 objectTemplate.__toClient__ = ignoringClient;
 
-                require_results[prop](objectTemplateSubClass,  function usesV2Pass1 (file, templateName, options) {
-                    var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
-                    getTemplate(file, options, true);
-                    return new usesV2ReturnPass1(templateName, closureProp);
-                })
+                var initializerReturnValues = require_results[prop](objectTemplateSubClass,  
+                    function usesV2Pass1 (file, templateName, options) {
+                        var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+                        getTemplate(file, options, true);
+                        return new usesV2ReturnPass1(templateName, closureProp);
+                    }
+                );
+                console.log(prop);
                 all_require_results[prop] = require_results[prop];
                 objectTemplate.__toClient__ = previousToClient;
+                for (var returnVariable in initializerReturnValues) 
+                    if (!objectTemplate.__dictionary__[returnVariable])
+                        objectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
             })()
 
         } else {
@@ -482,7 +489,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             all_require_results[prop](objectTemplateSubClass, usesV2Pass2);
             function usesV2Pass2 (file, templateName, options) {
                 var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
-                return objectTemplate.__dictionary__[templateName];
+                return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];;
             }
         }
     // Handle NPM includes

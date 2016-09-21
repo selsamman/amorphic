@@ -1,19 +1,22 @@
-// bar.js
-module.exports.bar = function (objectTemplate, getTemplate, uses)
+module.exports.bar = function (objectTemplate, uses)
 {
-    uses('foo.js');
-    return {
-        Bar: objectTemplate.create("Bar", {})
-    }
-}
-module.exports.bar_mixins = function (objectTemplate, requires, templates)
-{
-    with (templates) {
-        Bar.mixin({
-            init: function () {
-                this.foo = new Foo();
-            },
-            foo: {type: Foo}
-        });
-    }
+    var Foo = uses('foo.js', 'Foo');
+    var BarExtended = uses('foo.js', 'BarExtended');
+    var Bar = objectTemplate.create("Bar", {});
+    var FooExtended = Foo.extend("FooExtended", {});
+    var FooExtendedExtended = FooExtended.extend('FooExtendedExtended', {});
+
+    Bar.mixin({
+        foo: {type: Foo},
+        fooExtended: {type: FooExtended},
+        fooExtendedExtended: {type: FooExtendedExtended},
+        myName: {type: String, value: 'Bar'},
+        init: function () { },
+    })
+    FooExtended.mixin({
+        myExtendedName: {type: String, value: "FooExtended"}
+    });
+    FooExtendedExtended.mixin({
+        myExtendedExtendedName: {type: String, value: "FooExtendedExtended"}
+    });
 }

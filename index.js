@@ -278,29 +278,36 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     var applicationSourceCandidate = {};
     var ast = null;
     objectTemplate.__initialized__ = false;
-    var objectTemplateSubClass = objectTemplate._createObject();
 
     var deferredExtends = [];
+    function addTemplateToRequires (prop, template) {
+        requires[prop] = requires[prop] || {}
+        requires[prop][template.__name__] = template;
+        console.log("Adding " + prop + ":" + template.__name__);
+    }
 
     // An object for creating request to extend classes to be done at thend of V2 pass1
-    function usesV2ReturnPass1 (base) {
+    function usesV2ReturnPass1 (base, prop) {
         this.baseName = base
+        this.prop = prop;
     }
         usesV2ReturnPass1.prototype.mixin = function () {};
         usesV2ReturnPass1.prototype.extend = function(name) {
             this.extendedName = name;
             deferredExtends.push(this);
-            return new usesV2ReturnPass1(name);
+            return new usesV2ReturnPass1(name, this.prop);
         };
         usesV2ReturnPass1.prototype.doExtend = function() {
             if (!objectTemplate.__dictionary__[this.baseName])
                 throw Error("Attempt to extend " + this.baseName + " which was never defined");
-            objectTemplate.__dictionary__[this.baseName].extend(this.extendedName, {});
+            var template = objectTemplate.__dictionary__[this.baseName].extend(this.extendedName, {});
+            addTemplateToRequires(this.prop, template);
         };
 
     if (amorphicOptions.sourceMode == 'debug')
         applicationSource[path] = "";
     function getTemplate(file, options, uses) {
+        var objectTemplateSubClass = objectTemplate._createObject();
         var previousIgnoringClient = ignoringClient;
         if(options && (options.client === false))
             ignoringClient = true;
@@ -356,26 +363,37 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             throw  new Error(prop + " not exported in " + appPath + file);
 
         if ( config.appConfig.templateMode == "auto") {
-
-            objectTemplateSubClass.create = function (name) {
-                var template = objectTemplate.create(name, {});
-                var originalExtend = template.extend;
-                template.extend = function (name, props)  {
-                    var templateToMixin = objectTemplate.__dictionary__[name];
-                    if (templateToMixin)
-                        templateToMixin.mixin(props);
-                    else
-                        originalExtend.call(this, name, props);
+            (function () {
+                var closureProp = prop;
+                objectTemplateSubClass.create = function (name) {
+                    var template = objectTemplate.create(name, {});
+                    var originalExtend = template.extend;
+                    template.extend = function (name, props)  {
+                        var template = objectTemplate.__dictionary__[name];
+                        if (template)
+                            template.mixin(props);
+                        else {
+                            template = originalExtend.call(this, name, props);
+                            console.log("Extending " + this.__name__ + " to " + template.__name__);
+                            addTemplateToRequires(closureProp, template);
+                        }
+                        return template;
+                    }
+                    addTemplateToRequires(closureProp, template);
+                    return template;
                 }
-                addTemplateToRequires(prop, template);
-                return template;
-            }
-            var previousToClient = objectTemplate.__toClient__;
-            objectTemplate.__toClient__ = ignoringClient;
-            require_results[prop](objectTemplateSubClass, usesV2Pass1);
-            all_require_results[prop] = require_results[prop];
-            objectTemplate.__toClient__ = previousToClient;
- 
+                var previousToClient = objectTemplate.__toClient__;
+                objectTemplate.__toClient__ = ignoringClient;
+
+                require_results[prop](objectTemplateSubClass,  function usesV2Pass1 (file, templateName, options) {
+                    var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+                    getTemplate(file, options, true);
+                    return new usesV2ReturnPass1(templateName, closureProp);
+                })
+                all_require_results[prop] = require_results[prop];
+                objectTemplate.__toClient__ = previousToClient;
+            })()
+
         } else {
             
             // Call application code that can poke properties into objecTemplate
@@ -411,15 +429,6 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         function usesV1 (file, options) {
             getTemplate(file, options, true);
         }
-        function addTemplateToRequires (prop, template) {
-            requires[prop] = requires[prop] || {}
-            requires[prop][template.__name__] = template;
-        }
-        function usesV2Pass1 (file, templateName, options) {
-            var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
-            getTemplate(file, options, true);
-            return new usesV2ReturnPass1(templateName);
-        }
     }
 
     // Process each template passed in (except for unit tests there generally is just the controller)
@@ -451,10 +460,12 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             (mixins[ix])(objectTemplate, requires, flatten(requires));
 
     // Process V2 pass 2
+    var objectTemplateSubClass = objectTemplate._createObject();
     if (config.appConfig.templateMode == "auto")
         for (var prop in all_require_results) {
             objectTemplateSubClass.create = function (name, props) {
-                return objectTemplate.__dictionary__[name].mixin(name, props);
+                objectTemplate.__dictionary__[name].mixin(props);
+                return objectTemplate.__dictionary__[name];
             }
             all_require_results[prop](objectTemplateSubClass, usesV2Pass2);
             function usesV2Pass2 (file, templateName, options) {

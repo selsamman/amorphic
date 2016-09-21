@@ -1,6 +1,6 @@
 module.exports.world = function (objectTemplate, uses)
 {
-	var Foo = uses('Foo.js');
+	var Foo = uses('foo.js', "Foo");
 	var World = objectTemplate.create("World", {
 		createdAt: 	{type: Date, rule: "datetime"},
 		foo:		{type: Foo},
@@ -9,5 +9,6 @@ module.exports.world = function (objectTemplate, uses)
 			this.foo = new Foo();
 		}
 	});
+	console.log('World');
 }
 

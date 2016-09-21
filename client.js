@@ -425,39 +425,63 @@ amorphic = // Needs to be global to make mocha tests work
             module.exports.objectTemplateInitialize(RemoteObjectTemplate);
 
         var objectTemplateSubClass = RemoteObjectTemplate._createObject();
+        
         if (this.config.templateMode != "lecacy") {
+
+            var deferredExtends = [];
+
+            // An object for creating request to extend classes to be done at thend of V2 pass1
+            function usesV2ReturnPass1 (base) {
+                this.baseName = base
+            }
+            usesV2ReturnPass1.prototype.mixin = function () {};
+            usesV2ReturnPass1.prototype.extend = function(name) {
+                this.extendedName = name;
+                deferredExtends.push(this);
+                return new usesV2ReturnPass1(name);
+            };
+            usesV2ReturnPass1.prototype.doExtend = function() {
+                if (!objectTemplate.__dictionary__[this.baseName])
+                    throw Error("Attempt to extend " + this.baseName + " which was never defined");
+                RemoteObjectTemplate.__dictionary__[this.baseName].extend(this.extendedName, {});
+            };
+
             for (var exp in module.exports || {}) {
-                objectTemplateSubClass.prototype.create = function (name) {
-                    var template = RemoteObjectTemplate.create(name);
-                    window[template] = templates[template];
+                objectTemplateSubClass.create = function (name) {
+                    var template = RemoteObjectTemplate.create(name, {});
+                    var originalExtend = template.extend;
+                    template.extend = function (name, props)  {
+                        var template = RemoteObjectTemplate.__dictionary__[name];
+                        if (template)
+                            template.mixin(props);
+                        else
+                            template = originalExtend.call(this, name, props);
+                        return template;
+                    }
                     return template;
                 }
                 var templates = (module.exports[exp])(objectTemplateSubClass, usesV2Pass1);
-                function usesV2Pass1 (file, p2, p3) {
-                    var usesV2ReturnPass1 = {
-                        mixin: function () {
-                            return usesV2ReturnPass1;
-                        },
-                        extend: function(name) {
-                            var template = this.extend(name);
-                        }
-                    }
-                    var options = p3 || p2;
-                    getTemplate(file, options, true);
-                    return usesV2ReturnPass1;
+                function usesV2Pass1 (file, templateName, options) {
+                    var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+                    return new usesV2ReturnPass1(templateName);
                 }
             }
+            var objectTemplateSubClass = RemoteObjectTemplate._createObject();
             for (var exp in module.exports) {
-                objectTemplateSubClass.prototype.create = function () {
-                    return objectTemplate.mixin.apply(objectTemplate, arguments);
-                }
+                console.log(exp);
+                objectTemplateSubClass.create = function (name, props) {
+                    RemoteObjectTemplate.__dictionary__[name].mixin(props);
+                    return RemoteObjectTemplate.__dictionary__[name];
+                };
+                console.log(module.exports[exp].toString());
                 (module.exports[exp])(objectTemplateSubClass, usesV2Pass2);
-                function usesV2Pass2 (file, p2, p3) {
-                    var options = p3 || p2;
-                    var templateName = p3 ? p2 : file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+                function usesV2Pass2 (file, templateName, options) {
+                    var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
                     return RemoteObjectTemplate.__dictionary__[templateName];
                 }
             }
+            for (var name in RemoteObjectTemplate.__dictionary__)
+                window[name] = RemoteObjectTemplate.__dictionary__[name];
         } else {
             var requires = {}
             for (var exp in module.exports || {}) {

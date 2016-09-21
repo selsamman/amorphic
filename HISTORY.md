@@ -1,4 +1,4 @@
-## 1.4.2
+## 1.4.3
 * Added the ability to still support non-supertype return values in templates
 ## 1.4.1
 * First cut at simplified template definition pattern

@@ -77,7 +77,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
         logLevel: logLevel || 'info'
     };
     logger = loggerCall ? loggerCall : logger;
-    log(1, "", "semotus extablishing application for " + appPath);
+    log(1, "", "semotus establishing application for " + appPath);
 
     if (amorphicOptions.sourceMode != 'debug' && !appConfig.isDaemon) {
         var config = applicationConfig[appPath];
@@ -1143,7 +1143,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     // Initialize applications
 
     var appList = rootCfg.get('applications');
-    var appStartList = rootCfg.get('application') + ';';
+    var appStartList = rootCfg.get('application').split(';');
     var mainApp = rootCfg.get('application').split(';')[0];
     var promises = [];
     var isNonBatch = false;
@@ -1151,7 +1151,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var app;
     for (var appKey in appList)
     {
-        if (appStartList.match(appKey + ';'))
+        if (appStartList.indexOf(appKey) >= 0) {
             (function () {
                 var appName = appKey;
                 var path = dirname + '/' + appList[appName] + '/';
@@ -1253,6 +1253,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
                 }
             })();
+        }
     }
 
     Q.all(promises).then( function ()
@@ -1266,7 +1267,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             preSessionInject.call(null, app);
 
         for (var appName in appList) {
-            if (appStartList.match(appName + ';')) {
+            if (appStartList.indexOf(appName) >= 0) {
                 var path = dirname + "/" + appList[appName] + "/public";
                 app.use("/" + appName + '/', connect.static(path, {index: "index.html"}));
                 if (appName == mainApp)
@@ -1280,61 +1281,61 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         rootBindster = fs.existsSync(dirname + "/node_modules/amorphic-bindster") ? dirname : __dirname;
 
         app
-            .use('/modules/', connect.static(dirname + "/node_modules"))
-            .use('/bindster/', connect.static(rootBindster + "/node_modules/amorphic-bindster"))
-            .use('/amorphic/', connect.static(__dirname))
-            .use('/common/', connect.static(dirname + "/apps/common"))
-            .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
-            .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
-            .use(connect.cookieParser())
-            .use(sessionRouter)
-            .use(amorphic.uploadRouter)
-            .use(amorphic.downloadRouter)
-            .use(connect.bodyParser())
-            .use(amorphic.postRouter)
-            .use('/amorphic/init/' , function (request, response) {
-                console.log ("Requesting " + request.originalUrl);
-                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
-                    var appName = RegExp.$1;
-                    response.setHeader("Content-Type", "application/javascript");
-                    response.setHeader("Cache-Control", "public, max-age=31556926");
-                    response.end(amorphic.getModelSourceMap(appName));
-                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
-                    var appName = RegExp.$1;
-                    response.setHeader("Content-Type", "application/javascript");
-                    response.setHeader("Cache-Control", "public, max-age=31556926");
-                    if (amorphicOptions.sourceMode == 'prod')
-                        response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
-                            (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
-                    response.end(amorphic.getModelSource(appName));
-                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
-                    var url = request.originalUrl;
-                    var appName = RegExp.$1;
-                    console.log("Establishing " + appName);
-                    amorphic.establishServerSession(request, appName, "initial")
-                        .then (function (session) {
-                            if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
-                                Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then( function (controllerResp) {
-                                    session.save(appName, request.session);
-                                    response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
-                                    response.end(controllerResp.body || "");
-                                });
-                            } else {
-                                response.setHeader("Content-Type", "application/javascript");
-                                response.setHeader("Cache-Control", "public, max-age=0");
-                                response.end(
-                                    (amorphicOptions.sourceMode != 'debug'
-                                        ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
-                                        : amorphic.getModelSource(appName)) +
-                                    "amorphic.setApplication('" + appName + "');" +
-                                    "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
-                                    "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString())) +");" +
-                                    "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
-                                );
-                            }
-                        }).done();
-                }
-            })
+          .use('/modules/', connect.static(dirname + "/node_modules"))
+          .use('/bindster/', connect.static(rootBindster + "/node_modules/amorphic-bindster"))
+          .use('/amorphic/', connect.static(__dirname))
+          .use('/common/', connect.static(dirname + "/apps/common"))
+          .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
+          .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
+          .use(connect.cookieParser())
+          .use(sessionRouter)
+          .use(amorphic.uploadRouter)
+          .use(amorphic.downloadRouter)
+          .use(connect.bodyParser())
+          .use(amorphic.postRouter)
+          .use('/amorphic/init/' , function (request, response) {
+              console.log ("Requesting " + request.originalUrl);
+              if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
+                  var appName = RegExp.$1;
+                  response.setHeader("Content-Type", "application/javascript");
+                  response.setHeader("Cache-Control", "public, max-age=31556926");
+                  response.end(amorphic.getModelSourceMap(appName));
+              } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
+                  var appName = RegExp.$1;
+                  response.setHeader("Content-Type", "application/javascript");
+                  response.setHeader("Cache-Control", "public, max-age=31556926");
+                  if (amorphicOptions.sourceMode == 'prod')
+                      response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
+                        (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
+                  response.end(amorphic.getModelSource(appName));
+              } else if(request.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
+                  var url = request.originalUrl;
+                  var appName = RegExp.$1;
+                  console.log("Establishing " + appName);
+                  amorphic.establishServerSession(request, appName, "initial")
+                    .then (function (session) {
+                        if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
+                            Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then( function (controllerResp) {
+                                session.save(appName, request.session);
+                                response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
+                                response.end(controllerResp.body || "");
+                            });
+                        } else {
+                            response.setHeader("Content-Type", "application/javascript");
+                            response.setHeader("Cache-Control", "public, max-age=0");
+                            response.end(
+                              (amorphicOptions.sourceMode != 'debug'
+                                ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
+                                : amorphic.getModelSource(appName)) +
+                              "amorphic.setApplication('" + appName + "');" +
+                              "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
+                              "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString())) +");" +
+                              "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
+                            );
+                        }
+                    }).done();
+              }
+          })
 
         if (postSessionInject)
             postSessionInject.call(null, app);

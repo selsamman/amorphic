@@ -1,3 +1,5 @@
+## 1.4.1
+* First cut at simplified template definition pattern
 ## 1.3.9
 * Cherry picked 1.2.16
 ## 1.3.8

@@ -1,3 +1,5 @@
+## 1.3.20
+* Revert shrink wrap
 ## 1.3.19
 * Shrink wrap
 ## 1.3.9

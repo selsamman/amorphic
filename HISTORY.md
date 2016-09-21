@@ -1,4 +1,4 @@
-## 1.3.18
+## 1.3.19
 * Shrink wrap
 ## 1.3.9
 * Cherry picked 1.2.16

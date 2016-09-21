@@ -436,7 +436,8 @@ amorphic = // Needs to be global to make mocha tests work
         var templates = flatten(requires);
         for (var exp in module.exports) {
             if (exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, templates);
+                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, 
+                    this.config ? this.config.modules[exp.replace(/_mixins/,'')] : null,templates);
                 for (var template in  templates)
                     window[template] = templates[template];
             }

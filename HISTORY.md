@@ -1,3 +1,5 @@
+## 1.3.21
+* Adde PR to allow app names with dash and eliminate regexp in app name checking
 ## 1.3.20
 * Revert shrink wrap
 ## 1.3.19

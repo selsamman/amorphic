@@ -77,7 +77,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
         logLevel: logLevel || 'info'
     };
     logger = loggerCall ? loggerCall : logger;
-    log(1, "", "semotus extablishing application for " + appPath);
+    log(1, "", "semotus establishing application for " + appPath);
 
     if (amorphicOptions.sourceMode != 'debug' && !appConfig.isDaemon) {
         var config = applicationConfig[appPath];
@@ -994,7 +994,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     // Initialize applications
 
     var appList = rootCfg.get('applications');
-    var appStartList = rootCfg.get('application') + ';';
+    var appStartList = rootCfg.get('application').split(';');
     var mainApp = rootCfg.get('application').split(';')[0];
     var promises = [];
     var isNonBatch = false;
@@ -1002,7 +1002,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var app;
     for (var appKey in appList)
     {
-        if (appStartList.match(appKey + ';'))
+        if (appStartList.indexOf(appKey) >= 0) {
             (function () {
                 var appName = appKey;
                 var path = dirname + '/' + appList[appName] + '/';
@@ -1104,6 +1104,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
                 }
             })();
+        }
     }
 
     Q.all(promises).then( function ()
@@ -1117,7 +1118,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             preSessionInject.call(null, app);
 
         for (var appName in appList) {
-            if (appStartList.match(appName + ';')) {
+            if (appStartList.indexOf(appName) >= 0) {
                 var path = dirname + "/" + appList[appName] + "/public";
                 app.use("/" + appName + '/', connect.static(path, {index: "index.html"}));
                 if (appName == mainApp)
@@ -1158,7 +1159,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                       response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
                         (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
                   response.end(amorphic.getModelSource(appName));
-              } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.js/)) {
+              } else if(request.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
                   var url = request.originalUrl;
                   var appName = RegExp.$1;
                   console.log("Establishing " + appName);

@@ -390,7 +390,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                     return template;
                 }
                 var previousToClient = objectTemplate.__toClient__;
-                objectTemplate.__toClient__ = ignoringClient;
+                objectTemplate.__toClient__ = !ignoringClient;
 
                 var initializerReturnValues = require_results[prop](objectTemplateSubClass,  
                     function usesV2Pass1 (file, templateName, options) {
@@ -416,7 +416,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
             // Call the initialize function in the template
             var previousToClient = objectTemplate.__toClient__;
-            objectTemplate.__toClient__ = ignoringClient;
+            objectTemplate.__toClient__ = !ignoringClient;
             var templates = initializer(objectTemplate, getTemplate, usesV1);
             objectTemplate.__toClient__ = previousToClient;
             requires[prop] = templates;

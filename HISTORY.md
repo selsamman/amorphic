@@ -1,3 +1,5 @@
+## 1.4.4
+* Data was being sent to browser even if template file was getTemplated as toClient: false
 ## 1.4.3
 * Added the ability to still support non-supertype return values in templates
 ## 1.4.1

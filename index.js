@@ -392,7 +392,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 var previousToClient = objectTemplate.__toClient__;
                 objectTemplate.__toClient__ = !ignoringClient;
 
-                var initializerReturnValues = require_results[prop](objectTemplateSubClass,  
+                var initializerReturnValues = require_results[prop](objectTemplateSubClass,
                     function usesV2Pass1 (file, templateName, options) {
                         var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
                         getTemplate(file, options, true);
@@ -402,7 +402,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 console.log(prop);
                 all_require_results[prop] = require_results[prop];
                 objectTemplate.__toClient__ = previousToClient;
-                for (var returnVariable in initializerReturnValues) 
+                for (var returnVariable in initializerReturnValues)
                     if (!objectTemplate.__dictionary__[returnVariable])
                         objectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
             })()
@@ -420,6 +420,15 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             var templates = initializer(objectTemplate, getTemplate, usesV1);
             objectTemplate.__toClient__ = previousToClient;
             requires[prop] = templates;
+
+            if (Object.getOwnPropertyNames(templates).length == 0) {
+                objectTemplate.__statics__[prop] = templates;
+            } else {
+                for (var returnVariable in templates)
+                    if (!objectTemplate.__dictionary__[returnVariable])
+                        objectTemplate.__statics__[returnVariable] = templates[returnVariable];
+            }
+
 
             if (mixins_initializer)
                 mixins.push(mixins_initializer);

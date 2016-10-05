@@ -1,3 +1,5 @@
+## 1.4.5
+* Produce object.__statics__ even for legacy template mode
 ## 1.4.4
 * Data was being sent to browser even if template file was getTemplated as toClient: false
 ## 1.4.3

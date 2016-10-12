@@ -1,4 +1,4 @@
-## 1.4.6
+## 1.4.7
 * default sourceMode to debug
 * Add controller application config setting for setting controller.js file name
 ## 1.4.5

@@ -81,7 +81,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
 
     if (amorphicOptions.sourceMode != 'debug' && !appConfig.isDaemon) {
         var config = applicationConfig[appPath];
-        var controllerPath = config.appPath +  + (config.appConfig.controller || "controller.js");
+        var controllerPath = config.appPath + (config.appConfig.controller || "controller.js");
         controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
         var prop = RegExp.$2
         var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);

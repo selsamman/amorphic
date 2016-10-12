@@ -1,3 +1,6 @@
+## 1.4.6
+* default sourceMode to debug
+* Add controller application config setting for setting controller.js file name
 ## 1.4.5
 * Produce object.__statics__ even for legacy template mode
 ## 1.4.4

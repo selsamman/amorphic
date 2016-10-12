@@ -61,7 +61,7 @@ var amorphicOptions = {
     performanceLogging: false,
     compressSession: false,
     compressXHR: true,
-    sourceMode: 'prod'
+    sourceMode: 'debug'
 }
 
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
@@ -81,7 +81,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
 
     if (amorphicOptions.sourceMode != 'debug' && !appConfig.isDaemon) {
         var config = applicationConfig[appPath];
-        var controllerPath = config.appPath + "controller.js";
+        var controllerPath = config.appPath +  + (config.appConfig.controller || "controller.js");
         controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
         var prop = RegExp.$2
         var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
@@ -97,7 +97,7 @@ function establishDaemon (path) {
     if (!config)
         throw  new Error("Semotus: establishServerSession called with a path of " + path + " which was not registered");
     var initObjectTemplate = config.initObjectTemplate;
-    var controllerPath = config.appPath + "controller.js";
+    var controllerPath = config.appPath +  + (config.appConfig.controller || "controller.js");
 
     var requires = {};
     controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
@@ -140,7 +140,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     if (!config)
         throw  new Error("Semotus: establishServerSession called with a path of " + path + " which was not registered");
     var initObjectTemplate = config.initObjectTemplate;
-    var controllerPath = config.appPath + "/controller.js";
+    var controllerPath = config.appPath + "/" + (config.appConfig.controller || "controller.js");
     var objectCacheExpiration = config.objectCacheExpiration;
     var sessionExpiration = config.sessionExpiration;
     var sessionStore = config.sessionStore;

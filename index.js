@@ -97,7 +97,7 @@ function establishDaemon (path) {
     if (!config)
         throw  new Error("Semotus: establishServerSession called with a path of " + path + " which was not registered");
     var initObjectTemplate = config.initObjectTemplate;
-    var controllerPath = config.appPath +  + (config.appConfig.controller || "controller.js");
+    var controllerPath = config.appPath + (config.appConfig.controller || "controller.js");
 
     var requires = {};
     controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)

@@ -7,7 +7,7 @@
         "q": "1.x",
         "supertype": "1.3.*",
         "semotus" : "1.3.*",
-        "persistor": "1.3.*",
+        "persistor": "1.4.*",
         "amorphic-bindster": "1.3.*",
         "mongodb-bluebird": "x",
         "formidable": "1.x",

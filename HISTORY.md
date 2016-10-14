@@ -1,3 +1,5 @@
+## 1.4.11
+* Fixed problem with random ordering of extends messing up recusive template processing
 ## 1.4.8
 * default sourceMode to debug
 * Add controller application config setting for setting controller.js file name

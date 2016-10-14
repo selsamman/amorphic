@@ -299,11 +299,17 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         deferredExtends.push(this);
         return new usesV2ReturnPass1(name, this.prop);
     };
-    usesV2ReturnPass1.prototype.doExtend = function() {
-        if (!objectTemplate.__dictionary__[this.baseName])
-            throw Error("Attempt to extend " + this.baseName + " which was never defined");
-        var template = objectTemplate.__dictionary__[this.baseName].extend(this.extendedName, {});
-        addTemplateToRequires(this.prop, template);
+    usesV2ReturnPass1.prototype.doExtend = function(futureTemplates) {
+        if (!objectTemplate.__dictionary__[this.baseName]) {
+            if (futureTemplates[this.baseName])
+                futureTemplates[this.baseName].doExtend(futureTemplates);
+            if (!objectTemplate.__dictionary__[this.baseName])
+                throw Error("Attempt to extend " + this.baseName + " which was never defined; extendedName=" + this.extendedName);
+        }
+        if (!objectTemplate.__dictionary__[this.extendedName]) {
+            var template = objectTemplate.__dictionary__[this.baseName].extend(this.extendedName, {});
+            addTemplateToRequires(this.prop, template);
+        }
     };
 
     if (amorphicOptions.sourceMode == 'debug')
@@ -464,8 +470,11 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         getTemplate(templates[ix]);
 
     // Extended classes can't be processed until now when we know we have all the base classes defined
+    var futureTemplates = {}
     for (var ix = 0; ix < deferredExtends.length; ++ix)
-        deferredExtends[ix].doExtend();
+        futureTemplates[deferredExtends[ix].extendedName] = deferredExtends[ix]
+    for (var ix = 0; ix < deferredExtends.length; ++ix)
+        deferredExtends[ix].doExtend(futureTemplates);
 
     // Add the sources to either a structure to be uglified or to an object for including one at a time
     for (var prop in applicationSourceCandidate)

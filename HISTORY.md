@@ -1,3 +1,6 @@
+## 1.4.12
+* Stopped including modules in source if rules dictated they were toClient: false
+* Update client.js with the same deferred template processing as we had on the server
 ## 1.4.11
 * Fixed problem with random ordering of extends messing up recusive template processing
 ## 1.4.8

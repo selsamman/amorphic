@@ -276,6 +276,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     var all_file_paths = {};
     var ignoringClient = false;
     var filesNeeded = {};
+    var currentContext = {};
     objectTemplate.__statics__ = objectTemplate.__statics__ || {};
     var applicationSourceCandidate = {};
     var ast = null;
@@ -375,6 +376,11 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         if (typeof(initializer) != "function")
             throw  new Error(prop + " not exported in " + appPath + file);
 
+        // Call application code that can poke properties into objecTemplate
+        if (!objectTemplate.__initialized__ && objectTemplateInitialize && !sourceOnly)
+            objectTemplateInitialize(objectTemplate);
+        objectTemplate.__initialized__ = true;
+
         if ( config.appConfig && config.appConfig.templateMode == "auto") {
             (function () {
                 var closureProp = prop;
@@ -387,21 +393,24 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                             template.mixin(props);
                         else {
                             template = originalExtend.call(this, name, props);
-                            console.log("Extending " + this.__name__ + " to " + template.__name__);
-                            addTemplateToRequires(closureProp, template);
+                            console.log("Extending " + this.__name__ + " to " + template.__name__ + " for " + currentContext.moduleName);
+                            addTemplateToRequires(currentContext.moduleName, template);
                         }
                         return template;
                     }
-                    addTemplateToRequires(closureProp, template);
+                    console.log("Creating " + template.__name__ + " for " + currentContext.moduleName);
+                    addTemplateToRequires(currentContext.moduleName, template);
                     return template;
                 }
                 var previousToClient = objectTemplate.__toClient__;
                 objectTemplate.__toClient__ = !ignoringClient;
-
+                currentContext.moduleName = prop;
                 var initializerReturnValues = require_results[prop](objectTemplateSubClass,
                     function usesV2Pass1 (file, templateName, options) {
                         var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+                        var moduleName = currentContext.moduleName;
                         getTemplate(file, options, true);
+                        currentContext.moduleName = moduleName;
                         return new usesV2ReturnPass1(templateName, closureProp);
                     }
                 );
@@ -409,16 +418,15 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 all_require_results[prop] = require_results[prop];
                 objectTemplate.__toClient__ = previousToClient;
                 for (var returnVariable in initializerReturnValues)
-                    if (!objectTemplate.__dictionary__[returnVariable])
+                    if (!objectTemplate.__dictionary__[returnVariable]) {
+                        if (!requires[prop])
+                            requires[prop] = {};
+                        requires[prop][returnVariable] = initializerReturnValues[returnVariable];
                         objectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
+                    }
             })()
 
         } else {
-
-            // Call application code that can poke properties into objecTemplate
-            if (!objectTemplate.__initialized__ && objectTemplateInitialize && !sourceOnly)
-                objectTemplateInitialize(objectTemplate);
-            objectTemplate.__initialized__ = true;
 
             // Call the initialize function in the template
             var previousToClient = objectTemplate.__toClient__;
@@ -476,9 +484,34 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     for (var ix = 0; ix < deferredExtends.length; ++ix)
         deferredExtends[ix].doExtend(futureTemplates);
 
+    // Process V1 style mixins
+    for (var ix = 0;ix < mixins.length;++ix)
+        if (mixins[ix])
+            (mixins[ix])(objectTemplate, requires, flatten(requires));
+
+    // Process V2 pass 2
+    var objectTemplateSubClass = objectTemplate._createObject();
+    if (config.appConfig && config.appConfig.templateMode == "auto")
+        for (var prop in all_require_results) {
+            objectTemplateSubClass.create = function (name, props) {
+                name = name.name || name;
+                objectTemplate.__dictionary__[name].mixin(props);
+                return objectTemplate.__dictionary__[name];
+            }
+            all_require_results[prop](objectTemplateSubClass, usesV2Pass2);
+            function usesV2Pass2 (file, templateName, options) {
+                var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+                return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];;
+            }
+        }
+
     // Add the sources to either a structure to be uglified or to an object for including one at a time
-    for (var prop in applicationSourceCandidate)
-        if (filesNeeded[prop]) {
+    for (var prop in applicationSourceCandidate) {
+        var templateNeededOnClient = false;
+        for (var template in requires[prop])
+            if (requires[prop][template].__toClient__ || typeof(requires[prop][template].__toClient__) == 'undefined')
+                templateNeededOnClient = true;
+        if (filesNeeded[prop] && templateNeededOnClient) {
             if (amorphicOptions.sourceMode == 'debug')
                 applicationSource[path] += applicationSourceCandidate[prop][0];
             else
@@ -490,26 +523,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 else
                     console.log(template + " not found in requires for " + prop);
         }
-
-    // Process V1 style mixins
-    for (var ix = 0;ix < mixins.length;++ix)
-        if (mixins[ix])
-            (mixins[ix])(objectTemplate, requires, flatten(requires));
-
-    // Process V2 pass 2
-    var objectTemplateSubClass = objectTemplate._createObject();
-    if (config.appConfig && config.appConfig.templateMode == "auto")
-        for (var prop in all_require_results) {
-            objectTemplateSubClass.create = function (name, props) {
-                objectTemplate.__dictionary__[name].mixin(props);
-                return objectTemplate.__dictionary__[name];
-            }
-            all_require_results[prop](objectTemplateSubClass, usesV2Pass2);
-            function usesV2Pass2 (file, templateName, options) {
-                var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
-                return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];;
-            }
-        }
+    }
     // Handle NPM includes
     if (config && config.appConfig && config.appConfig.modules)
         for(var mixin in config.appConfig.modules)

@@ -2,10 +2,10 @@
     "name": "amorphic",
     "description": "Front to back isomorphic framework for developing applications with node.js and mongoDB",
     "homepage": "https://github.com/selsamman/amorphic",
-    "version": "1.4.12",
+    "version": "1.4.13",
     "dependencies": {
         "q": "1.x",
-        "supertype": "1.3.*",
+        "supertype": "1.4.*",
         "semotus" : "1.3.*",
         "persistor": "1.4.*",
         "amorphic-bindster": "1.3.*",

@@ -1,3 +1,5 @@
+## 1.4.14
+* Get 1.4 versions of all modules
 ## 1.4.12
 * Stopped including modules in source if rules dictated they were toClient: false
 * Update client.js with the same deferred template processing as we had on the server

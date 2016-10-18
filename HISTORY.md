@@ -1,3 +1,5 @@
+## 1.4.15
+* Cherry picked app name with dashes fix
 ## 1.4.14
 * Get 1.4 versions of all modules
 ## 1.4.12

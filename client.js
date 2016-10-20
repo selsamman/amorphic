@@ -431,10 +431,6 @@ amorphic = // Needs to be global to make mocha tests work
             var deferredExtends = [];
             RemoteObjectTemplate.__statics__ = {};
 
-            // An object for creating request to extend classes to be done at thend of V2 pass1
-            function usesV2ReturnPass1 (base) {
-                this.baseName = base
-            }
             usesV2ReturnPass1.prototype.mixin = function () {};
             usesV2ReturnPass1.prototype.extend = function(name) {
                 this.extendedName = name;
@@ -469,10 +465,6 @@ amorphic = // Needs to be global to make mocha tests work
                         return template;
                     }
                     var initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass1);
-                    function usesV2Pass1 (file, templateName, options) {
-                        var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
-                        return new usesV2ReturnPass1(templateName);
-                    }
                     for (var returnVariable in initializerReturnValues)
                         if (!RemoteObjectTemplate.__dictionary__[returnVariable])
                             RemoteObjectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
@@ -498,11 +490,7 @@ amorphic = // Needs to be global to make mocha tests work
                     return RemoteObjectTemplate.__dictionary__[name.name || name];
                 };
                 (module.exports[exp])(objectTemplateSubClass, usesV2Pass2, this.config ? this.config.modules[exp.replace(/_mixins/,'')] : null);
-                function usesV2Pass2 (file, templateName, options) {
-                    var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
-                    return RemoteObjectTemplate.__dictionary__[templateName] || RemoteObjectTemplate.__statics__[templateName];
-                }
-            }
+              }
             for (var name in RemoteObjectTemplate.__dictionary__)
                 window[name] = RemoteObjectTemplate.__dictionary__[name];
         } else {
@@ -525,15 +513,26 @@ amorphic = // Needs to be global to make mocha tests work
                 }
             }
             RemoteObjectTemplate.performInjections();
-            function flatten (requires) {
-                classes = {};
-                for (var f in requires)
-                    for (var c in requires[f])
-                        classes[c] = requires[f][c];
-                return classes;
-            }
         }
-
+        function usesV2Pass1 (file, templateName, options) {
+            var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+            return new usesV2ReturnPass1(templateName);
+        }
+        // An object for creating request to extend classes to be done at thend of V2 pass1
+        function usesV2ReturnPass1 (base) {
+            this.baseName = base
+        }
+        function usesV2Pass2 (file, templateName, options) {
+            var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+            return RemoteObjectTemplate.__dictionary__[templateName] || RemoteObjectTemplate.__statics__[templateName];
+        }
+        function flatten (requires) {
+            var classes = {};
+            for (var f in requires)
+                for (var c in requires[f])
+                    classes[c] = requires[f][c];
+            return classes;
+        }
     },
     addEvent: function (elem, evName, evFunc) {
         if(elem.attachEvent)

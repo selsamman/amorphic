@@ -1,3 +1,5 @@
+## 1.4.16
+* Moved client.js functions out of if block
 ## 1.4.15
 * Cherry picked app name with dashes fix
 ## 1.4.14

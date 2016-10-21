@@ -316,7 +316,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     if (amorphicOptions.sourceMode == 'debug')
         applicationSource[path] = "";
     function getTemplate(file, options, uses) {
-        var objectTemplateSubClass = objectTemplate._createObject();
+        var objectTemplateSubClass = Object.create(objectTemplate);
         var previousIgnoringClient = ignoringClient;
         if(options && (options.client === false))
             ignoringClient = true;
@@ -384,6 +384,10 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         if ( config.appConfig && config.appConfig.templateMode == "auto") {
             (function () {
                 var closureProp = prop;
+
+                // Update objectTemplate create proxy such that it will create the template with
+                // an extend proxy that on the second pass may find that the extend was done by deferred
+                // processing and so the extend really just needs to mixin the properties
                 objectTemplateSubClass.create = function (name) {
                     var template = objectTemplate.create(name, {});
                     var originalExtend = template.extend;
@@ -405,25 +409,23 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 var previousToClient = objectTemplate.__toClient__;
                 objectTemplate.__toClient__ = !ignoringClient;
                 currentContext.moduleName = prop;
+
+                // Call constructor function with a subclass of objectTemplate and a special uses that wil
+                // Return a stub that will simply setup deferred processing for extends
                 var initializerReturnValues = require_results[prop](objectTemplateSubClass,
                     function usesV2Pass1 (file, templateName, options) {
                         var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
                         var moduleName = currentContext.moduleName;
                         getTemplate(file, options, true);
                         currentContext.moduleName = moduleName;
-                        return new usesV2ReturnPass1(templateName, closureProp);
+                        var staticTemplate = objectTemplate.__statics__[templateName];
+                        return staticTemplate || new usesV2ReturnPass1(templateName, closureProp);
                     }
                 );
                 console.log(prop);
                 all_require_results[prop] = require_results[prop];
                 objectTemplate.__toClient__ = previousToClient;
-                for (var returnVariable in initializerReturnValues)
-                    if (!objectTemplate.__dictionary__[returnVariable]) {
-                        if (!requires[prop])
-                            requires[prop] = {};
-                        requires[prop][returnVariable] = initializerReturnValues[returnVariable];
-                        objectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
-                    }
+                recordStatics(initializerReturnValues);
             })()
 
         } else {
@@ -442,7 +444,6 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                     if (!objectTemplate.__dictionary__[returnVariable])
                         objectTemplate.__statics__[returnVariable] = templates[returnVariable];
             }
-
 
             if (mixins_initializer)
                 mixins.push(mixins_initializer);
@@ -478,6 +479,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         getTemplate(templates[ix]);
 
     // Extended classes can't be processed until now when we know we have all the base classes defined
+    // So we do the extends for them now after recording all info in the first pass
     var futureTemplates = {}
     for (var ix = 0; ix < deferredExtends.length; ++ix)
         futureTemplates[deferredExtends[ix].extendedName] = deferredExtends[ix]
@@ -490,7 +492,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             (mixins[ix])(objectTemplate, requires, flatten(requires));
 
     // Process V2 pass 2
-    var objectTemplateSubClass = objectTemplate._createObject();
+    var objectTemplateSubClass = Object.create(objectTemplate);
     if (config.appConfig && config.appConfig.templateMode == "auto")
         for (var prop in all_require_results) {
             objectTemplateSubClass.create = function (name, props) {
@@ -498,7 +500,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 objectTemplate.__dictionary__[name].mixin(props);
                 return objectTemplate.__dictionary__[name];
             }
-            all_require_results[prop](objectTemplateSubClass, usesV2Pass2);
+            recordStatics(all_require_results[prop](objectTemplateSubClass, usesV2Pass2));
             function usesV2Pass2 (file, templateName, options) {
                 var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
                 return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];;
@@ -593,6 +595,16 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     }
 
     return requires;
+
+    function recordStatics(initializerReturnValues) {
+        for (var returnVariable in initializerReturnValues)
+            if (!objectTemplate.__dictionary__[returnVariable]) {
+                if (!requires[prop])
+                    requires[prop] = {};
+                requires[prop][returnVariable] = initializerReturnValues[returnVariable];
+                objectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
+            }
+    }
 
     function addUglifiedSource(data, file) {
         ast = applicationSource[path] ? ast : UglifyJS.parse(data, { filename: file, toplevel: ast });
@@ -1253,7 +1265,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
                 }
             })();
-        }
+    }
     }
 
     Q.all(promises).then( function ()
@@ -1281,61 +1293,61 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         rootBindster = fs.existsSync(dirname + "/node_modules/amorphic-bindster") ? dirname : __dirname;
 
         app
-          .use('/modules/', connect.static(dirname + "/node_modules"))
-          .use('/bindster/', connect.static(rootBindster + "/node_modules/amorphic-bindster"))
-          .use('/amorphic/', connect.static(__dirname))
-          .use('/common/', connect.static(dirname + "/apps/common"))
-          .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
-          .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
-          .use(connect.cookieParser())
-          .use(sessionRouter)
-          .use(amorphic.uploadRouter)
-          .use(amorphic.downloadRouter)
-          .use(connect.bodyParser())
-          .use(amorphic.postRouter)
-          .use('/amorphic/init/' , function (request, response) {
-              console.log ("Requesting " + request.originalUrl);
-              if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
-                  var appName = RegExp.$1;
-                  response.setHeader("Content-Type", "application/javascript");
-                  response.setHeader("Cache-Control", "public, max-age=31556926");
-                  response.end(amorphic.getModelSourceMap(appName));
-              } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
-                  var appName = RegExp.$1;
-                  response.setHeader("Content-Type", "application/javascript");
-                  response.setHeader("Cache-Control", "public, max-age=31556926");
-                  if (amorphicOptions.sourceMode == 'prod')
-                      response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
-                        (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
-                  response.end(amorphic.getModelSource(appName));
+            .use('/modules/', connect.static(dirname + "/node_modules"))
+            .use('/bindster/', connect.static(rootBindster + "/node_modules/amorphic-bindster"))
+            .use('/amorphic/', connect.static(__dirname))
+            .use('/common/', connect.static(dirname + "/apps/common"))
+            .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
+            .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
+            .use(connect.cookieParser())
+            .use(sessionRouter)
+            .use(amorphic.uploadRouter)
+            .use(amorphic.downloadRouter)
+            .use(connect.bodyParser())
+            .use(amorphic.postRouter)
+            .use('/amorphic/init/' , function (request, response) {
+                console.log ("Requesting " + request.originalUrl);
+                if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
+                    var appName = RegExp.$1;
+                    response.setHeader("Content-Type", "application/javascript");
+                    response.setHeader("Cache-Control", "public, max-age=31556926");
+                    response.end(amorphic.getModelSourceMap(appName));
+                } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
+                    var appName = RegExp.$1;
+                    response.setHeader("Content-Type", "application/javascript");
+                    response.setHeader("Cache-Control", "public, max-age=31556926");
+                    if (amorphicOptions.sourceMode == 'prod')
+                        response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
+                            (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
+                    response.end(amorphic.getModelSource(appName));
               } else if(request.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
-                  var url = request.originalUrl;
-                  var appName = RegExp.$1;
-                  console.log("Establishing " + appName);
-                  amorphic.establishServerSession(request, appName, "initial")
-                    .then (function (session) {
-                        if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
-                            Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then( function (controllerResp) {
-                                session.save(appName, request.session);
-                                response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
-                                response.end(controllerResp.body || "");
-                            });
-                        } else {
-                            response.setHeader("Content-Type", "application/javascript");
-                            response.setHeader("Cache-Control", "public, max-age=0");
-                            response.end(
-                              (amorphicOptions.sourceMode != 'debug'
-                                ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
-                                : amorphic.getModelSource(appName)) +
-                              "amorphic.setApplication('" + appName + "');" +
-                              "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
-                              "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString())) +");" +
-                              "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
-                            );
-                        }
-                    }).done();
-              }
-          })
+                    var url = request.originalUrl;
+                    var appName = RegExp.$1;
+                    console.log("Establishing " + appName);
+                    amorphic.establishServerSession(request, appName, "initial")
+                        .then (function (session) {
+                            if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
+                                Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then( function (controllerResp) {
+                                    session.save(appName, request.session);
+                                    response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
+                                    response.end(controllerResp.body || "");
+                                });
+                            } else {
+                                response.setHeader("Content-Type", "application/javascript");
+                                response.setHeader("Cache-Control", "public, max-age=0");
+                                response.end(
+                                    (amorphicOptions.sourceMode != 'debug'
+                                        ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
+                                        : amorphic.getModelSource(appName)) +
+                                    "amorphic.setApplication('" + appName + "');" +
+                                    "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
+                                    "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString())) +");" +
+                                    "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
+                                );
+                            }
+                        }).done();
+                }
+            })
 
         if (postSessionInject)
             postSessionInject.call(null, app);

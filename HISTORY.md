@@ -1,3 +1,5 @@
+## 1.4.18
+* Numerous changes for new template mode after testing with our app
 ## 1.4.17
 * Bump version to get latest semotus which gets latest supertype
 ## 1.4.16

@@ -1,3 +1,5 @@
+## 1.4.17
+* Bump version to get latest semotus which gets latest supertype
 ## 1.4.16
 * Moved client.js functions out of if block
 ## 1.4.15

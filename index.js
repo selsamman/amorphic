@@ -276,7 +276,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     var all_file_paths = {};
     var ignoringClient = false;
     var filesNeeded = {};
-    var currentContext = {};
+    var currentContext = {pass: 1};
     objectTemplate.__statics__ = objectTemplate.__statics__ || {};
     var applicationSourceCandidate = {};
     var ast = null;
@@ -286,7 +286,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     function addTemplateToRequires (prop, template) {
         requires[prop] = requires[prop] || {}
         requires[prop][template.__name__] = template;
-        console.log("Adding " + prop + ":" + template.__name__);
+        //console.log("Adding " + prop + ":" + template.__name__);
     }
 
     // An object for creating request to extend classes to be done at thend of V2 pass1
@@ -316,8 +316,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     if (amorphicOptions.sourceMode == 'debug')
         applicationSource[path] = "";
     function getTemplate(file, options, uses) {
-        var objectTemplateSubClass = Object.create(objectTemplate);
-        var previousIgnoringClient = ignoringClient;
+         var previousIgnoringClient = ignoringClient;
         if(options && (options.client === false))
             ignoringClient = true;
         file.match(/([0-9A-Za-z_]*)\.js/);
@@ -388,8 +387,9 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 // Update objectTemplate create proxy such that it will create the template with
                 // an extend proxy that on the second pass may find that the extend was done by deferred
                 // processing and so the extend really just needs to mixin the properties
-                objectTemplateSubClass.create = function (name) {
-                    var template = objectTemplate.create(name, {});
+                var oldCreate = objectTemplate.create;
+                objectTemplate.create = function (name) {
+                    var template = oldCreate.call(objectTemplate, name, {});
                     var originalExtend = template.extend;
                     template.extend = function (name, props)  {
                         var template = objectTemplate.__dictionary__[name];
@@ -397,12 +397,17 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                             template.mixin(props);
                         else {
                             template = originalExtend.call(this, name, props);
-                            console.log("Extending " + this.__name__ + " to " + template.__name__ + " for " + currentContext.moduleName);
+                            //console.log("Extending " + this.__name__ + " to " + template.__name__ + " for " + currentContext.moduleName);
                             addTemplateToRequires(currentContext.moduleName, template);
                         }
                         return template;
                     }
-                    console.log("Creating " + template.__name__ + " for " + currentContext.moduleName);
+                    var originalMixin = template.mixin;
+                    template.mixin = function () {
+                        if (currentContext.pass == 2)
+                            originalMixin.apply(template, arguments);
+                    }
+                    //console.log("Creating " + template.__name__ + " for " + currentContext.moduleName);
                     addTemplateToRequires(currentContext.moduleName, template);
                     return template;
                 }
@@ -412,7 +417,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
                 // Call constructor function with a subclass of objectTemplate and a special uses that wil
                 // Return a stub that will simply setup deferred processing for extends
-                var initializerReturnValues = require_results[prop](objectTemplateSubClass,
+                var initializerReturnValues = require_results[prop](objectTemplate,
                     function usesV2Pass1 (file, templateName, options) {
                         var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
                         var moduleName = currentContext.moduleName;
@@ -422,7 +427,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                         return staticTemplate || new usesV2ReturnPass1(templateName, closureProp);
                     }
                 );
-                console.log(prop);
+                objectTemplate.create = oldCreate;
                 all_require_results[prop] = require_results[prop];
                 objectTemplate.__toClient__ = previousToClient;
                 recordStatics(initializerReturnValues);
@@ -491,16 +496,19 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         if (mixins[ix])
             (mixins[ix])(objectTemplate, requires, flatten(requires));
 
+    currentContext.pass = 2;
+
     // Process V2 pass 2
-    var objectTemplateSubClass = Object.create(objectTemplate);
     if (config.appConfig && config.appConfig.templateMode == "auto")
         for (var prop in all_require_results) {
-            objectTemplateSubClass.create = function (name, props) {
+            var oldCreate = objectTemplate.create;
+            objectTemplate.create = function (name, props) {
                 name = name.name || name;
                 objectTemplate.__dictionary__[name].mixin(props);
                 return objectTemplate.__dictionary__[name];
             }
-            recordStatics(all_require_results[prop](objectTemplateSubClass, usesV2Pass2));
+            recordStatics(all_require_results[prop](objectTemplate, usesV2Pass2));
+            objectTemplate.create = oldCreate;
             function usesV2Pass2 (file, templateName, options) {
                 var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
                 return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];;
@@ -545,7 +553,14 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                         addUglifiedSource("module.exports." + mixin + "_mixins = " + results[mixin + "_mixins"] + "\n\n", '/modules/' + requireName + '/index.js?ver=' + config.appVersion);
                     }
             }
-
+    // Because of the two pass nature, requires templates are not update for extends which are only done between passes
+    /*
+    for (var moduleKey in requires)
+        for (var templateKey in requires[moduleKey])
+            requires[moduleKey][templateKey] = objectTemplate.__dictionary__[templateKey] ||
+                objectTemplate.__statics__[templateKey] ||
+                requires[moduleKey][templateKey]
+    */
     // Record source and source map
     if (ast && !applicationSource[path] && !config.appConfig.isDaemon) {
         ast.figure_out_scope();
@@ -1081,7 +1096,6 @@ function postRoute(req, resp, next) {
 }
 
 function processContentRequest(request, response, next) {
-
     var path = url.parse(request.url, true).query.path;
     establishServerSession(request, path, false).then (function (semotus) {
         if (typeof(semotus.objectTemplate.controller.onContentRequest) == 'function')
@@ -1265,7 +1279,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
                 }
             })();
-    }
+        }
     }
 
     Q.all(promises).then( function ()
@@ -1320,7 +1334,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                         response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
                             (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
                     response.end(amorphic.getModelSource(appName));
-              } else if(request.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
+                } else if(request.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
                     var url = request.originalUrl;
                     var appName = RegExp.$1;
                     console.log("Establishing " + appName);

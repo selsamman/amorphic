@@ -1,3 +1,5 @@
+## 1.4.19
+* More changes for templateMode: auto
 ## 1.4.18
 * Numerous changes for new template mode after testing with our app
 ## 1.4.17

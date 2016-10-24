@@ -425,6 +425,7 @@ amorphic = // Needs to be global to make mocha tests work
             module.exports.objectTemplateInitialize(RemoteObjectTemplate);
 
         var objectTemplateSubClass = Object.create(RemoteObjectTemplate);
+        var currentContext = {pass: 1};
 
         if (this.config.templateMode == "auto") {
 
@@ -462,10 +463,15 @@ amorphic = // Needs to be global to make mocha tests work
                                 template = originalExtend.call(this, name, props);
                             return template;
                         }
+                        var originalMixin = template.mixin;
+                        template.mixin = function () {
+                            if (currentContext.pass == 2)
+                                originalMixin.apply(template, arguments);
+                        }
                         return template;
                     }
                     var initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass1);
-                       for (var returnVariable in initializerReturnValues)
+                    for (var returnVariable in initializerReturnValues)
                         if (!RemoteObjectTemplate.__dictionary__[returnVariable])
                             RemoteObjectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
                 }
@@ -478,7 +484,7 @@ amorphic = // Needs to be global to make mocha tests work
             for (var ix = 0; ix < deferredExtends.length; ++ix)
                 deferredExtends[ix].doExtend(futureTemplates);
 
-
+            currentContext.pass = 2;
             var objectTemplateSubClass = Object.create(RemoteObjectTemplate);
             for (var exp in module.exports) {
                 console.log("Pass 2 = processing" + exp);
@@ -489,13 +495,13 @@ amorphic = // Needs to be global to make mocha tests work
                         RemoteObjectTemplate.create(name, props);
                     return RemoteObjectTemplate.__dictionary__[name.name || name];
                 };
-                var initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass2, this.config ?
+                var initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass2, (this.config && this.config.modules) ?
                     this.config.modules[exp.replace(/_mixins/,'')] : null);
                 for (var returnVariable in initializerReturnValues)
                     if (!RemoteObjectTemplate.__dictionary__[returnVariable])
                         RemoteObjectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
 
-              }
+            }
             for (var name in RemoteObjectTemplate.__dictionary__)
                 window[name] = RemoteObjectTemplate.__dictionary__[name];
             for (var name in RemoteObjectTemplate.__statics__)

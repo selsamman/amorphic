@@ -22,7 +22,7 @@
 var ObjectTemplate = require("supertype");
 var RemoteObjectTemplate = require("semotus");
 RemoteObjectTemplate.maxCallTime = 60 * 1000; // Max time for call interlock
-var PersistObjectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, ObjectTemplate);
+var PersistObjectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, ObjectTemplate); // TODO: Why is ObjectTemplate being passed in twice?
 var os = require('os');
 var hostName = os.hostname();
 var formidable = require('formidable');
@@ -79,11 +79,11 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
     logger = loggerCall ? loggerCall : logger;
     log(1, "", "semotus establishing application for " + appPath);
 
-    if (amorphicOptions.sourceMode != 'debug' && !appConfig.isDaemon) {
+    if (amorphicOptions.sourceMode != 'debug' && !appConfig.isDaemon) { //TODO: Why am I not doing this in debug mode?
         var config = applicationConfig[appPath];
         var controllerPath = config.appPath + (config.appConfig.controller || "controller.js");
-        controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
-        var prop = RegExp.$2
+        controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/) // TODO: What is this solving?
+        var prop = RegExp.$2 //TODO: THIS SHOULD NOT BE USED IN PRODUCTION
         var objectTemplate = require("persistor")(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
         applicationSource[appPath] = "";
         applicationSourceMap[appPath] = "";
@@ -277,7 +277,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     var ignoringClient = false;
     var filesNeeded = {};
     var currentContext = {pass: 1};
-    objectTemplate.__statics__ = objectTemplate.__statics__ || {};
+    objectTemplate.__statics__ = objectTemplate.__statics__ || {}; //TODO: Are we always falling back to an empty object?
     var applicationSourceCandidate = {};
     var ast = null;
     objectTemplate.__initialized__ = false;
@@ -1163,7 +1163,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     var sessionRouter = connect.session(
         {store: sessionStore, secret: rootCfg.get('sessionSecret'),
-            cookie: {maxAge: sessionExpiration}, rolling: true}
+            cookie: {maxAge: sessionExpiration}, rolling: true} // TODO: What is rolling: true?
     );
 
     // Initialize applications
@@ -1172,7 +1172,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var appStartList = rootCfg.get('application').split(';');
     var mainApp = rootCfg.get('application').split(';')[0];
     var promises = [];
-    var isNonBatch = false;
+    var isNonBatch = false; //TODO: What is isNonBatch?
     var schemas = {};
     var app;
     for (var appKey in appList)
@@ -1218,9 +1218,10 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                                 user: dbConfig.dbUser,
                                 password: dbConfig.dbPassword,
                             }, pool: {min: 0, max: dbConfig.dbConnections}});
-                        var dbClient = Q(knex);
+                        var dbClient = Q(knex); // TODO: knex is already intialized because it is a syncronous function that is called when require('knex') occurs
                         (function () {
                             var closureKnex = knex;
+                            // Closing knex socket connections
                             deathWatch.push(function () {
                                 console.log("closing knex connection");
                                 return closureKnex.destroy();
@@ -1235,10 +1236,11 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                                         objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
                                     else
                                         objectTemplate.setDB(db);
+
                                     objectTemplate.setSchema(schema);
                                     objectTemplate.config = config;
                                     objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
-                                    objectTemplate.concurrency = dbConfig.dbConcurrency;
+                                    objectTemplate.concurrency = dbConfig.dbConcurrency; //TODO: What does dbConcurrency do?
                                 }
 
                                 amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),

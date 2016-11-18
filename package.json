@@ -5,9 +5,9 @@
     "version": "1.4.19",
     "dependencies": {
         "q": "1.x",
-        "supertype": "1.4.*",
+        "supertype": "git://github.com/nikmash/supertype.git#V1.4",
         "semotus" : "git://github.com/nikmash/semotus.git#V1.4",
-        "persistor": "1.4.*",
+        "persistor": "git://github.com/nikmash/persistor.git#V1.4",
         "amorphic-bindster": "1.3.*",
         "mongodb-bluebird": "x",
         "formidable": "1.x",

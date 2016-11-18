@@ -24,6 +24,7 @@
         "pg": "x",
         "knex": "x",
         "mock-fs": "3.6.x",
+        "mocha": "3.1.2",
         "request": "x",
         "underscore": "1.x",
         "xmlhttprequest-cookie":"x"

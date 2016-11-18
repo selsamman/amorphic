@@ -1311,7 +1311,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         app
             .use('/modules/', connect.static(dirname + "/node_modules"))
             .use('/bindster/', connect.static(rootBindster + "/node_modules/amorphic-bindster"))
-            .use('/amorphic/', connect.static(__dirname))
+            .use('/amorphic/', connect.static(dirname))
             .use('/common/', connect.static(dirname + "/apps/common"))
             .use('/supertype/', connect.static(rootSuperType + "/node_modules/supertype"))
             .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))

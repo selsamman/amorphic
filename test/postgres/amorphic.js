@@ -11,16 +11,11 @@ XMLHttpRequest = xhrc.XMLHttpRequest;
 var CookieJar = xhrc.CookieJar;
 
 // Copy index.js (amorphic) into it's rightful place in node_modules so it will be found
-var amDir = __dirname + "/../../node_modules/amorphic";
-if (!fs.existsSync(amDir))
-    fs.mkdirSync(amDir);
-fs.writeFileSync(path.join(amDir, "index.js"), "module.exports = require('../../index.js')");
-fs.writeFileSync(path.join(amDir, "client.js"), fs.readFileSync(__dirname + '/../../client.js'));
 
 // The root must be test since amorphic depends on this to find app
 
 // Fire up amorphic as the server
-require('amorphic').listen(__dirname +'/');
+require('../../index.js').listen(__dirname +'/');
 
 // Create global variables for the benefit of client.js
 PostCallAssert = function () {}
@@ -45,7 +40,7 @@ window = modelRequires;
 window.Controller = controllerRequires.Controller;
 
 // Fire up amrophic as the client
-require('../../node_modules/amorphic/client.js');
+require('../../client.js');
 
 // Perform the activities that bindster-amorphic does
 
@@ -153,7 +148,7 @@ describe("Banking Example", function () {
         }
         PostCallAssert = function () {
         }
-        return clientController.mainFunc()
+        clientController.mainFunc()
             .then(function () {
                 expect("Should not be here").to.equal(false);
             }, function (e) {
@@ -167,7 +162,7 @@ describe("Banking Example", function () {
         serverAssert = function () {
             throw "get stuffed";
         }
-        return clientController.mainFunc()
+        clientController.mainFunc()
             .then(function () {
                 expect("Should not be here").to.equal(false);
             }, function (e) {

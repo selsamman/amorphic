@@ -11,7 +11,7 @@ var collections = JSON.parse(fs.readFileSync(__dirname + "/model/schema.json"));
 PersistObjectTemplate.setSchema(collections);
 PersistObjectTemplate.setDB({}, PersistObjectTemplate.DB_Mongo);
 var requires = amorphic.getTemplates(PersistObjectTemplate, __dirname + '/model/',
-	['ticket.js','person.js','person.js','project.js']);
+	['ticket.js','person.js','person.js','project.js'], {appConfig: {}});
 
 var Ticket = requires.ticket.Ticket;
 var TicketItem = requires.ticket.TicketItem;

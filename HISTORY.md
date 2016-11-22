@@ -1,3 +1,31 @@
+## 1.4.19
+* More changes for templateMode: auto
+## 1.4.18
+* Numerous changes for new template mode after testing with our app
+## 1.4.17
+* Bump version to get latest semotus which gets latest supertype
+## 1.4.16
+* Moved client.js functions out of if block
+## 1.4.15
+* Cherry picked app name with dashes fix
+## 1.4.14
+* Get 1.4 versions of all modules
+## 1.4.12
+* Stopped including modules in source if rules dictated they were toClient: false
+* Update client.js with the same deferred template processing as we had on the server
+## 1.4.11
+* Fixed problem with random ordering of extends messing up recusive template processing
+## 1.4.8
+* default sourceMode to debug
+* Add controller application config setting for setting controller.js file name
+## 1.4.5
+* Produce object.__statics__ even for legacy template mode
+## 1.4.4
+* Data was being sent to browser even if template file was getTemplated as toClient: false
+## 1.4.3
+* Added the ability to still support non-supertype return values in templates
+## 1.4.1
+* First cut at simplified template definition pattern
 ## 1.3.21
 * Adde PR to allow app names with dash and eliminate regexp in app name checking
 ## 1.3.20

@@ -19,8 +19,8 @@
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 Persistor = ObjectTemplate.create("Peristor",
-  {
-  });
+    {
+    });
 
 
 RemoteObjectTemplate._injectIntoTemplate = function (template)
@@ -184,13 +184,13 @@ amorphic = // Needs to be global to make mocha tests work
                 var message = JSON.parse(request.responseText);
                 if (self.logLevel > 0)
                     console.log("receiving " + message.type + " " + message.name + " serverAppVersion=" + message.ver +
-                      "executionTime=" + ((new Date()).getTime() - self.lastServerInteraction) +
-                      "ms messageSize=" + Math.round(request.responseText.length / 1000) + "K");
+                        "executionTime=" + ((new Date()).getTime() - self.lastServerInteraction) +
+                        "ms messageSize=" + Math.round(request.responseText.length / 1000) + "K");
 
                 // If app version in message not uptodate
                 if (self.appVersion && message.ver != self.appVersion) {
                     console.log("Application version " + self.appVersion + " out of date - " +
-                      message.ver + " is available - reloading in 5 seconds");
+                        message.ver + " is available - reloading in 5 seconds");
                     self.shutdown = true;
                     self.reload();
                     return;
@@ -264,7 +264,7 @@ amorphic = // Needs to be global to make mocha tests work
     // Anytime we see some other windows session has been stored we become a zombie
     _zombieCheck: function () {
         if (RemoteObjectTemplate.getPendingCallCount() == 0 &&
-          this.getCookie('session' + this.app) != this.session) {
+            this.getCookie('session' + this.app) != this.session) {
             if (this.state != 'zombie') {
                 this.state = 'zombie'
                 this.expireController();
@@ -347,7 +347,7 @@ amorphic = // Needs to be global to make mocha tests work
         RemoteObjectTemplate.controller = this.controller;
         if (appVersion && message.ver != appVersion) {
             console.log("Application version " + appVersion + " out of date - " +
-              message.ver + " is available - reloading in 5 seconds");
+                message.ver + " is available - reloading in 5 seconds");
             this.shutdown = true;
             this.bindController.call(null, this.controller, message.sessionExpiration);
             reload();
@@ -424,31 +424,130 @@ amorphic = // Needs to be global to make mocha tests work
         if (module.exports.objectTemplateInitialize)
             module.exports.objectTemplateInitialize(RemoteObjectTemplate);
 
-        var requires = {}
-        for (var exp in module.exports) {
-            if (!exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, function () {return window});
-                requires[exp] = templates;
-                for (var template in  templates)
-                    window[template] = templates[template];
+        var objectTemplateSubClass = Object.create(RemoteObjectTemplate);
+        var currentContext = {pass: 1};
+
+        if (this.config.templateMode == "auto") {
+
+            var deferredExtends = [];
+            RemoteObjectTemplate.__statics__ = {};
+
+            usesV2ReturnPass1.prototype.mixin = function () {};
+            usesV2ReturnPass1.prototype.extend = function(name) {
+                this.extendedName = name;
+                deferredExtends.push(this);
+                return new usesV2ReturnPass1(name);
+            };
+            usesV2ReturnPass1.prototype.doExtend = function(futureTemplates) {
+                if (!RemoteObjectTemplate.__dictionary__[this.baseName]) {
+                    if (futureTemplates[this.baseName])
+                        futureTemplates[this.baseName].doExtend(futureTemplates);
+                    if (!RemoteObjectTemplate.__dictionary__[this.baseName])
+                        throw Error("Attempt to extend " + this.baseName + " which was never defined; extendedName=" + this.extendedName);
+                }
+                if (!RemoteObjectTemplate.__dictionary__[this.extendedName]) {
+                    var template = RemoteObjectTemplate.__dictionary__[this.baseName].extend(this.extendedName, {});
+                }
+            };
+
+            for (var exp in module.exports || {}) {
+                if (!exp.match(/_mixins/)) {
+                    objectTemplateSubClass.create = function (name) {
+                        var template = RemoteObjectTemplate.create(name, {});
+                        var originalExtend = template.extend;
+                        template.extend = function (name, props)  {
+                            var template = RemoteObjectTemplate.__dictionary__[name];
+                            if (template)
+                                template.mixin(props);
+                            else
+                                template = originalExtend.call(this, name, props);
+                            return template;
+                        }
+                        var originalMixin = template.mixin;
+                        template.mixin = function () {
+                            if (currentContext.pass == 2)
+                                originalMixin.apply(template, arguments);
+                        }
+                        return template;
+                    }
+                    var initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass1);
+                    for (var returnVariable in initializerReturnValues)
+                        if (!RemoteObjectTemplate.__dictionary__[returnVariable])
+                            RemoteObjectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
+                }
             }
-        }
-        var templates = flatten(requires);
-        for (var exp in module.exports) {
-            if (exp.match(/_mixins/)) {
-                var templates = (module.exports[exp])(RemoteObjectTemplate, requires, 
-                    this.config ? this.config.modules[exp.replace(/_mixins/,'')] : null,templates);
-                for (var template in  templates)
-                    window[template] = templates[template];
+
+            // Extended classes can't be processed until now when we know we have all the base classes defined
+            var futureTemplates = {}
+            for (var ix = 0; ix < deferredExtends.length; ++ix)
+                futureTemplates[deferredExtends[ix].extendedName] = deferredExtends[ix]
+            for (var ix = 0; ix < deferredExtends.length; ++ix)
+                deferredExtends[ix].doExtend(futureTemplates);
+
+            currentContext.pass = 2;
+            var objectTemplateSubClass = Object.create(RemoteObjectTemplate);
+            for (var exp in module.exports) {
+                console.log("Pass 2 = processing" + exp);
+                objectTemplateSubClass.create = function (name, props) {
+                    if (RemoteObjectTemplate.__dictionary__[name.name || name])
+                        RemoteObjectTemplate.__dictionary__[name.name || name].mixin(props);
+                    else
+                        RemoteObjectTemplate.create(name, props);
+                    return RemoteObjectTemplate.__dictionary__[name.name || name];
+                };
+                var initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass2, (this.config && this.config.modules) ?
+                    this.config.modules[exp.replace(/_mixins/,'')] : null);
+                for (var returnVariable in initializerReturnValues)
+                    if (!RemoteObjectTemplate.__dictionary__[returnVariable])
+                        RemoteObjectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
+
+            }
+            for (var name in RemoteObjectTemplate.__dictionary__)
+                window[name] = RemoteObjectTemplate.__dictionary__[name];
+            for (var name in RemoteObjectTemplate.__statics__)
+                window[name] = RemoteObjectTemplate.__statics__[name];
+        } else {
+            var requires = {}
+            for (var exp in module.exports || {}) {
+                if (!exp.match(/_mixins/)) {
+                    var templates = (module.exports[exp])(RemoteObjectTemplate, function () {return window});
+                    requires[exp] = templates;
+                    for (var template in  templates)
+                        window[template] = templates[template];
+                }
+            }
+            var templates = flatten(requires);
+            for (var exp in module.exports) {
+                if (exp.match(/_mixins/)) {
+                    var templates = (module.exports[exp])(RemoteObjectTemplate, requires,
+                        this.config ? this.config.modules[exp.replace(/_mixins/,'')] : null,templates);
+                    for (var template in  templates)
+                        window[template] = templates[template];
+                }
             }
         }
         RemoteObjectTemplate.performInjections();
+
         function flatten (requires) {
-            classes = {};
+            var classes = {};
             for (var f in requires)
                 for (var c in requires[f])
                     classes[c] = requires[f][c];
             return classes;
+        }
+        function usesV2Pass1 (file, templateName, options) {
+            var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+            var staticTemplate = RemoteObjectTemplate.__statics__[templateName];
+            return staticTemplate || new usesV2ReturnPass1(templateName);
+        }
+        function usesV2Pass2 (file, templateName, options) {
+            var templateName = templateName || file.replace(/\.js$/,'').replace(/.*?[\/\\](\w)$/,'$1');
+            return RemoteObjectTemplate.__dictionary__[templateName] || RemoteObjectTemplate.__statics__[templateName];
+        }
+
+        // An object for creating request to extend classes to be done at thend of V2 pass1
+        function usesV2ReturnPass1 (base) {
+            this.baseName = base
         }
 
     },

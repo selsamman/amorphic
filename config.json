@@ -4,5 +4,6 @@
     "objectCacheSeconds" : 600,
     "sessionSecret" : "Ey0veeljPcLsHitdxCG2",
 	"applications" : {"helloworld": "apps/helloworld", "batch":"apps/batch", "tests":"apps/tests", "drpatient":"apps/drpatient", "restify":"apps/restify"},
-	"application"  : "helloworld;batch;tests;drpatient;restful"
+	"application"  : "helloworld;batch;tests;drpatient;restful",
+    "sourceMode": "debug"
 }

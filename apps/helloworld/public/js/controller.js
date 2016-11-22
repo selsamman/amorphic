@@ -1,26 +1,26 @@
-module.exports.controller = function (objectTemplate, getTemplate)
+module.exports.controller = function (objectTemplate, uses)
 {
-	var BaseController = getTemplate('./baseController.js').BaseController;
-	var World = getTemplate('./world.js').World;
-    if (typeof(require) != 'undefined') {
-        var fs = require('fs');
-        var Q = require('q');
-    }
+	var BaseController = uses('./baseController.js', "BaseController");
+	var World = uses('./world.js', "World");
+    var WorldStatic = uses('static.js', 'Stuff');
 
-    Controller = BaseController.extend("Controller",
+    var Controller = BaseController.extend("Controller",
 	{
 		worlds:        {type: Array, of: World, value: []},
         posted:        {type: String, value: ""},
         newWorld: {on: "server", body: function ()
         {
             this.worlds.push(new World());
+            console.log("Creating a " + WorldStatic)
+            return this.meanWhileBackAtTheRanch();
+        }},
+        meanWhileBackAtTheRanch: {on: "client", body: function () {
+            console.log("Creating a " + WorldStatic)
         }},
         processPost: {on: "server", body: function (uri, body) {
             this.posted = body.myfield;
             return {status: 303, headers: {location: uri.replace(/amorphic.*/, '')}};
         }}
     });
-
-    return {Controller: Controller};
 }
 

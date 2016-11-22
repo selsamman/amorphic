@@ -1,6 +1,4 @@
-
 var expect = require('chai').expect;
-
 var request = require('request');
 var path = require('path');
 var fs = require('fs');

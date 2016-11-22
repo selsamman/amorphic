@@ -3,22 +3,12 @@ var request = require('request');
 var path = require('path');
 var fs = require('fs');
 
+var server_amorphic = require('../../index.js');
+
 // This module emulates XMLHTTPRequest for the benefit of client.js which uses it to communicate with the server
 var xhrc = require("xmlhttprequest-cookie");
 XMLHttpRequest = xhrc.XMLHttpRequest;
 var CookieJar = xhrc.CookieJar;
-
-// Copy index.js (amorphic) into it's rightful place in node_modules so it will be found
-var amDir = __dirname + "/../../node_modules/amorphic";
-if (!fs.existsSync(amDir))
-    fs.mkdirSync(amDir);
-fs.writeFileSync(path.join(amDir, "index.js"), "module.exports = require('../../index.js')");
-fs.writeFileSync(path.join(amDir, "client.js"), fs.readFileSync(__dirname + '/../../client.js'));
-
-// The root must be test since amorphic depends on this to find app
-
-// Fire up amorphic as the server
-require('../../index.js').listen(__dirname +'/');
 
 // Create global variables for the benefit of client.js
 PostCallAssert = function () {}
@@ -38,9 +28,8 @@ var controllerRequires = require('./apps/test/public/js/controller.js').controll
     return modelRequires;
 });
 Controller = controllerRequires.Controller;
-//window = {Controller: Controller, Customer: Customer, Address: Address, ReturnedMail: ReturnedMail, Role: Role, Account: Account};
-window = modelRequires;
-window.Controller = controllerRequires.Controller;
+// window = {Controller: Controller, Customer: Customer, Address: Address, ReturnedMail: ReturnedMail, Role: Role, Account: Account};
+
 
 // Fire up amrophic as the client
 require('../../client.js');
@@ -48,51 +37,56 @@ require('../../client.js');
 // Perform the activities that bindster-amorphic does
 
 describe("Banking Example", function () {
-
+    var server;
     before(function (done) {
-        var isDone = false;
-        request("http://localhost:3001/amorphic/init/test.js",function (error, response, body) {
-            if (!error && response.statusCode == 200) {
-                try {
-                    eval(body);
+        server_amorphic.listen(__dirname + '/').then(function (connectHandler) {
+            server = connectHandler;
+            var isDone = false;
+            request("http://localhost:3001/amorphic/init/test.js",function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    try {
+                        // Window is necessary for the eval but must occur here after the listen call due to connect session.js crc16 function being available (hashing function for the connect session)
+                        window = modelRequires;
+                        window.Controller = controllerRequires.Controller;
+                        eval(body);
+                        amorphic.addEvent = function () {} ; // mock
+                        amorphic.prepareFileUpload = function () {} //mock
+                        amorphic._zombieCheck = function () {} //mock
+                        amorphic.setCookie = function () {} // mock
+                        amorphic.initializationData.url = "http://localhost:3001" + amorphic.initializationData.url;
+                        amorphic.establishClientSession(
+                            "Controller", __ver,
+                            function (newController, sessionExpiration) {
+                                if (clientController && typeof(clientController.shutdown) == "function")
+                                    clientController.shutdown();
+                                clientController = newController;
+                                if (typeof(clientController.clientInit) == "function")
+                                    clientController.clientInit(sessionExpiration);
+                                if (!isDone) {
+                                    isDone = true;
+                                    done();
+                                }
+                            },
+                            function (hadChanges) {
+                            },
 
-                    amorphic.addEvent = function () {} ; // mock
-                    amorphic.prepareFileUpload = function () {} //mock
-                    amorphic._zombieCheck = function () {} //mock
-                    amorphic.setCookie = function () {} // mock
-                    amorphic.initializationData.url = "http://localhost:3001" + amorphic.initializationData.url;
-                    amorphic.establishClientSession(
-                        "Controller", __ver,
-                        function (newController, sessionExpiration) {
-                            if (clientController && typeof(clientController.shutdown) == "function")
-                                clientController.shutdown();
-                            clientController = newController;
-                            if (typeof(clientController.clientInit) == "function")
-                                clientController.clientInit(sessionExpiration);
-                            if (!isDone) {
-                                isDone = true;
-                                done();
+                            // When a new version is detected pop up "about to be refreshed" and
+                            // then reload the document after 5 seconds.
+                            function () {
+                                clientController.amorphicStatus = 'reloading';
+                            },
+
+                            // If communication lost pop up dialog
+                            function () {
+                                controller.amorphicStatus = 'offline';
                             }
-                        },
-                        function (hadChanges) {
-                        },
-
-                        // When a new version is detected pop up "about to be refreshed" and
-                        // then reload the document after 5 seconds.
-                        function () {
-                            clientController.amorphicStatus = 'reloading';
-                        },
-
-                        // If communication lost pop up dialog
-                        function () {
-                            controller.amorphicStatus = 'offline';
-                        }
-                    );
-                } catch (e) {done(e)};
-            }
+                        );
+                    } catch (e) {done(e)};
+                }
+            });
         });
     });
-    
+
     it ("clears the bank and saves everything", function (done) {
         serverAssert = function (count) {
             expect(count).to.equal(0);

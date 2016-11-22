@@ -1,0 +1,11 @@
+{
+  "createControllerFor": "#",
+  "ver":          "0",
+  "modules":      {},
+  "dbName" : "persistor_banking",
+  "dbDriver" : "knex",
+  "dbType" : "pg",
+  "dbPath": "127.0.0.1",
+  "dbUser": "postgres",
+  "dbPassword": "postgres"
+}

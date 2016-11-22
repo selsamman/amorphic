@@ -1164,7 +1164,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     );
 
     // Initialize applications
-
     var appList = rootCfg.get('applications');
     var appStartList = rootCfg.get('application').split(';');
     var mainApp = rootCfg.get('application').split(';')[0];
@@ -1172,8 +1171,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var isNonBatch = false; //TODO: What is isNonBatch?
     var schemas = {};
     var app;
-    for (var appKey in appList)
-    {
+
+    for (var appKey in appList) {
         if (appStartList.indexOf(appKey) >= 0) {
             (function () {
                 var appName = appKey;
@@ -1281,7 +1280,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         }
     }
 
-    Q.all(promises).then( function ()
+    return Q.all(promises).then( function ()
     {
         var app = connect();
 
@@ -1367,7 +1366,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
         app.use(route);
 
-        app.listen(rootCfg.get('port'));
+        return app.listen(rootCfg.get('port'));
     }).fail(function(e){console.log(e.message + " " + e.stack)});
 }
 module.exports = {

@@ -1125,7 +1125,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var connect = require('connect');
     var http = require('http');
     var https = require('https');
-    var amorphic = require('amorphic');
     var path = require('path');
 
     var configBuilder = require('./configBuilder').ConfigBuilder;
@@ -1140,7 +1139,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var files = fs.readdirSync(downloads);
     for (var ix = 0; ix < files.length; ++ix)
         fs.unlinkSync(path.join(downloads, files[ix]));
-    amorphic.setDownloadDir(downloads);
+    setDownloadDir(downloads);
 
     var builder = new configBuilder(new configApi());
     var configStore = builder.build(dirname);
@@ -1241,13 +1240,13 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                                     objectTemplate.concurrency = dbConfig.dbConcurrency;
                                 }
 
-                                amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
+                                establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
                                     cpath + '/js/', injectObjectTemplate,
                                     sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
                                     config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
 
                                 if (config.isDaemon) {
-                                    amorphic.establishDaemon(appName);
+                                    establishDaemon(appName);
                                     console.log(appName + " started as a daemon");
                                 } else
                                     promises.push(Q(true));
@@ -1265,13 +1264,13 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                         objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
                     }
 
-                    amorphic.establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
+                    establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
                         cpath + '/js/', injectObjectTemplate,
                         sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
                         config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
 
                     if (config.isDaemon) {
-                        amorphic.establishDaemon(appName);
+                        establishDaemon(appName);
                         console.log(appName + " started as a daemon");
                     } else
                         promises.push(Q(true));
@@ -1315,17 +1314,17 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
             .use(connect.cookieParser())
             .use(sessionRouter)
-            .use(amorphic.uploadRouter)
-            .use(amorphic.downloadRouter)
+            .use(uploadRoute)
+            .use(downloadRoute)
             .use(connect.bodyParser())
-            .use(amorphic.postRouter)
+            .use(postRoute)
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
                 if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
                     var appName = RegExp.$1;
                     response.setHeader("Content-Type", "application/javascript");
                     response.setHeader("Cache-Control", "public, max-age=31556926");
-                    response.end(amorphic.getModelSourceMap(appName));
+                    response.end(getModelSourceMap(appName));
                 } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
                     var appName = RegExp.$1;
                     response.setHeader("Content-Type", "application/javascript");
@@ -1333,12 +1332,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                     if (amorphicOptions.sourceMode == 'prod')
                         response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
                             (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
-                    response.end(amorphic.getModelSource(appName));
+                    response.end(getModelSource(appName));
                 } else if(request.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
                     var url = request.originalUrl;
                     var appName = RegExp.$1;
                     console.log("Establishing " + appName);
-                    amorphic.establishServerSession(request, appName, "initial")
+                    establishServerSession(request, appName, "initial")
                         .then (function (session) {
                             if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
                                 Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then( function (controllerResp) {
@@ -1352,7 +1351,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                                 response.end(
                                     (amorphicOptions.sourceMode != 'debug'
                                         ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
-                                        : amorphic.getModelSource(appName)) +
+                                        : getModelSource(appName)) +
                                     "amorphic.setApplication('" + appName + "');" +
                                     "amorphic.setSchema(" + JSON.stringify(session.getPersistorProps()) + ");" +
                                     "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString())) +");" +
@@ -1366,7 +1365,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         if (postSessionInject)
             postSessionInject.call(null, app);
 
-        app.use(amorphic.router);
+        app.use(route);
 
         app.listen(rootCfg.get('port'));
     }).fail(function(e){console.log(e.message + " " + e.stack)});

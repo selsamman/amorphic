@@ -213,6 +213,7 @@ describe("Banking Example", function () {
 
     after(function () {
         //process.chdir('../');
+        server.close();
     });
 
 });

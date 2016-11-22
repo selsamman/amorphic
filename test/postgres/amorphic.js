@@ -9,6 +9,11 @@ XMLHttpRequest = xhrc.XMLHttpRequest;
 var CookieJar = xhrc.CookieJar;
 
 // Copy index.js (amorphic) into it's rightful place in node_modules so it will be found
+var amDir = __dirname + "/../../node_modules/amorphic";
+if (!fs.existsSync(amDir))
+    fs.mkdirSync(amDir);
+fs.writeFileSync(path.join(amDir, "index.js"), "module.exports = require('../../index.js')");
+fs.writeFileSync(path.join(amDir, "client.js"), fs.readFileSync(__dirname + '/../../client.js'));
 
 // The root must be test since amorphic depends on this to find app
 

@@ -1123,8 +1123,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var Q = require('q');
     var url = require('url');
     var connect = require('connect');
-    var http = require('http');
-    var https = require('https');
     var path = require('path');
 
     var configBuilder = require('./configBuilder').ConfigBuilder;

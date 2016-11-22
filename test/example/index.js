@@ -23,11 +23,6 @@ describe('Setup amorphic', function() {
         });
     });
 
-    it('make sure that the downloads directory exists', function() {
-        return new Promise((resolve, reject) => {
-            resolve(assert.strictEqual(fs.existsSync(__dirname + '/../../download'), true));
-        });
-
-    });
+    it('make sure that the downloads directory exists');
 
 });

@@ -1,6 +1,4 @@
-
 var expect = require('chai').expect;
-
 var request = require('request');
 var path = require('path');
 var fs = require('fs');
@@ -20,7 +18,7 @@ fs.writeFileSync(path.join(amDir, "client.js"), fs.readFileSync(__dirname + '/..
 // The root must be test since amorphic depends on this to find app
 
 // Fire up amorphic as the server
-require('amorphic').listen(__dirname +'/');
+require('../../index.js').listen(__dirname +'/');
 
 // Create global variables for the benefit of client.js
 PostCallAssert = function () {}
@@ -45,7 +43,7 @@ window = modelRequires;
 window.Controller = controllerRequires.Controller;
 
 // Fire up amrophic as the client
-require('../../node_modules/amorphic/client.js');
+require('../../client.js');
 
 // Perform the activities that bindster-amorphic does
 

@@ -843,7 +843,6 @@ function restoreSession(path, session, controllerTemplate) {
 
     var objectTemplate = controllerTemplate.objectTemplate;
 
-    var time = process.hrtime();
     // Get the cached controller
     if (!controllers[session.sessionId + path]){
         controllers[session.sessionId + path] = {};
@@ -865,8 +864,6 @@ function restoreSession(path, session, controllerTemplate) {
 
     // Set it up in the cache
     cachedController.controller = controller;
-
-    req.amorphicTracking.addServerTask({name: 'Restore Session', size: session.semotus.controllers[path].length}, time);
 
     return controller;
 }

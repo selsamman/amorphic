@@ -35,6 +35,7 @@
     "xmlhttprequest-cookie": "x"
   },
   "scripts": {
+    "lint": "eslint .",
     "test": "istanbul cover _mocha -- test/* -R spec",
     "test:config": "mocha test/config",
     "test:example": "mocha test/example"

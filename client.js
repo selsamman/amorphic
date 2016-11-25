@@ -66,6 +66,30 @@ var module = {exports: {}}
 
 amorphic = // Needs to be global to make mocha tests work
 {
+    performanceLogging: {
+        start: (new Date()).getTime(),
+        tasks: [],
+        addCompletedTask: function (taskName) {
+            this.tasks.push({name: taskName, time: (new Date()).getTime()});
+        },
+        getData: function () {
+            var data = {start: this.start, duration: (new Date()).getTime() - this.start, tasks: []};
+            if (this.tasks.length === 0) {
+                return null;
+            }
+            var start = this.start;
+            for (var ix = 0; ix < this.tasks.length; ++ix) {
+                data.tasks.push({name: this.tasks[ix].name, duration: this.tasks[ix].time - start});
+                start = this.tasks[ix].time;
+            }
+            this.startTasks();
+            return data;
+        },
+        startTasks: function (time) {
+            this.start = time || (new Date()).getTime();
+            this.tasks = [];
+        }
+    },
     initializationData: {},
     lastServerInteraction: (new Date()).getTime(),
     setInitialMessage: function (message) {
@@ -109,6 +133,7 @@ amorphic = // Needs to be global to make mocha tests work
      */
     establishClientSession: function(controllerTemplate, appVersion, bindController, refresh, reload, offline)
     {
+        this.performanceLogging.addCompletedTask("Starting establishClientSession");
         this.setCookie('session' + this.app, this.session, 0);
 
         // Initialize object
@@ -123,6 +148,7 @@ amorphic = // Needs to be global to make mocha tests work
         this.refresh = refresh;
 
         this.importTemplates();
+        this.performanceLogging.addCompletedTask("Templates Compiled in browser");
 
         // Grab the controller template which is not visible until after importTemplates
         this.controllerTemplate = window[controllerTemplate];
@@ -163,6 +189,7 @@ amorphic = // Needs to be global to make mocha tests work
         {
             message.sequence = self.sequence++;
             message.loggingContext = self.loggingContext;
+            message.performanceLogging = self.performanceLogging.getData();
             self.loggingContext = {};
 
             // Sending rootId will reset the server
@@ -226,6 +253,7 @@ amorphic = // Needs to be global to make mocha tests work
 
         // Kick everything off by processing initial message
         this._reset(this.initializationData.message, appVersion, reload);
+        this.performanceLogging.addCompletedTask("Initial Message Processed on Browser");
 
         // Manage events for session expiration
         this.addEvent(document.body, 'click', function() {self._windowActivity();self.activity = true});

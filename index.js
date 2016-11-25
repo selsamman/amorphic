@@ -54,6 +54,7 @@ onDeath(function () {
 var applicationConfig = {};
 var applicationSource = {};
 var applicationSourceMap = {};
+var applicationPersistorProps = {};
 var deferred = {};
 var logger = null;
 var zlib = require('zlib');
@@ -146,6 +147,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     var sessionStore = config.sessionStore;
     var appVersion = config.appVersion;
     var session = req.session;
+    var time = process.hrtime();
 
     // For a new page determine if a controller is to be omitted
     if (newPage == "initial" && config.appConfig.createControllerFor && !session.semotus)
@@ -169,8 +171,12 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
             // key value pairs where the key is the require prefix and and the value is the
             // key value pairs of each exported template
 
-            var requires = getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, path);
+            // Get the templates to be packaged up in the message if not pre-staged
+            if (amorphicOptions.sourceMode == 'debug') {
+                getTemplates(objectTemplate, config.appPath, [prop + ".js"], config, path);
+            }
 
+            req.amorphicTracking.addServerTask({name: 'Creating Session without Controller'}, time);
             return Q.fcall(function ()
             {
                 return {
@@ -182,7 +188,11 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                     },
                     getServerConfigString: function () {return getServerConfigString(config)},
                     getPersistorProps: function () {
-                        return objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
+                        if (amorphicOptions.sourceMode == 'debug') {
+                            return objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
+                        } else {
+                            return applicationPersistorProps[path];
+                        }
                     }
                 }
             });
@@ -199,19 +209,13 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
         if (!session.semotus.loggingContext[path])
             session.semotus.loggingContext[path] = getLoggingContext(path);
 
-        var time = process.hrtime();
         var controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, true, newControllerId, req);
         controller.__template__.objectTemplate.reqSession = req.session;
-        if (amorphicOptions.performanceLogging){
-            var diff = process.hrtime(time);
-            var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-            console.log("performanceLogging: create controller took " + took + " ms");
-        }
-
     } else {
         var controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, false, null, req);
         controller.__template__.objectTemplate.reqSession = req.session;
     }
+    req.amorphicTracking.addServerTask({name: 'Create Controller'}, time);
 
     controller.__request = req;
     controller.__sessionExpiration = sessionExpiration;
@@ -237,8 +241,8 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
         },
         getServerConfigString: function () {return getServerConfigString(config)},
 
-        save: function (path, session) {
-            saveSession(path, session, controller);
+        save: function (path, session, req) {
+            saveSession(path, session, controller, req);
         },
         restoreSession: function () {
             return restoreSession(path, session, controller.__template__);
@@ -252,7 +256,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     };
 
     if (newPage)
-        saveSession(path, session, controller);
+        saveSession(path, session, controller, req);
     return Q.fcall(function () {return ret});
 }
 var controllers = {};
@@ -316,7 +320,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     if (amorphicOptions.sourceMode == 'debug')
         applicationSource[path] = "";
     function getTemplate(file, options, uses) {
-         var previousIgnoringClient = ignoringClient;
+        var previousIgnoringClient = ignoringClient;
         if(options && (options.client === false))
             ignoringClient = true;
         file.match(/([0-9A-Za-z_]*)\.js/);
@@ -376,7 +380,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             throw  new Error(prop + " not exported in " + appPath + file);
 
         // Call application code that can poke properties into objecTemplate
-        if (!objectTemplate.__initialized__ && objectTemplateInitialize && !sourceOnly)
+        if (!objectTemplate.__initialized__ && objectTemplateInitialize)
             objectTemplateInitialize(objectTemplate);
         objectTemplate.__initialized__ = true;
 
@@ -438,7 +442,8 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             // Call the initialize function in the template
             var previousToClient = objectTemplate.__toClient__;
             objectTemplate.__toClient__ = !ignoringClient;
-            var templates = initializer(objectTemplate, getTemplate, usesV1);
+            var includeMixins = !requires[prop]
+            var templates = requires[prop] || initializer(objectTemplate, getTemplate, usesV1);
             objectTemplate.__toClient__ = previousToClient;
             requires[prop] = templates;
 
@@ -450,7 +455,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                         objectTemplate.__statics__[returnVariable] = templates[returnVariable];
             }
 
-            if (mixins_initializer)
+            if (mixins_initializer && includeMixins)
                 mixins.push(mixins_initializer);
 
             all_require_results[prop] = initializer;
@@ -555,12 +560,12 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             }
     // Because of the two pass nature, requires templates are not update for extends which are only done between passes
     /*
-    for (var moduleKey in requires)
-        for (var templateKey in requires[moduleKey])
-            requires[moduleKey][templateKey] = objectTemplate.__dictionary__[templateKey] ||
-                objectTemplate.__statics__[templateKey] ||
-                requires[moduleKey][templateKey]
-    */
+     for (var moduleKey in requires)
+     for (var templateKey in requires[moduleKey])
+     requires[moduleKey][templateKey] = objectTemplate.__dictionary__[templateKey] ||
+     objectTemplate.__statics__[templateKey] ||
+     requires[moduleKey][templateKey]
+     */
     // Record source and source map
     if (ast && !applicationSource[path] && !config.appConfig.isDaemon) {
         ast.figure_out_scope();
@@ -600,8 +605,12 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
         }
     }
-    if (!sourceOnly)
-        objectTemplate.performInjections();
+
+    objectTemplate.performInjections();
+
+    if (applicationSource[path]) {
+        applicationPersistorProps[path] = objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
+    }
 
     if (detailedInfo) {
         detailedInfo.moduleExports = requires;
@@ -807,7 +816,7 @@ function decompressSessionData(objData) {
     return objData;
 }
 
-function saveSession(path, session, controller) {
+function saveSession(path, session, controller, req) {
     var request = controller.__request;
     controller.__request = null;
     var time = process.hrtime();
@@ -824,12 +833,8 @@ function saveSession(path, session, controller) {
         session.semotus.objectMap[path] = ourObjectTemplate.objectMap;
     }
 
-    if (amorphicOptions.performanceLogging){
-        var diff = process.hrtime(time);
-        var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-        ourObjectTemplate.logger.info({component: 'amorphic', module: 'saveSession', activity: 'performanceLogging'},
-            "performanceLogging: save session " + took + " ms - length = " + session.semotus.controllers[path].length);
-    }
+
+    req.amorphicTracking.addServerTask({name: 'Save Session', size: session.semotus.controllers[path].length}, time);
 
     controller.__request = request;
 }
@@ -838,7 +843,6 @@ function restoreSession(path, session, controllerTemplate) {
 
     var objectTemplate = controllerTemplate.objectTemplate;
 
-    var time = process.hrtime();
     // Get the cached controller
     if (!controllers[session.sessionId + path]){
         controllers[session.sessionId + path] = {};
@@ -860,13 +864,6 @@ function restoreSession(path, session, controllerTemplate) {
 
     // Set it up in the cache
     cachedController.controller = controller;
-
-    if (amorphicOptions.performanceLogging){
-        var diff = process.hrtime(time);
-        var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-        objectTemplate.logger.info({component: 'amorphic', module: 'restoreSession', activity: 'performanceLogging'},
-            "performanceLogging: restore session " + took + " ms - length = " + session.semotus.controllers[path].length);
-    }
 
     return controller;
 }
@@ -925,7 +922,7 @@ function processPost(req, resp)
         if (typeof(ourObjectTemplate.controller.processPost) == "function") {
             Q(ourObjectTemplate.controller.processPost(req.body)).then(function (controllerResp) {
                 ourObjectTemplate.setSession(remoteSessionId);
-                semotus.save(path, session);
+                semotus.save(path, session, req);
                 resp.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
                 resp.end(controllerResp.body);
             }).catch(function (e) {
@@ -993,18 +990,15 @@ function processMessage(req, resp)
 
     establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus)
     {
+        if (message.performanceLogging) {
+            req.amorphicTracking.browser = message.performanceLogging;
+        }
         semotus.objectTemplate.logger.setContextProps(message.loggingContext);
-        var context = semotus.objectTemplate.logger.setContextProps({sequence: message.sequence, session: req.session.id,
+        var callContext = message.type + (message.type == 'call' ? '.' + message.id + '[' + message.name + ']' :  '');
+        var context = semotus.objectTemplate.logger.setContextProps({app: path, message: callContext,
+            sequence: message.sequence, session: req.session.id,
             ipaddress: ((req.headers['x-forwarded-for'] || req.connection.remoteAddress) + "")
                 .split(',')[0].replace(/(.*)[:](.*)/,'$2') || "unknown"});
-
-        if (amorphicOptions.performanceLogging){
-            var diff = process.hrtime(start);
-            var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-
-            semotus.objectTemplate.logger.info({component: 'amorphic', module: 'processsMessage', activity: 'performanceLogging'},
-                "performanceLogging: establish session " + took + "ms");
-        }
 
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
@@ -1021,11 +1015,17 @@ function processMessage(req, resp)
             ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
                 remoteSessionId, "Force reset on " + message.type + " " + (semotus.newSession ? 'new session' : '') +
                 " [" + message.sequence + "]");
-            semotus.save(path, session);
+            semotus.save(path, session, req);
+            var startMessageProcessing = process.hrtime();
             var outbound = semotus.getMessage();
             outbound.ver = semotus.appVersion;
             ourObjectTemplate.logger.clearContextProps(context);
             resp.end(JSON.stringify(outbound));  // return a sync message assuming no queued messages
+            for (var prop in ourObjectTemplate.logger.context) {
+                req.amorphicTracking.loggingContext[prop] = ourObjectTemplate.logger.context[prop];
+            }
+            req.amorphicTracking.addServerTask({name: "Reset Processing"}, startMessageProcessing);
+            displayPerformance(req);
             return;
         }
 
@@ -1033,22 +1033,23 @@ function processMessage(req, resp)
         // a callback to the client.  In either case return a response and prevent
         // any further messages from being generated as these will get handled on
         // the next call into the server
+        var startMessageProcessing = process.hrtime();
         var sendMessage = function (message)
         {
             ourObjectTemplate.setSession(remoteSessionId);
             ourObjectTemplate.enableSendMessage(false);
-            semotus.save(path, session);
+            req.amorphicTracking.addServerTask({name: "Request Processing"}, startMessageProcessing);
+            semotus.save(path, session, req);
             message.ver = semotus.appVersion;
             message.sessionExpired = ourObjectTemplate.sessionExpired;
-            var respstr = JSON.stringify(message)
+            var respstr = JSON.stringify(message);
+            for (var prop in ourObjectTemplate.logger.context) {
+                req.amorphicTracking.loggingContext[prop] = ourObjectTemplate.logger.context[prop];
+            }
             ourObjectTemplate.logger.clearContextProps(context);
             resp.end(respstr);
-            if (amorphicOptions.performanceLogging){
-                var diff = process.hrtime(start);
-                var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-                ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'performanceLogging'},
-                    "performanceLogging: processing request took " + took + " response length = " + respstr.length);
-            }
+            displayPerformance(req);
+
         }
 
         ourObjectTemplate.incomingIP = ((req.headers['x-forwarded-for'] || req.connection.remoteAddress) + "")
@@ -1070,24 +1071,24 @@ function processMessage(req, resp)
         resp.end(error.toString());
     }).done();
 }
-function route(req, resp, next) {
+function router(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/))
         req.body.type == 'logging' ? processLoggingMessage(req, resp) : processMessage(req, resp);
     else
         next();
 }
-function uploadRoute(req, resp, next) {
+function uploadRouter(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.file && req.method=='POST')
         processFile(req, resp,next)
     else
         next();
 }
-function postRoute(req, resp, next) {
+function postRouter(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.form && req.method=='POST')
         processPost(req, resp,next)
     else
         next();
-}function downloadRoute(req, resp, next) {
+}function downloadRouter(req, resp, next) {
     var file = url.parse(req.url, true).query.file;
     if (req.url.match(/amorphic\/xhr\?path\=/) && file && req.method=='GET')
         processContentRequest(req, resp, next, file)
@@ -1115,6 +1116,39 @@ function log (level, sessionId, data) {
     if (level == 0 && logger)
         setTimeout(function () {logger.call(null, message)}, 0);
 
+}
+
+function displayPerformance(req) {
+    var logger = RemoteObjectTemplate.createLogger();
+    logger.setContextProps(req.amorphicTracking.loggingContext);
+    var diff = process.hrtime(req.amorphicTracking.startTime);
+    var totalTime = (diff[0] * 1e9 + diff[1]) / 1000000;
+    var taskTime = 0;
+    req.amorphicTracking.serverTasks.forEach(function(task) {taskTime += task.time});
+    logger.info({
+            component: "amorphic",
+            module: "listen",
+            duration: totalTime,
+            browserPerformance: req.amorphicTracking.browser,
+            serverTasks: req.amorphicTracking.serverTasks,
+            unaccounted: totalTime - taskTime},
+        "Request Performance");
+};
+
+function intializePerformance(req, resp, next) {
+    req.amorphicTracking = {
+        startTime: process.hrtime(),
+        serverTasks: [],
+        browserTasks: [],
+        loggingContext: {},
+        addServerTask: function (props, hrStartTime) {
+            var diff = process.hrtime(hrStartTime);
+            var took = (diff[0] * 1e9 + diff[1]) / 1000000;
+            props.time = took
+            this.serverTasks.push(props);
+        },
+    };
+    next();
 }
 
 function listen(dirname, sessionStore, preSessionInject, postSessionInject, sendToLogFunction)
@@ -1153,7 +1187,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
     amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
     amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
-    amorphicOptions.performanceLogging = rootCfg.get('performanceLogging') || amorphicOptions.performanceLogging;
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
     if(amorphicOptions.compressSession){
         console.log('Compress Session data requires node 0.11 or greater, current version is: ' + process.version);
@@ -1308,6 +1341,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         rootBindster = fs.existsSync(dirname + "/node_modules/amorphic-bindster") ? dirname : __dirname;
 
         app
+            .use(intializePerformance)
             .use('/modules/', connect.static(dirname + "/node_modules"))
             .use('/bindster/', connect.static(rootBindster + "/node_modules/amorphic-bindster"))
             .use('/amorphic/', connect.static(dirname))
@@ -1322,31 +1356,48 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             .use(postRoute)
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
+                request.amorphicTracking.loggingContext.session = request.session.id;
+                request.amorphicTracking.loggingContext.ipaddress =
+                    ((request.headers['x-forwarded-for'] || request.connection.remoteAddress) + "")
+                        .split(',')[0].replace(/(.*)[:](.*)/,'$2') || "unknown";
+                var time = process.hrtime();
                 if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
                     var appName = RegExp.$1;
+                    request.amorphicTracking.loggingContext.app = appName;
                     response.setHeader("Content-Type", "application/javascript");
                     response.setHeader("Cache-Control", "public, max-age=31556926");
                     response.end(getModelSourceMap(appName));
+
+                    request.amorphicTracking.addServerTask({name: 'Request Source Map'}, time);
+                    displayPerformance(request);
                 } else if(request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
                     var appName = RegExp.$1;
+                    request.amorphicTracking.loggingContext.app = appName;
                     response.setHeader("Content-Type", "application/javascript");
                     response.setHeader("Cache-Control", "public, max-age=31556926");
                     if (amorphicOptions.sourceMode == 'prod')
                         response.setHeader("X-SourceMap", "/amorphic/init/" + appName + ".cached.js.map?ver=" +
                             (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ""));
                     response.end(getModelSource(appName));
+
+                    request.amorphicTracking.addServerTask('Request Compressed Sources', time);
+                    displayPerformance(request);
                 } else if(request.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
                     var url = request.originalUrl;
                     var appName = RegExp.$1;
+                    request.amorphicTracking.loggingContext.app = appName;
                     console.log("Establishing " + appName);
                     establishServerSession(request, appName, "initial")
                         .then (function (session) {
+                            var time = process.hrtime();
                             if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
                                 Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then( function (controllerResp) {
-                                    session.save(appName, request.session);
+                                    session.save(appName, request.session, req);
                                     response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
                                     response.end(controllerResp.body || "");
                                 });
+                                req.amorphicTracking.addServerTask({name: 'Application Post'}, time);
+                                displayPerformance(request);
                             } else {
                                 response.setHeader("Content-Type", "application/javascript");
                                 response.setHeader("Cache-Control", "public, max-age=0");
@@ -1359,6 +1410,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                                     "amorphic.setConfig(" + JSON.stringify(JSON.parse(session.getServerConfigString())) +");" +
                                     "amorphic.setInitialMessage(" + session.getServerConnectString() +");"
                                 );
+                                request.amorphicTracking.addServerTask({name: 'Application Initialization'}, time);
+                                displayPerformance(request);
                             }
                         }).done();
                 }
@@ -1378,10 +1431,10 @@ module.exports = {
     establishServerSession: establishServerSession,
     saveSession: saveSession,
     processMessage: processMessage,
-    router: route,
-    uploadRouter: uploadRoute,
-    postRouter: postRoute,
-    downloadRouter: downloadRoute,
+    router: router,
+    uploadRouter: uploadRouter,
+    postRouter: postRouter,
+    downloadRouter: downloadRouter,
     getTemplates: getTemplates,
     setDownloadDir: setDownloadDir,
     listen: listen,

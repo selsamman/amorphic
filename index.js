@@ -1313,8 +1313,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         }
     }
 
-    return Q.all(promises).then( function ()
-    {
+    return Q.all(promises).then(function () {
         var app = connect();
 
         if (amorphicOptions.compressXHR)
@@ -1347,10 +1346,10 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
             .use(connect.cookieParser())
             .use(sessionRouter)
-            .use(uploadRoute)
-            .use(downloadRoute)
+            .use(uploadRouter)
+            .use(downloadRouter)
             .use(connect.bodyParser())
-            .use(postRoute)
+            .use(postRouter)
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
                 request.amorphicTracking.loggingContext.session = request.session.id;
@@ -1417,7 +1416,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         if (postSessionInject)
             postSessionInject.call(null, app);
 
-        app.use(route);
+        app.use(router);
 
         return app.listen(rootCfg.get('port'));
     }).fail(function(e){console.log(e.message + " " + e.stack)});

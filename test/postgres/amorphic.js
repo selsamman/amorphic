@@ -158,20 +158,7 @@ describe("Banking Example", function () {
                 done(e)
             });
     });
-    it("can get a synchronization error", function (done) {
-        serverAssert = function () {
-            throw "get stuffed";
-        }
-        clientController.mainFunc()
-            .then(function () {
-                expect("Should not be here").to.equal(false);
-            }, function (e) {
-                expect(e.message).to.equal("get stuffed");
-                done()
-            }).fail(function(e) {
-                done(e)
-            });
-    });
+
     it("can get it's data freshened", function (done) {
         serverAssert = function () {
             expect(serverController.sam.roles[0].account.__version__ * 1).to.equal(serverController.version * 1 + 1);
@@ -210,8 +197,69 @@ describe("Banking Example", function () {
             done(e)
         });
     });
-    it("can read the results", function (done) {
-        done();
+    it("can do a resetSession", function (done) {
+        clientController.conflictData = 'foo';
+        Q().then(function () {
+            serverAssert = function () {expect(serverController.conflictData).to.equal('foo')}
+            return clientController.mainFunc();
+        }).then(function () {
+            amorphic.resetSession();
+            return clientController.mainFunc();
+        }).then(function () {
+            expect("Should not be here").to.equal(false);
+        }, function (e) {
+            serverAssert = function () {expect(serverController.conflictData).to.equal('initial')}
+            return clientController.mainFunc();
+        }).then(function () {
+            expect(clientController.conflictData).to.equal('initial');
+            done()
+        }).fail(function(e) {
+            done(e instanceof Error ? e : new Error(JSON.stringify(e)))
+        });
+    });
+
+    it("can get a synchronization error", function (done) {
+        serverAssert = function () {
+            expect(serverController.conflictData).to.equal('foo');
+        }
+        clientController.conflictData = 'foo';
+        Q().then(function () {
+            return clientController.mainFunc();
+        }).then(function () {
+            expect("Should not be here").to.equal(false);
+        }, function (e) {
+            expect(e.text).to.equal("An internal error occured");
+            serverAssert = function () {expect(serverController.conflictData).to.equal('foo');}
+            return clientController.mainFunc();  // Next call will fail too because it gets a sync
+        }).then(function () {
+            expect(clientController.conflictData).to.equal('foo');
+            done()
+        }).fail(function(e) {
+            if (e.code == 'reset')
+                done();
+            else
+                done(e instanceof Error ? e : new Error(JSON.stringify(e)))
+        });
+        serverController.conflictData = 'bar';
+    });
+    it("change results on server", function (done) {
+        var version;
+        serverAssert = function () {
+            serverController.sam.roles[0].account.transactions[0].amount += 1;
+            serverController.version = serverController.sam.roles[0].account.__version__;
+        }
+        PostCallAssert = function () {
+            expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
+                .to.equal(serverController.sam.roles[0].account);
+            console.log("foo");
+        }
+        clientController.mainFunc().then(function () {
+            expect(serverController.sam.roles[0].account.getBalance() +
+                serverController.sam.roles[1].account.getBalance()).to.equal(226);
+            done();
+        }).fail(function(e) {
+            done(e)
+        });
     });
 
     after(function () {

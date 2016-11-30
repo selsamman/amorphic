@@ -1,5 +1,6 @@
 var expect = require('chai').expect;
 var request = require('request');
+var axios = require('axios');
 var path = require('path');
 var fs = require('fs');
 
@@ -121,7 +122,6 @@ describe("Banking Example", function () {
         });
     });
     it("change results on server", function (done) {
-        var version;
         serverAssert = function () {
             serverController.sam.roles[0].account.transactions[0].amount += 1;
             serverController.version = serverController.sam.roles[0].account.__version__;
@@ -139,6 +139,7 @@ describe("Banking Example", function () {
             done(e)
         });
     });
+
     it("throw an execption", function (done) {
         serverAssert = function () {
             throw "get stuffed";
@@ -155,6 +156,8 @@ describe("Banking Example", function () {
                 done(e)
             });
     });
+
+    // This is not a synchronization error. It can bubble up a server error message.
     it("can get a synchronization error", function (done) {
         serverAssert = function () {
             throw "get stuffed";
@@ -207,6 +210,40 @@ describe("Banking Example", function () {
             done(e)
         });
     });
+
+    
+
+
+    it('should ignore a non-sequenced post message', function() {
+        return axios({
+            method: 'post',
+            url: 'http://localhost:3001/amorphic/xhr?path=test',
+            data: {
+                key:'value'
+            },
+            validateStatus: function (status) {
+                return true;
+            }
+        }).then(function(res) {
+            expect(res.data).to.equal('ignoring non-sequenced message');
+        });
+    });
+
+    it('should establish a session for a request with a sequnce number in the payload', function () {
+        return axios({
+            method: 'post',
+            url: 'http://localhost:3001/amorphic/xhr?path=test',
+            data: {
+                sequence: 1
+            },
+            validateStatus: function (status) {
+                return true;
+            }
+        }).then(function (res) {
+            expect(res.data.changes).to.equal('{"server-Controller-1":{"sam":[null,null],"karen":[null,null],"ashling":[null,null],"updatedCount":[null,0],"resetState":[null,"initial"]}}');
+        });
+    });
+
     it("can read the results", function (done) {
         done();
     });

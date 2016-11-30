@@ -1066,6 +1066,7 @@ function processMessage(req, resp)
                 req.amorphicTracking.loggingContext[prop] = ourObjectTemplate.logger.context[prop];
             }
             req.amorphicTracking.addServerTask({name: "Reset Processing"}, startMessageProcessing);
+            sessionData.sequence = message.sequence + 1;
             displayPerformance(req);
             return;
         }

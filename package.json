@@ -37,6 +37,7 @@
   "scripts": {
     "lint": "eslint .",
     "test": "istanbul cover _mocha -- test/* -R spec",
+    "test-debug": "mocha --debug-brk test/*",
     "test:config": "mocha test/config",
     "test:example": "mocha test/example"
   },

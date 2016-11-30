@@ -1,3 +1,5 @@
+## 1.5.2
+* Fixed tests to setup and teardown
 ## 1.5.1
 * Message sequence numbers being out of sync force a reset
 * Passing change conflict mode to semoutus

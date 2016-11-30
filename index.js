@@ -33,9 +33,10 @@ var Q = require('q');
 var logLevel = 1;
 var path = require('path');
 var onDeath = require('death');
+var zlib = require('zlib');
 var deathWatch = [];
 var sendToLog = null;
-onDeath(function () {
+onDeath(function (){
     console.log("exiting gracefully " + deathWatch.length + " tasks to perform");
     return Q()
         .then(function () {
@@ -51,20 +52,40 @@ onDeath(function () {
             console.log("on death caught exception: " + e.message + e.stack);
         });
 });
+// Module Global Variables
 var applicationConfig = {};
 var applicationSource = {};
 var applicationSourceMap = {};
 var applicationPersistorProps = {};
-var deferred = {};
+var appContext = {};
 var logger = null;
-var zlib = require('zlib');
-var amorphicOptions = {
-    conflictMode: 'soft',       // Whether to abort changes based on "old value" matching.  Values: 'soft', 'hard'
-    compressSession: false,     // Whether to compress data going to REDIS
-    compressXHR: true,          // Whether to compress XHR responses
-    sourceMode: 'debug'         // Whether to minify templates.  Values: 'debug', 'prod' (minify)
+var amorphicOptions;
+function reset () {
+    if (appContext.connection) {
+        appContext.connection.close();
+    }
+    appContext.connection = undefined;
+    applicationConfig = {};
+    applicationSource = {};
+    applicationSourceMap = {};
+    applicationPersistorProps = {};
+    amorphicOptions = {
+        conflictMode: 'soft',       // Whether to abort changes based on "old value" matching.  Values: 'soft', 'hard'
+        compressSession: false,     // Whether to compress data going to REDIS
+        compressXHR: true,          // Whether to compress XHR responses
+        sourceMode: 'debug'         // Whether to minify templates.  Values: 'debug', 'prod' (minify)
+    }
+    return Q()
+        .then(function () {
+            return deathWatch.reduce(function(p, task) {
+                return p.then(task)
+            }, Q(true));
+        }).then(function () {
+            console.log("All done");
+            return Q.delay(1000);
+        });
 }
-
+reset();
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
     applicationConfig[appPath] = {
         appPath: path,
@@ -1000,7 +1021,7 @@ function getSessionCache(path, sessionId, keepTimeout) {
             if (sessions[key]) {
                 delete sessions[key];
             }
-        }, applicationConfig[path].objectCacheExpiration);
+        }, amorphicOptions.sessionExpiration);
     }
     return session;
 }
@@ -1230,6 +1251,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
     amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
     amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
+    amorphicOptions.sessionExpiration = sessionExpiration;
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
     if(amorphicOptions.compressSession){
         console.log('Compress Session data requires node 0.11 or greater, current version is: ' + process.version);
@@ -1362,7 +1384,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
     Q.all(promises).then( function ()
     {
-        var app = connect();
+        app = connect();
 
         if (amorphicOptions.compressXHR)
             app.use(require('compression')());
@@ -1463,8 +1485,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             postSessionInject.call(null, app);
 
         app.use(router);
-
-        app.listen(rootCfg.get('port'));
+        appContext.connection = app.listen(rootCfg.get('port'));;
     }).fail(function(e){console.log(e.message + " " + e.stack)});
 }
 module.exports = {
@@ -1481,5 +1502,6 @@ module.exports = {
     setDownloadDir: setDownloadDir,
     listen: listen,
     getModelSource: getModelSource,
-    getModelSourceMap: getModelSourceMap
+    getModelSourceMap: getModelSourceMap,
+    reset: reset
 }

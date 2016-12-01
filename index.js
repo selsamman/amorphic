@@ -60,7 +60,7 @@ var applicationPersistorProps = {};
 var appContext = {};
 var logger = null;
 var amorphicOptions;
-function reset () {
+function reset (soft) {
     if (appContext.connection) {
         appContext.connection.close();
     }
@@ -75,7 +75,7 @@ function reset () {
         compressXHR: true,          // Whether to compress XHR responses
         sourceMode: 'debug'         // Whether to minify templates.  Values: 'debug', 'prod' (minify)
     }
-    return Q()
+    return soft ? Q(true) : Q()
         .then(function () {
             return deathWatch.reduce(function(p, task) {
                 return p.then(task)
@@ -85,7 +85,7 @@ function reset () {
             return Q.delay(1000);
         });
 }
-reset();
+reset(true);
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
     applicationConfig[appPath] = {
         appPath: path,
@@ -177,6 +177,10 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     var session = req.session;
     var time = process.hrtime();
 
+    var sessionData = getSessionCache(path, req.session.id, false);
+    if (newPage === 'initial') {
+        sessionData.sequence = 1;
+    }
     // For a new page determine if a controller is to be omitted
     if (newPage == "initial" && config.appConfig.createControllerFor && !session.semotus)
     {
@@ -791,10 +795,11 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     } else {
         objectTemplate.withoutChangeTracking(function () {
             var sessionData = getSessionCache(path, sessionId, true)
-            controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
-            if (controller.__lastSaveSession__ != sessionData.serializationTimeStamp) {
+            var unserialized = session.semotus.controllers[path];
+            controller = objectTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);
+            if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
                 objectTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
-                        savedAs: sessionData.serializationTimeStamp, foundToBe: controller.__lastSaveSession__},
+                        savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
                     "Session data not as saved");
             }
             // Make sure no duplicate ids are issued
@@ -861,11 +866,11 @@ function saveSession(path, session, controller, req) {
         ourObjectTemplate.serializeAndGarbageCollect() : controller.toJSONString();
 
     // Track the time of the last serialization to make sure it is valid
-    controller.__lastSaveSession__ = (new Date ()).getTime();
     var sessionData = getSessionCache(path, ourObjectTemplate.controller.__sessionId, true)
-    sessionData.serializationTimeStamp = controller.__lastSaveSession__;
+    sessionData.serializationTimeStamp = (new Date ()).getTime();;
 
-    session.semotus.controllers[path] = compressSessionData(serialSession);
+    session.semotus.controllers[path] = {controller: compressSessionData(serialSession),
+        serializationTimeStamp: sessionData.serializationTimeStamp};
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
 
     if (ourObjectTemplate.objectMap) {
@@ -875,7 +880,7 @@ function saveSession(path, session, controller, req) {
     }
 
 
-    req.amorphicTracking.addServerTask({name: 'Save Session', size: session.semotus.controllers[path].length}, time);
+    req.amorphicTracking.addServerTask({name: 'Save Session', size: session.semotus.controllers[path].controller.length}, time);
 
     controller.__request = request;
 }
@@ -890,10 +895,11 @@ function restoreSession(path, session, controllerTemplate) {
     objectTemplate.withoutChangeTracking(function () {
         var sessionData = getSessionCache(path, objectTemplate.controller.__sessionId, true)
         // will return in exising controller object because createEmptyObject does so
-        controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
-        if (controller.__lastSaveSession__ != sessionData.serializationTimeStamp) {
+        var unserialized = session.semotus.controllers[path]
+        controller = objectTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);;
+        if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
             objectTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
-                    savedAs: sessionData.serializationTimeStamp, foundToBe: controller.__lastSaveSession__},
+                    savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
                 "Session data not as saved");
         }
         if (session.semotus.objectMap && session.semotus.objectMap[path])

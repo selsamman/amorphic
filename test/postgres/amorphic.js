@@ -95,6 +95,7 @@ function beforeEachDescribe(done) {
 }
 
     describe("First Group of Tests", function () {
+        this.timeout(10000);
         before(beforeEachDescribe);
         after(afterEachDescribe);
     it ("clears the bank and saves everything", function (done) {

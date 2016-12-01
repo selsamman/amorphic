@@ -1,3 +1,5 @@
+## 1.5.3
+* Fixed message sequencing and serialization verification
 ## 1.5.2
 * Fixed tests to setup and teardown
 ## 1.5.1

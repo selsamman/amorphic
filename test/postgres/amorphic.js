@@ -40,7 +40,8 @@ function afterEachDescribe(done) {
         done()
     });
 }
-function beforeEachDescribe(done) {
+function beforeEachDescribe(done, createControllerFor) {
+    process.env.createControllerFor = createControllerFor;
     serverAmorphic.listen(__dirname +'/');
     modelRequires = require('./apps/test/public/js/model.js').model(RemoteObjectTemplate, function () {});
     controllerRequires = require('./apps/test/public/js/controller.js').controller(RemoteObjectTemplate , function () {
@@ -388,24 +389,27 @@ describe("Second Group of Tests", function () {
             done(e)
         });
     });
-    it("can do a resetSession", function (done) {
+    it("can do a resetSession", function () {
         clientController.conflictData = 'foo';
-        Q().then(function () {
-            serverAssert = function () {expect(serverController.conflictData).to.equal('foo')}
+        return Q().then(function () {
+            serverAssert = function () {
+                expect(serverController.conflictData).to.equal('foo');
+            }
             return clientController.mainFunc();
         }).then(function () {
             amorphic.resetSession();
+            serverAssert = function() {
+                expect(serverController.conflictData).to.equal('initial');
+            }
             return clientController.mainFunc();
-        }).then(function () {
-            expect("Should not be here").to.equal(false);
-        }, function (e) {
-            serverAssert = function () {expect(serverController.conflictData).to.equal('initial')}
+        }).then(null, function (e) {
+            expect(e.code).to.equal('reset');
+            expect(e.text).to.equal('Session resynchronized');
+            expect(clientController.conflictData).to.equal('initial');
+
             return clientController.mainFunc();
         }).then(function () {
             expect(clientController.conflictData).to.equal('initial');
-            done()
-        }).fail(function(e) {
-            done(e instanceof Error ? e : new Error(JSON.stringify(e)))
         });
     });
 
@@ -453,6 +457,7 @@ describe("Second Group of Tests", function () {
         });
     });
 
+    //Internal Routes (aka used by client.js)
     it('should ignore a non-sequenced post message', function() {
         return axios({
             method: 'post',
@@ -482,4 +487,64 @@ describe("Second Group of Tests", function () {
             expect(res.data.changes).to.equal('{"server-Controller-1":{"conflictData":[null,"initial"],"someData":[null,"A"],"sam":[null,null],"karen":[null,null],"ashling":[null,null],"updatedCount":[null,0]}}');
         });
     });
+
+    it('should throw an error if you are making a request to a non registered app', function() {
+        return axios({
+            method: 'post',
+            url: 'http://localhost:3001/amorphic/xhr?path=error',
+            data: {
+                sequence: 1
+            },
+            validateStatus: function (status) {
+                return true;
+            }
+        }).then(function(res) {
+            //TODO: Add a test later for the specific res.data message being sent back unfortunately that is currently a server stack trace
+            expect(res.status).to.equal(500);
+            expect(res.statusText).to.equal('Internal Server Error');
+        });
+    });
+
+    //External Routes WORK IN PROGESS returns server error that we cannot handle
+    // it('should handle a post request', function() {
+    //     serverAmorphic.applicationConfig.appConfig['createControllerFor'] = 'yes';
+    //     return axios({
+    //         method: 'post',
+    //         url: 'http://localhost:3001/amorphic/init/test.js'
+    //     }).then(function(res) {
+    //         console.log(res);
+    //     }).catch(function(e) {
+    //         console.log(e)
+    //     });
+    // })
 });
+
+describe('third group of tests', function() {
+    before(function(done){
+        return beforeEachDescribe(done, 'yes');
+    });
+    after(afterEachDescribe);
+
+    it('should handle a post request without a processPost function', function() {
+        return axios({
+            method: 'post',
+            url: 'http://localhost:3001/amorphic/init/test.js'
+        }).then(function(res) {
+            expect(res.data).to.equal('document.write("<script src=\'/test/js/model.js?ver=0\'></script>");\n\ndocument.write("<script src=\'/test/js/controller.js?ver=0\'></script>");\n\namorphic.setApplication(\'test\');amorphic.setSchema({"Customer":{"referredBy":1,"referrers":1,"addresses":1,"roles":1},"Address":{"customer":1,"returnedMail":1,"account":1},"ReturnedMail":{"address":1},"Role":{"customer":1,"account":1},"Account":{"roles":1,"address":1,"transactions":1,"fromAccountTransactions":1},"Transaction":{"account":1,"fromAccount":1}});amorphic.setConfig({"modules":{}});amorphic.setInitialMessage({"url":"/amorphic/xhr?path=test","message":{"type":"sync","sync":true,"value":null,"name":null,"remoteCallId":null,"changes":"{\\"server-Controller-1\\":{\\"conflictData\\":[null,\\"initial\\"],\\"someData\\":[null,\\"A\\"],\\"sam\\":[null,null],\\"karen\\":[null,null],\\"ashling\\":[null,null],\\"updatedCount\\":[null,0]}}","newSession":true,"rootId":"server-Controller-1","startingSequence":100001,"sessionExpiration":3600000,"ver":"0"}});');
+        });
+    });
+
+    // WORK IN PROGRESS
+    // it('should handle a post request with a processPost function', function() {
+    //     serverController.processPost = function() {
+    //         console.log('yay process post');
+    //     }
+    //
+    //     return axios({
+    //         method: 'post',
+    //         url: 'http://localhost:3001/amorphic/init/test.js'
+    //     }).then(function(res) {
+    //         console.log(res);
+    //     })
+    // })
+})

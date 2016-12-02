@@ -1,17 +1,16 @@
 'use strict';
 let assert = require('chai').assert;
 let Promise = require('bluebird');
-let amorphic = require('../../index.js');
+let serverAmorphic = require('../../index.js');
 let sinon = require('sinon');
 let axios = require('axios');
 let fs = require('fs');
 
 describe('Setup amorphic', function() {
     let server;
-    before(function() {
-        return amorphic.listen(__dirname).then(function(connectHandler) {
-            server = connectHandler;
-        });
+    before(function(done) {
+        serverAmorphic.listen(__dirname);
+        done();
     });
 
     it('can call the listen function to setup amorphic and then it can be called on the default port', function() {
@@ -25,7 +24,7 @@ describe('Setup amorphic', function() {
 
     after(function() {
         // Clean up server
-        server.close();
-
+        // server.close();
+        return serverAmorphic.reset();
     });
 });

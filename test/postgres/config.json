@@ -1,8 +1,11 @@
 {
     "port": 3001,
-    "sessionSeconds" : 3600,
-    "objectCacheSeconds" : 600,
-    "sessionSecret" : "Ey0veeljPcLsHitdxCG2",
-	"applications" : {"test": "apps/test"},
-	"application"  : "test"
+    "sessionSeconds": 3600,
+    "objectCacheSeconds": 600,
+    "sessionSecret": "Ey0veeljPcLsHitdxCG2",
+	"applications": {
+        "test": "apps/test"
+    },
+	"application": "test",
+    "conflictMode": "hard"
 }

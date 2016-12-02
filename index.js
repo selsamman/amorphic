@@ -33,9 +33,10 @@ var Q = require('q');
 var logLevel = 1;
 var path = require('path');
 var onDeath = require('death');
+var zlib = require('zlib');
 var deathWatch = [];
 var sendToLog = null;
-onDeath(function () {
+onDeath(function (){
     console.log("exiting gracefully " + deathWatch.length + " tasks to perform");
     return Q()
         .then(function () {
@@ -51,20 +52,40 @@ onDeath(function () {
             console.log("on death caught exception: " + e.message + e.stack);
         });
 });
+// Module Global Variables
 var applicationConfig = {};
 var applicationSource = {};
 var applicationSourceMap = {};
 var applicationPersistorProps = {};
-var deferred = {};
+var appContext = {};
 var logger = null;
-var zlib = require('zlib');
-var amorphicOptions = {
-    performanceLogging: false,
-    compressSession: false,
-    compressXHR: true,
-    sourceMode: 'debug'
+var amorphicOptions;
+function reset (soft) {
+    if (appContext.connection) {
+        appContext.connection.close();
+    }
+    appContext.connection = undefined;
+    applicationConfig = {};
+    applicationSource = {};
+    applicationSourceMap = {};
+    applicationPersistorProps = {};
+    amorphicOptions = {
+        conflictMode: 'soft',       // Whether to abort changes based on "old value" matching.  Values: 'soft', 'hard'
+        compressSession: false,     // Whether to compress data going to REDIS
+        compressXHR: true,          // Whether to compress XHR responses
+        sourceMode: 'debug'         // Whether to minify templates.  Values: 'debug', 'prod' (minify)
+    }
+    return soft ? Q(true) : Q()
+        .then(function () {
+            return deathWatch.reduce(function(p, task) {
+                return p.then(task)
+            }, Q(true));
+        }).then(function () {
+            console.log("All done");
+            return Q.delay(1000);
+        });
 }
-
+reset(true);
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
     applicationConfig[appPath] = {
         appPath: path,
@@ -125,13 +146,20 @@ function establishDaemon (path) {
  * Establish a server session
 
  * The entire session mechanism is predicated on the fact that there is a unique instance
- * of object templates for each session.
+ * of object templates for each session.  There are three main use cases:
+ *
+ * 1) newPage == true means the browser wants to get everything sent to it mostly because it is arriving on a new page
+ *    or a refresh or recovery from an error (refresh)
+ *
+ * 2) reset == true - clear the current session and start fresh
+ *
+ * 3) newControllerID - if specified the browser has created a controller and will be sending the data to the server
  *
  * @param req
  * @param path - used to identify future requests from XML
  * @param newPage - force returning everything since this is likely a session continuation on a new web page
  * @param reset - create new clean empty controller losing all data
- * @param hasReset - client has reset and is sending a controller
+ * @param newControllerId - client is sending us data for a new controller that it has created
  * @return {*}
  */
 function establishServerSession (req, path, newPage, reset, newControllerId)
@@ -149,6 +177,10 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     var session = req.session;
     var time = process.hrtime();
 
+    var sessionData = getSessionCache(path, req.session.id, false);
+    if (newPage === 'initial') {
+        sessionData.sequence = 1;
+    }
     // For a new page determine if a controller is to be omitted
     if (newPage == "initial" && config.appConfig.createControllerFor && !session.semotus)
     {
@@ -260,6 +292,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     return Q.fcall(function () {return ret});
 }
 var controllers = {};
+var sessions = {};
 
 function getServerConfigString(config) {
     var browserConfig = {}
@@ -761,7 +794,14 @@ function getController(path, controllerPath, initObjectTemplate, session, object
             "Creating new controller " + (newPage ? " new page " : "") + browser);
     } else {
         objectTemplate.withoutChangeTracking(function () {
-            controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
+            var sessionData = getSessionCache(path, sessionId, true)
+            var unserialized = session.semotus.controllers[path];
+            controller = objectTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);
+            if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
+                objectTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
+                        savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
+                    "Session data not as saved");
+            }
             // Make sure no duplicate ids are issued
             var semotusSession = objectTemplate._getSession();
             for (var obj in semotusSession.objects)
@@ -824,7 +864,13 @@ function saveSession(path, session, controller, req) {
     var ourObjectTemplate = controller.__template__.objectTemplate;
     var serialSession = typeof(ourObjectTemplate.serializeAndGarbageCollect) == 'function' ?
         ourObjectTemplate.serializeAndGarbageCollect() : controller.toJSONString();
-    session.semotus.controllers[path] = compressSessionData(serialSession);
+
+    // Track the time of the last serialization to make sure it is valid
+    var sessionData = getSessionCache(path, ourObjectTemplate.controller.__sessionId, true)
+    sessionData.serializationTimeStamp = (new Date ()).getTime();;
+
+    session.semotus.controllers[path] = {controller: compressSessionData(serialSession),
+        serializationTimeStamp: sessionData.serializationTimeStamp};
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
 
     if (ourObjectTemplate.objectMap) {
@@ -834,7 +880,7 @@ function saveSession(path, session, controller, req) {
     }
 
 
-    req.amorphicTracking.addServerTask({name: 'Save Session', size: session.semotus.controllers[path].length}, time);
+    req.amorphicTracking.addServerTask({name: 'Save Session', size: session.semotus.controllers[path].controller.length}, time);
 
     controller.__request = request;
 }
@@ -843,27 +889,24 @@ function restoreSession(path, session, controllerTemplate) {
 
     var objectTemplate = controllerTemplate.objectTemplate;
 
-    // Get the cached controller
-    if (!controllers[session.sessionId + path]){
-        controllers[session.sessionId + path] = {};
-    }
-    var cachedController = controllers[session.sessionId + path];
-
     // restore the controller from the session
 
     var controller;
     objectTemplate.withoutChangeTracking(function () {
-        controller = objectTemplate.fromJSON(decompressSessionData(session.semotus.controllers[path]), controllerTemplate);
+        var sessionData = getSessionCache(path, objectTemplate.controller.__sessionId, true)
+        // will return in exising controller object because createEmptyObject does so
+        var unserialized = session.semotus.controllers[path]
+        controller = objectTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);;
+        if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
+            objectTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
+                    savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
+                "Session data not as saved");
+        }
         if (session.semotus.objectMap && session.semotus.objectMap[path])
             objectTemplate.objectMap = session.semotus.objectMap[path];
         objectTemplate.logger.info({component: 'amorphic', module: 'restoreSession', activity: 'restoring'});
         objectTemplate.syncSession();  // Clean tracking of changes
     });
-    objectTemplate.controller = controller;
-    controller.__sessionId = session.sessionId;
-
-    // Set it up in the cache
-    cachedController.controller = controller;
 
     return controller;
 }
@@ -933,7 +976,7 @@ function processPost(req, resp)
         } else
             throw "Not Accepting Posts";
     }).fail(function(error){
-        console.log("Error establishing session for processPost ", req.sessionId, error.message + error.stack);
+        console.log("Error establishing session for processPost ", req.session.id, error.message + error.stack);
         resp.writeHead(500, {"Content-Type": "text/plain"});
         resp.end("Internal Error");
     }).done();
@@ -967,6 +1010,29 @@ function setupLogger(logger, path, context) {
 }
 
 /**
+ * Manage a set of data keyed by the session id used for message sequence and serialization tracking
+ * @param path String
+ * @param req Object
+ * @returns {*|{sequence: number, serializationTimeStamp: null, timeout: null}}
+ */
+function getSessionCache(path, sessionId, keepTimeout) {
+    var key = path + '-' + sessionId;
+    var session = sessions[key] || {sequence: 1, serializationTimeStamp: null, timeout: null};
+    sessions[key] = session;
+    if (!keepTimeout) {
+        if (session.timeout) {
+            clearTimeout(session.timeout);
+        }
+        setTimeout(function () {
+            if (sessions[key]) {
+                delete sessions[key];
+            }
+        }, amorphicOptions.sessionExpiration);
+    }
+    return session;
+}
+
+/**
  * Process JSON request message
  *
  * @param req
@@ -979,13 +1045,15 @@ function processMessage(req, resp)
     var session = req.session;
     var message = req.body;
     var path = url.parse(req.url, true).query.path;
+    var sessionData = getSessionCache(path, req.session.id);
     if (!message.sequence) {
         log(1, req.session.id, "ignoring non-sequenced message");
         resp.writeHead(500, {"Content-Type": "text/plain"});
         resp.end("ignoring non-sequenced message");
         return;
     }
-    var newPage = message.type == "refresh" ? true : false;
+    var expectedSequence = sessionData.sequence || message.sequence;
+    var newPage = message.type == "refresh" || message.sequence != expectedSequence ? true : false;
     var forceReset = message.type == "reset" ? true : false;
 
     establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus)
@@ -996,10 +1064,10 @@ function processMessage(req, resp)
         semotus.objectTemplate.logger.setContextProps(message.loggingContext);
         var callContext = message.type + (message.type == 'call' ? '.' + message.id + '[' + message.name + ']' :  '');
         var context = semotus.objectTemplate.logger.setContextProps({app: path, message: callContext,
-            sequence: message.sequence, session: req.session.id,
+            sequence: message.sequence, expectedSequence: sessionData.sequence, session: req.session.id,
             ipaddress: ((req.headers['x-forwarded-for'] || req.connection.remoteAddress) + "")
                 .split(',')[0].replace(/(.*)[:](.*)/,'$2') || "unknown"});
-
+        ++sessionData.sequence;
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
 
@@ -1025,6 +1093,7 @@ function processMessage(req, resp)
                 req.amorphicTracking.loggingContext[prop] = ourObjectTemplate.logger.context[prop];
             }
             req.amorphicTracking.addServerTask({name: "Reset Processing"}, startMessageProcessing);
+            sessionData.sequence = message.sequence + 1;
             displayPerformance(req);
             return;
         }
@@ -1066,7 +1135,7 @@ function processMessage(req, resp)
             resp.end(error.toString());
         }
     }).fail(function(error){
-        log(0, req.sessionId, error.message + error.stack);
+        log(0, req.session.id, error.message + error.stack);
         resp.writeHead(500, {"Content-Type": "text/plain"});
         resp.end(error.toString());
     }).done();
@@ -1185,6 +1254,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
     amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
     amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
+    amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
+    amorphicOptions.sessionExpiration = sessionExpiration;
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
     if(amorphicOptions.compressSession){
         console.log('Compress Session data requires node 0.11 or greater, current version is: ' + process.version);
@@ -1269,7 +1340,9 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                                     objectTemplate.setSchema(schema);
                                     objectTemplate.config = config;
                                     objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+
                                     objectTemplate.concurrency = dbConfig.dbConcurrency; //TODO: What does dbConcurrency do?
+                                    objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
                                 }
 
                                 establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
@@ -1294,6 +1367,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                     function injectObjectTemplate(objectTemplate) {
                         objectTemplate.config = config;
                         objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+                        objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
+
                     }
 
                     establishApplication(appName, path + (config.isDaemon ? '/js/' :'/public/js/'),
@@ -1313,8 +1388,9 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         }
     }
 
-    return Q.all(promises).then(function () {
-        var app = connect();
+
+    Q.all(promises).then( function () {
+        app = connect();
 
         if (amorphicOptions.compressXHR)
             app.use(require('compression')());
@@ -1417,8 +1493,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             postSessionInject.call(null, app);
 
         app.use(router);
+        appContext.connection = app.listen(rootCfg.get('port'));;
 
-        return app.listen(rootCfg.get('port'));
     }).fail(function(e){console.log(e.message + " " + e.stack)});
 }
 module.exports = {
@@ -1435,5 +1511,6 @@ module.exports = {
     setDownloadDir: setDownloadDir,
     listen: listen,
     getModelSource: getModelSource,
-    getModelSourceMap: getModelSourceMap
+    getModelSourceMap: getModelSourceMap,
+    reset: reset
 }

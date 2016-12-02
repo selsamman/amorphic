@@ -2,11 +2,10 @@ module.exports.foo = function (objectTemplate, uses)
 {
     var Bar = uses('bar.js', 'Bar');
     var FooExtended = uses('bar.js', 'FooExtended');
-    var Foo = objectTemplate.create("Foo", {});
     var BarExtended = Bar.extend("BarExtended", {});
     var BarExtendedExtended = BarExtended.extend('BarExtendedExtended', {});
 
-    Foo.mixin({
+    var Foo = objectTemplate.create("Foo", {
         bar: {type: Bar},
         barExtended: {type: BarExtended},
         barExtendedExtended: {type: BarExtendedExtended},

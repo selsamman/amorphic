@@ -1425,10 +1425,10 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             .use('/semotus/', connect.static(rootSemotus + "/node_modules/semotus"))
             .use(connect.cookieParser())
             .use(sessionRouter)
-            .use(uploadRoute)
-            .use(downloadRoute)
+            .use(uploadRouter)
+            .use(downloadRouter)
             .use(connect.bodyParser())
-            .use(postRoute)
+            .use(postRouter)
             .use('/amorphic/init/' , function (request, response) {
                 console.log ("Requesting " + request.originalUrl);
                 request.amorphicTracking.loggingContext.session = request.session.id;

@@ -543,7 +543,7 @@ describe('third group of tests', function() {
                 test: 'hellooo'
             }
         }).then(function(res) {
-            expect(res.data).to.equal('{"test": "hellooo"}');
+            expect(res.data).to.equal('hellooo');
         });
     })
 })

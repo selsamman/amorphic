@@ -505,18 +505,7 @@ describe("Second Group of Tests", function () {
         });
     });
 
-    //External Routes WORK IN PROGESS returns server error that we cannot handle
-    // it('should handle a post request', function() {
-    //     serverAmorphic.applicationConfig.appConfig['createControllerFor'] = 'yes';
-    //     return axios({
-    //         method: 'post',
-    //         url: 'http://localhost:3001/amorphic/init/test.js'
-    //     }).then(function(res) {
-    //         console.log(res);
-    //     }).catch(function(e) {
-    //         console.log(e)
-    //     });
-    // })
+    
 });
 
 describe('third group of tests', function() {

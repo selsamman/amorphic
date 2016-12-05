@@ -1461,7 +1461,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                         .then (function (session) {
                             var time = process.hrtime();
                             if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
-                                return Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then(function (controllerResp) {
+                                Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then(function (controllerResp) {
                                     session.save(appName, request.session, request);
                                     response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
                                     response.end(controllerResp.body || "");

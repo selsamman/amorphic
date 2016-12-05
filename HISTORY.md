@@ -1,3 +1,5 @@
+## 1.5.4
+* Fixed bug in post
 ## 1.5.3
 * Fixed message sequencing and serialization verification
 ## 1.5.2

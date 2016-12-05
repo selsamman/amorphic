@@ -1461,12 +1461,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                         .then (function (session) {
                             var time = process.hrtime();
                             if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
-                                Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then( function (controllerResp) {
-                                    session.save(appName, request.session, req);
+                                Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then(function (controllerResp) {
+                                    session.save(appName, request.session, request);
                                     response.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});
                                     response.end(controllerResp.body || "");
                                 });
-                                req.amorphicTracking.addServerTask({name: 'Application Post'}, time);
+                                request.amorphicTracking.addServerTask({name: 'Application Post'}, time);
                                 displayPerformance(request);
                             } else {
                                 response.setHeader("Content-Type", "application/javascript");

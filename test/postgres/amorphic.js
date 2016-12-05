@@ -535,16 +535,15 @@ describe('third group of tests', function() {
     });
 
     // WORK IN PROGRESS
-    // it('should handle a post request with a processPost function', function() {
-    //     serverController.processPost = function() {
-    //         console.log('yay process post');
-    //     }
-    //
-    //     return axios({
-    //         method: 'post',
-    //         url: 'http://localhost:3001/amorphic/init/test.js'
-    //     }).then(function(res) {
-    //         console.log(res);
-    //     })
-    // })
+    it('should handle a post request with a processPost function', function() {
+        return axios({
+            method: 'post',
+            url: 'http://localhost:3001/amorphic/init/config.js',
+            data: {
+                test: 'hellooo'
+            }
+        }).then(function(res) {
+            expect(res.data).to.equal('{"test": "hellooo"}');
+        });
+    })
 })

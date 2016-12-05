@@ -3,9 +3,10 @@
     "sessionSeconds": 3600,
     "objectCacheSeconds": 600,
     "sessionSecret": "Ey0veeljPcLsHitdxCG2",
-	"applications": {
-        "test": "apps/test"
+    "applications": {
+        "test": "apps/test",
+        "config": "apps/config"
     },
-	"application": "test",
+	"application": "test;config",
     "conflictMode": "hard"
 }

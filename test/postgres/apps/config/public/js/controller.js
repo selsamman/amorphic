@@ -24,6 +24,9 @@ module.exports.controller = function (objectTemplate, getTemplate)
             serverController = this;
         },
         processPost: {on: 'server', body: function (uri, body) {
+            if (body.error) {
+                throw 'error';
+            }
             return {status: 200, body: body.test};
         }},
         clearDB: {on: "server", body: function () {

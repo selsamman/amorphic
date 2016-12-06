@@ -1,3 +1,6 @@
+## 1.5.5
+* Make parameters consistent for both processPost cases
+* Including 1.5.0 of semotus
 ## 1.5.4
 * Fixed bug in post
 ## 1.5.3

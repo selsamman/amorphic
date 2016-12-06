@@ -963,7 +963,7 @@ function processPost(req, resp)
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
         if (typeof(ourObjectTemplate.controller.processPost) == "function") {
-            Q(ourObjectTemplate.controller.processPost(req.body)).then(function (controllerResp) {
+            Q(ourObjectTemplate.controller.processPost(null, req.body)).then(function (controllerResp) {
                 ourObjectTemplate.setSession(remoteSessionId);
                 semotus.save(path, session, req);
                 resp.writeHead(controllerResp.status, controllerResp.headers || {"Content-Type": "text/plain"});

@@ -11,9 +11,19 @@ module.exports.controller = function (objectTemplate, getTemplate)
     var Transaction = getTemplate('model.js').Transaction;
 
     var Controller = objectTemplate.create("Controller", {
-        mainFunc: {on: "server", body: function () {
-            return serverAssert();
-        }},
+        mainFunc: {
+            on: 'server',
+            body: function () {
+                return serverAssert();
+            }
+        },
+        emptyFunc: {
+            on: 'server',
+            body: function () {
+                console.log('executed emptyFUNc');
+                return true;
+            }
+        },
         conflictData: {type: String, value: 'initial'},
         someData: {type: String, value: 'A'},
         sam:     {type: Customer, fetch: true},

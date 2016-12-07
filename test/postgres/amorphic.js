@@ -39,7 +39,7 @@ require('../../client.js');
 function afterEachDescribe(done) {
     serverAmorphic.reset().then(function () {
         done()
-});
+    });
 }
 function beforeEachDescribe(done, appName, createControllerFor, sourceMode) {
     process.env.createControllerFor = createControllerFor;

@@ -15,7 +15,7 @@ To start with a hello world follow these instructions
 
 Then move these from `node_modules\amorphic` into the root
 
-* apps folder which contains a hello world app and a doctor patient app
+* `apps/` folder which contains a hello world app and a doctor patient app
 
 * `config.json`
 

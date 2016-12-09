@@ -4,5 +4,6 @@
     "objectCacheSeconds" : 600,
     "sessionSecret" : "Ey0veeljPcLsHitdxCG2",
 	"applications" : {"test": "apps/test"},
-	"application"  : "test"
+	"application"  : "test",
+    "conflictMode":  "hard"
 }

@@ -14,6 +14,8 @@ module.exports.controller = function (objectTemplate, getTemplate)
         mainFunc: {on: "server", body: function () {
             return serverAssert();
         }},
+        conflictData: {type: String, value: 'initial'},
+        someData: {type: String, value: 'A'},
         sam:     {type: Customer, fetch: true},
         karen:   {type: Customer, fetch: true},
         ashling: {type: Customer, fetch: true},

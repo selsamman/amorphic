@@ -146,6 +146,7 @@ amorphic = // Needs to be global to make mocha tests work
         this.reload = reload;
         this.offline = offline;
         this.refresh = refresh;
+        this.sequence = 1;
 
         this.importTemplates();
         this.performanceLogging.addCompletedTask("Templates Compiled in browser");

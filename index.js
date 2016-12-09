@@ -101,8 +101,9 @@ function establishDaemon (path) {
     var controllerPath = config.appPath + (config.appConfig.controller || "controller.js");
 
     var requires = {};
-    controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/)
-    var prop = RegExp.$2
+    var matches = controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/); 
+    var prefix = matches[1] || '';
+    var prop = matches[2] || '';
 
     // Create a new unique object template utility
     var objectTemplate = require("persistor")(ObjectTemplate, null, ObjectTemplate);

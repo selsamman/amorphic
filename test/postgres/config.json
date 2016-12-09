@@ -8,5 +8,6 @@
         "config": "apps/config"
     },
 	"application": "test;config",
-    "conflictMode": "hard"
+    "conflictMode": "hard",
+    "commonPath": "apps/common"
 }

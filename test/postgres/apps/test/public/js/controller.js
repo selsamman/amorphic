@@ -9,6 +9,8 @@ module.exports.controller = function (objectTemplate, getTemplate)
     var ReturnedMail = getTemplate('model.js').ReturnedMail;
     var Role = getTemplate('model.js').Role;
     var Transaction = getTemplate('model.js').Transaction;
+    getTemplate('mail.js', {app: 'config'});
+    getTemplate('anotherMail.js');
 
     var Controller = objectTemplate.create("Controller", {
         mainFunc: {on: "server", body: function () {

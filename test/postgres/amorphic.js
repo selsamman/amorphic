@@ -220,11 +220,9 @@ describe("First Group of Tests", function () {
     it("can do a resetSession", function (done) {
         clientController.conflictData = 'foo';
         Q().then(function () {
-            console.log('are we getting here');
             serverAssert = function () {expect(serverController.conflictData).to.equal('foo')}
             return clientController.mainFunc();
         }).then(function () {
-            console.log('are we getting here2');
             amorphic.resetSession();
             return clientController.mainFunc();
         }).then(function () {

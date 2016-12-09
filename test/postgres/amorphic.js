@@ -25,7 +25,12 @@ RemoteObjectTemplate._useGettersSetters = false;
 Q = require("q");
 _ = require("underscore");
 __ver = 0;
-document = {body: null, write: function (content) {}};
+document = {
+    body: {
+        addEventListener: function () {},
+    },
+    write: function (content) {}
+};
 alert= function (msg) {console.log("alert " + content);}
 clientController = null;
 
@@ -54,6 +59,7 @@ function beforeEachDescribe(done, appName, createControllerFor, sourceMode) {
     });
     Controller = controllerRequires.Controller;
     window = modelRequires;
+    window.addEventListener = function (){};
     window.Controller = controllerRequires.Controller;
     var isDone = false;
 
@@ -64,10 +70,6 @@ function beforeEachDescribe(done, appName, createControllerFor, sourceMode) {
             try {
                 eval(body);
 
-                amorphic.addEvent = function () {} ; // mock
-                amorphic.prepareFileUpload = function () {} //mock
-                amorphic._zombieCheck = function () {} //mock
-                amorphic.setCookie = function () {} // mock
                 amorphic.initializationData.url = "http://localhost:3001" + amorphic.initializationData.url;
                 amorphic.establishClientSession(
                     "Controller", __ver,

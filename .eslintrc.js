@@ -15,13 +15,13 @@ module.exports = exports = {
     // Overrides from recommended set
     "rules": {
         // Ignore unused vars that start with underscore
-        "no-unused-vars": [ ERROR, { "args": "all", "argsIgnorePattern": "^_" } ],
+        "no-unused-vars": [ OFF, { "args": "all", "argsIgnorePattern": "^_" } ],
         
         // Possible Errors
-        "no-unexpected-multiline": ERROR,
+        "no-unexpected-multiline": OFF,
         
         // All JSDoc comments must be valid
-        "valid-jsdoc": [ ERROR, {
+        "valid-jsdoc": [ OFF, {
             "requireReturn": false,
             "requireReturnDescription": false,
             "requireParamDescription": true,
@@ -37,15 +37,15 @@ module.exports = exports = {
         }],
         
         // Whitespace
-        "indent": [ERROR, 4],
-        "no-trailing-spaces": ERROR,
-        "space-before-blocks": ERROR,
-        "keyword-spacing": ERROR,
-        "semi-spacing": ERROR,
-        "comma-spacing": ERROR,
-        "space-infix-ops": ERROR,
-        "space-in-parens": ERROR,
-        "array-bracket-spacing": ERROR,
+        "indent": [OFF, 4],
+        "no-trailing-spaces": OFF,
+        "space-before-blocks": OFF,
+        "keyword-spacing": OFF,
+        "semi-spacing": OFF,
+        "comma-spacing": OFF,
+        "space-infix-ops": OFF,
+        "space-in-parens": OFF,
+        "array-bracket-spacing": OFF,
         
         // Low Risk
         "curly": OFF,
@@ -54,7 +54,7 @@ module.exports = exports = {
         "comma-style": OFF,
         "comma-dangle": OFF,
         "max-statements-per-line": OFF,
-        "quotes": ["error", "single", { "avoidEscape": true }],
+        "quotes": [OFF, "single", { "avoidEscape": true }],
         
         // Medium Risk
         "eqeqeq": OFF,
@@ -79,40 +79,5 @@ module.exports = exports = {
         "max-params": [OFF, 6],
         "max-statements": [OFF, 35],
         "max-depth": [OFF, 5]
-    },
-    "globals": {
-        "Q": true,
-        "QHTTP": true,
-        "gc": true,
-        "Bloodhound": true,
-        "AmorphicRouter": true,
-        "ActiveXObject": true,
-        "RemoteObjectTemplate": true,
-        "havenRoutes": true,
-        "_": true,
-        "Handlebars": true,
-        "fs": true,
-        "amorphic": true,
-        "bindster": true,
-        "Bindster": true,
-        "numeral": true,
-        "stream": true,
-        "ga": true,
-        "newrelic": true,
-        "__insp": true,
-        "__experiments": true,
-        "__setVariation": true,
-        "__setExperiments": true,
-        "__ver": true,
-        "scripts": true,
-        "controller": true,
-        "zopimShowHide": true,
-        "trackURL": true,
-        "_defs": true,
-        "Url": true,
-        "cxApi": true,
-        "$zopim": true,
-        "AVAILABLE_STATES": true,
-        "havenRoutes": true
     }
 };

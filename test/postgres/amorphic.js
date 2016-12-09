@@ -3,6 +3,7 @@ var request = require('request');
 var axios = require('axios');
 var path = require('path');
 var fs = require('fs');
+var sinon = require('sinon');
 
 // This module emulates XMLHTTPRequest for the benefit of client.js which uses it to communicate with the server
 var xhrc = require("xmlhttprequest-cookie");
@@ -579,6 +580,37 @@ describe('third group of tests', function() {
         });
     });
 
+});
+
+describe('processLoggingMessage', function() {
+    before(function(done){
+        return beforeEachDescribe(done, 'test', 'no');
+    });
+
+    beforeEach(function(){
+        sinon.spy(amorphic, '_post');
+    });
+
+    after(afterEachDescribe);
+
+    afterEach(function(){
+        amorphic._post.restore();
+    });
+
+    it('should post a message to the server of type "logging"', function(){
+        amorphic.sendLoggingMessage('warn', { foo: 'bar' });
+
+        var url = 'http://localhost:3001/amorphic/xhr?path=test'
+        var payload = {
+            type: 'logging',
+            loggingLevel: 'warn',
+            loggingContext: {},
+            loggingData: { foo: 'bar' }
+        };
+
+        expect(amorphic._post.calledOnce).to.be.true;
+        expect(amorphic._post.calledWith(url, payload)).to.be.true;
+    });
 });
 
 describe('source mode prod testing', function () {

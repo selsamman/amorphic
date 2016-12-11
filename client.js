@@ -18,10 +18,6 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-Persistor = ObjectTemplate.create('Peristor',
-    {
-    });
-
 
 RemoteObjectTemplate._injectIntoTemplate = function (template)
 {
@@ -604,4 +600,3 @@ amorphic = // Needs to be global to make mocha tests work
         return jar;
     }
 };
-

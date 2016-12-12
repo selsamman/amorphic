@@ -1690,27 +1690,21 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
 
                 var schema = JSON.parse((readFile(path + '/schema.json') || readFile(cpath + '/schema.json')).toString());
 
-                var dbConfig = (function(config) {
-                    return {
-                        dbName : config.get(appName + '_dbName') || config.get('dbName') || config.get('dbname'),
-                        dbPath : config.get(appName + '_dbPath') || config.get('dbPath') || config.get('dbpath'),
-                        dbDriver : config.get(appName + '_dbDriver') || config.get('dbDriver') || config.get('dbdriver') || 'mongo',
-                        dbType : config.get(appName + '_dbType') || config.get('dbType') || config.get('dbtype') || 'mongo',
-                        dbUser : config.get(appName + '_dbUser') || config.get('dbUser') || config.get('dbuser') || 'nodejs',
-                        dbPassword : config.get(appName + '_dbPassword') || config.get('dbPassword') || config.get('dbpassword') || null,
-                        isDBSet : function () {
-                            return this.dbName && this.dbPath;
-                        },
-                        connectMongo : function () { return this.dbPath + this.dbName; },
-                        dbConnections : config.get(appName + '_dbConnections') || config.get('dbconnections') || 20,
-                        dbConcurrency : config.get(appName + '_dbConcurrency') || config.get('dbconcurrency') || 5
-                    };
-                })(config.nconf);
+                var dbConfig = {
+                    dbName : config.nconf.get(appName + '_dbName') || config.nconf.get('dbName') || config.nconf.get('dbname'),
+                    dbPath : config.nconf.get(appName + '_dbPath') || config.nconf.get('dbPath') || config.nconf.get('dbpath'),
+                    dbDriver : config.nconf.get(appName + '_dbDriver') || config.nconf.get('dbDriver') || config.nconf.get('dbdriver') || 'mongo',
+                    dbType : config.nconf.get(appName + '_dbType') || config.nconf.get('dbType') || config.nconf.get('dbtype') || 'mongo',
+                    dbUser : config.nconf.get(appName + '_dbUser') || config.nconf.get('dbUser') || config.nconf.get('dbuser') || 'nodejs',
+                    dbPassword : config.nconf.get(appName + '_dbPassword') || config.nconf.get('dbPassword') || config.nconf.get('dbpassword') || null,
+                    dbConnections : config.nconf.get(appName + '_dbConnections') || config.nconf.get('dbconnections') || 20,
+                    dbConcurrency : config.nconf.get(appName + '_dbConcurrency') || config.nconf.get('dbconcurrency') || 5
+                };
 
-                if (dbConfig.isDBSet()) {
+                if (dbConfig.dbName && dbConfig.dbName) {
                     if (dbConfig.dbDriver == 'mongo') {
                         var MongoClient = require('mongodb-bluebird');
-                        var dbClient = MongoClient.connect(dbConfig.connectMongo());
+                        var dbClient = MongoClient.connect(dbConfig.dbPath + dbConfig.dbName);
                     }
                     else if (dbConfig.dbDriver == 'knex') {
                         var knex = require('knex')({

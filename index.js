@@ -1610,9 +1610,7 @@ function intializePerformance(req, resp, next) {
     next();
 }
 
-function listen(dirname, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
-    sendToLog = sendToLogFunction;
-    
+function fetchStartUpParams(rootCfg) {
     // Create temporary directory for file uploads
     var downloads = path.join(path.dirname(require.main.filename), 'download');
     
@@ -1627,25 +1625,26 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     }
     
     setDownloadDir(downloads);
-
-    var builder = new configBuilder(new configApi());
-    var configStore = builder.build(dirname);
-
     
-    var rootCfg = configStore['root'];
-
     amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
     amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
     amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
     amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
     amorphicOptions.sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
     amorphicOptions.objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
+}
+
+function listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
+    sendToLog = sendToLogFunction;
+    
+    var builder = new configBuilder(new configApi());
+    var configStore = builder.build(appDirectory);
+    
+    var rootCfg = configStore['root'];
+    
+    fetchStartUpParams(rootCfg);
     
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
-    
-    if (amorphicOptions.compressSession) {
-        console.log('Compress Session data requires node 0.11 or greater, current version is: ' + process.version);
-    }
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
     
@@ -1670,8 +1669,8 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
         if (appStartList.indexOf(appKey) >= 0) {
             (function () {
                 var appName = appKey;
-                var path = dirname + '/' + appList[appName] + '/';
-                var cpath = dirname + '/apps/common/';
+                var path = appDirectory + '/' + appList[appName] + '/';
+                var cpath = appDirectory + '/apps/common/';
                 
                 function readFile (file) {
                     return file && fs.existsSync(file) ? fs.readFileSync(file) : null;
@@ -1691,7 +1690,9 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                         dbType : config.get(appName + '_dbType') || config.get('dbType') || config.get('dbtype') || 'mongo',
                         dbUser : config.get(appName + '_dbUser') || config.get('dbUser') || config.get('dbuser') || 'nodejs',
                         dbPassword : config.get(appName + '_dbPassword') || config.get('dbPassword') || config.get('dbpassword') || null,
-                        isDBSet : function () { return this.dbName && this.dbPath; },
+                        isDBSet : function () {
+                            return this.dbName && this.dbPath;
+                        },
                         connectMongo : function () { return this.dbPath + this.dbName; },
                         dbConnections : config.get(appName + '_dbConnections') || config.get('dbconnections') || 20,
                         dbConcurrency : config.get(appName + '_dbConcurrency') || config.get('dbconcurrency') || 5
@@ -1807,7 +1808,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
         for (var appName in appList) {
             if (appStartList.indexOf(appName) >= 0) {
-                var path = dirname + '/' + appList[appName] + '/public';
+                var path = appDirectory + '/' + appList[appName] + '/public';
                 
                 app.use('/' + appName + '/', connect.static(path, {index: 'index.html'}));
                 
@@ -1819,32 +1820,32 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             }
         }
 
-        if (fs.existsSync(dirname + '/node_modules/supertype')) {
-            rootSuperType = dirname;
+        if (fs.existsSync(appDirectory + '/node_modules/supertype')) {
+            rootSuperType = appDirectory;
         }
         else {
             rootSuperType = __dirname;
         }
         
-        if (fs.existsSync(dirname + '/node_modules/semotus')) {
-            rootSemotus = dirname;
+        if (fs.existsSync(appDirectory + '/node_modules/semotus')) {
+            rootSemotus = appDirectory;
         }
         else {
             rootSemotus = __dirname;
         }
         
-        if (fs.existsSync(dirname + '/node_modules/amorphic-bindster')) {
-            rootBindster = dirname;
+        if (fs.existsSync(appDirectory + '/node_modules/amorphic-bindster')) {
+            rootBindster = appDirectory;
         }
         else {
             rootBindster = __dirname;
         }
 
          app.use(intializePerformance)
-            .use('/modules/', connect.static(dirname + '/node_modules'))
+            .use('/modules/', connect.static(appDirectory + '/node_modules'))
             .use('/bindster/', connect.static(rootBindster + '/node_modules/amorphic-bindster'))
-            .use('/amorphic/', connect.static(dirname))
-            .use('/common/', connect.static(dirname + '/apps/common'))
+            .use('/amorphic/', connect.static(appDirectory))
+            .use('/common/', connect.static(appDirectory + '/apps/common'))
             .use('/supertype/', connect.static(rootSuperType + '/node_modules/supertype'))
             .use('/semotus/', connect.static(rootSemotus + '/node_modules/semotus'))
             .use(connect.cookieParser())

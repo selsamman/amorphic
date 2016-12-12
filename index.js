@@ -36,6 +36,9 @@ var logLevel = 1;
 var path = require('path');
 var zlib = require('zlib');
 var sendToLog = null;
+var connect = require('connect');
+var configBuilder = require('./configBuilder').ConfigBuilder;
+var configApi = require('./configBuilder').ConfigAPI;
 
 // Module Global Variables
 var applicationConfig = {};
@@ -1609,17 +1612,8 @@ function intializePerformance(req, resp, next) {
 
 function listen(dirname, sessionStore, preSessionInject, postSessionInject, sendToLogFunction)
 {
-    var fs = require('fs');
-    var Q = require('q');
-    var url = require('url');
-    var connect = require('connect');
-    var path = require('path');
-
-    var configBuilder = require('./configBuilder').ConfigBuilder;
-    var configApi = require('./configBuilder').ConfigAPI;
     sendToLog = sendToLogFunction;
-
-
+    
     // Create temporary directory for file uploads
     var downloads = path.join(path.dirname(require.main.filename), 'download');
     

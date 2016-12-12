@@ -1611,6 +1611,15 @@ function intializePerformance(req, resp, next) {
 }
 
 function fetchStartUpParams(rootCfg) {
+    amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
+    amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
+    amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
+    amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
+    amorphicOptions.sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
+    amorphicOptions.objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
+}
+
+function generateDownloadsDir() {
     // Create temporary directory for file uploads
     var downloads = path.join(path.dirname(require.main.filename), 'download');
     
@@ -1625,13 +1634,6 @@ function fetchStartUpParams(rootCfg) {
     }
     
     setDownloadDir(downloads);
-    
-    amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
-    amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
-    amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
-    amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
-    amorphicOptions.sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
-    amorphicOptions.objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
 }
 
 function listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
@@ -1643,6 +1645,7 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     var rootCfg = configStore['root'];
     
     fetchStartUpParams(rootCfg);
+    generateDownloadsDir();
     
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
 

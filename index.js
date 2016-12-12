@@ -46,6 +46,7 @@ var appContext = {};
 var logger = null;
 var amorphicOptions;
 
+// TODO: Remove this - this is just to set the default config options
 function reset () {
     if (appContext.connection) {
         appContext.connection.close();
@@ -67,7 +68,7 @@ function reset () {
     return Q(true);
 }
 
-reset(true);
+reset();
 
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
     applicationConfig[appPath] = {
@@ -163,8 +164,7 @@ function establishDaemon (path) {
  * @param newControllerId - client is sending us data for a new controller that it has created
  * @return {*}
  */
-function establishServerSession (req, path, newPage, reset, newControllerId)
-{
+function establishServerSession (req, path, newPage, reset, newControllerId) {
     // Retrieve configuration information
     var config = applicationConfig[path];
     
@@ -1418,6 +1418,105 @@ function uploadRouter(req, resp, next) {
     }
 }
 
+function amorphicEntry(req, resp, next) {
+    // If we're not initalizing
+    if (!req.url.match(/amorphic\/init/)) {
+        next();
+    }
+    
+    console.log ('Requesting ' + req.originalUrl);
+    
+    req.amorphicTracking.loggingContext.session = req.session.id;
+    
+    req.amorphicTracking.loggingContext.ipaddress =
+        (String(req.headers['x-forwarded-for'] || req.connection.remoteAddress))
+            .split(',')[0].replace(/(.*)[:](.*)/, '$2') || 'unknown';
+    
+    var time = process.hrtime();
+    
+    if (req.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
+        var appName = RegExp.$1;
+        
+        req.amorphicTracking.loggingContext.app = appName;
+        resp.setHeader('Content-Type', 'application/javascript');
+        resp.setHeader('Cache-Control', 'public, max-age=31556926');
+        resp.end(getModelSourceMap(appName));
+        
+        req.amorphicTracking.addServerTask({name: 'Request Source Map'}, time);
+        displayPerformance(req);
+    }
+    else if (req.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
+        var appName = RegExp.$1;
+        
+        req.amorphicTracking.loggingContext.app = appName;
+        resp.setHeader('Content-Type', 'application/javascript');
+        resp.setHeader('Cache-Control', 'public, max-age=31556926');
+        
+        if (amorphicOptions.sourceMode == 'prod') {
+            if (req.originalUrl.match(/(\?ver=[0-9]+)/)) {
+                resp.setHeader('X-SourceMap', '/amorphic/init/' + appName + '.cached.js.map?ver=' + RegExp.$1);
+            }
+            else {
+                resp.setHeader('X-SourceMap', '/amorphic/init/' + appName + '.cached.js.map?ver=');
+            }
+        }
+        
+        resp.end(getModelSource(appName));
+        
+        req.amorphicTracking.addServerTask('Request Compressed Sources', time);
+        displayPerformance(req);
+    }
+    else if (req.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
+        var url = req.originalUrl;
+        var appName = RegExp.$1;
+        
+        req.amorphicTracking.loggingContext.app = appName;
+        console.log('Establishing ' + appName);
+        
+        establishServerSession(req, appName, 'initial')
+            .then (function (session) {
+                var time = process.hrtime();
+                
+                if (req.method == 'POST' && session.objectTemplate.controller.processPost) {
+                    Q(session.objectTemplate.controller.processPost(req.originalUrl, req.body, req)).then(function (controllerResp) {
+                        session.save(appName, req.session, req);
+                        resp.writeHead(controllerResp.status, controllerResp.headers || {'Content-Type': 'text/plain'});
+                        resp.end(controllerResp.body || '');
+                    });
+                    
+                    req.amorphicTracking.addServerTask({name: 'Application Post'}, time);
+                    displayPerformance(req);
+                }
+                else {
+                    resp.setHeader('Content-Type', 'application/javascript');
+                    resp.setHeader('Cache-Control', 'public, max-age=0');
+                    
+                    if (amorphicOptions.sourceMode != 'debug') {
+                        resp.end(
+                            "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n" +
+                            "amorphic.setApplication('" + appName + "');" +
+                            'amorphic.setSchema(' + JSON.stringify(session.getPersistorProps()) + ');' +
+                            'amorphic.setConfig(' + JSON.stringify(JSON.parse(session.getServerConfigString())) + ');' +
+                            'amorphic.setInitialMessage(' + session.getServerConnectString() + ');'
+                        );
+                    }
+                    else {
+                        resp.end(
+                            getModelSource(appName) +
+                            "amorphic.setApplication('" + appName + "');" +
+                            'amorphic.setSchema(' + JSON.stringify(session.getPersistorProps()) + ');' +
+                            'amorphic.setConfig(' + JSON.stringify(JSON.parse(session.getServerConfigString())) + ');' +
+                            'amorphic.setInitialMessage(' + session.getServerConnectString() + ');'
+                        );
+                    }
+                    
+                    req.amorphicTracking.addServerTask({name: 'Application Initialization'}, time);
+                    displayPerformance(req);
+                }
+            }).done();
+    }
+}
+
 function postRouter(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.form && req.method == 'POST') {
         processPost(req, resp, next);
@@ -1750,8 +1849,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             rootBindster = __dirname;
         }
 
-        app
-            .use(intializePerformance)
+         app.use(intializePerformance)
             .use('/modules/', connect.static(dirname + '/node_modules'))
             .use('/bindster/', connect.static(rootBindster + '/node_modules/amorphic-bindster'))
             .use('/amorphic/', connect.static(dirname))
@@ -1764,99 +1862,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             .use(downloadRouter)
             .use(connect.bodyParser())
             .use(postRouter)
-            .use('/amorphic/init/', function (request, response) {
-                console.log ('Requesting ' + request.originalUrl);
-                
-                request.amorphicTracking.loggingContext.session = request.session.id;
-                
-                request.amorphicTracking.loggingContext.ipaddress =
-                    (String(request.headers['x-forwarded-for'] || request.connection.remoteAddress))
-                        .split(',')[0].replace(/(.*)[:](.*)/, '$2') || 'unknown';
-                
-                var time = process.hrtime();
-                
-                if (request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
-                    var appName = RegExp.$1;
-                    
-                    request.amorphicTracking.loggingContext.app = appName;
-                    response.setHeader('Content-Type', 'application/javascript');
-                    response.setHeader('Cache-Control', 'public, max-age=31556926');
-                    response.end(getModelSourceMap(appName));
-
-                    request.amorphicTracking.addServerTask({name: 'Request Source Map'}, time);
-                    displayPerformance(request);
-                }
-                else if (request.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
-                    var appName = RegExp.$1;
-                    
-                    request.amorphicTracking.loggingContext.app = appName;
-                    response.setHeader('Content-Type', 'application/javascript');
-                    response.setHeader('Cache-Control', 'public, max-age=31556926');
-                    
-                    if (amorphicOptions.sourceMode == 'prod') {
-                        if (request.originalUrl.match(/(\?ver=[0-9]+)/)) {
-                            response.setHeader('X-SourceMap', '/amorphic/init/' + appName + '.cached.js.map?ver=' + RegExp.$1);
-                        }
-                        else {
-                            response.setHeader('X-SourceMap', '/amorphic/init/' + appName + '.cached.js.map?ver=');
-                        }
-                    }
-                    
-                    response.end(getModelSource(appName));
-
-                    request.amorphicTracking.addServerTask('Request Compressed Sources', time);
-                    displayPerformance(request);
-                }
-                else if (request.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
-                    var url = request.originalUrl;
-                    var appName = RegExp.$1;
-                    
-                    request.amorphicTracking.loggingContext.app = appName;
-                    console.log('Establishing ' + appName);
-                    
-                    establishServerSession(request, appName, 'initial')
-                        .then (function (session) {
-                            var time = process.hrtime();
-                            
-                            if (request.method == 'POST' && session.objectTemplate.controller.processPost) {
-                                Q(session.objectTemplate.controller.processPost(request.originalUrl, request.body, request)).then(function (controllerResp) {
-                                    session.save(appName, request.session, request);
-                                    response.writeHead(controllerResp.status, controllerResp.headers || {'Content-Type': 'text/plain'});
-                                    response.end(controllerResp.body || '');
-                                });
-                                
-                                request.amorphicTracking.addServerTask({name: 'Application Post'}, time);
-                                displayPerformance(request);
-                            }
-                            else {
-                                response.setHeader('Content-Type', 'application/javascript');
-                                response.setHeader('Cache-Control', 'public, max-age=0');
-                                
-                                if (amorphicOptions.sourceMode != 'debug') {
-                                    response.end(
-                                        "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n" +
-                                        "amorphic.setApplication('" + appName + "');" +
-                                        'amorphic.setSchema(' + JSON.stringify(session.getPersistorProps()) + ');' +
-                                        'amorphic.setConfig(' + JSON.stringify(JSON.parse(session.getServerConfigString())) + ');' +
-                                        'amorphic.setInitialMessage(' + session.getServerConnectString() + ');'
-                                    );
-                                }
-                                else {
-                                    response.end(
-                                        getModelSource(appName) +
-                                        "amorphic.setApplication('" + appName + "');" +
-                                        'amorphic.setSchema(' + JSON.stringify(session.getPersistorProps()) + ');' +
-                                        'amorphic.setConfig(' + JSON.stringify(JSON.parse(session.getServerConfigString())) + ');' +
-                                        'amorphic.setInitialMessage(' + session.getServerConnectString() + ');'
-                                    );
-                                }
-                                
-                                request.amorphicTracking.addServerTask({name: 'Application Initialization'}, time);
-                                displayPerformance(request);
-                            }
-                        }).done();
-                }
-            });
+            .use(amorphicEntry);
 
         if (postSessionInject) {
             postSessionInject.call(null, app);

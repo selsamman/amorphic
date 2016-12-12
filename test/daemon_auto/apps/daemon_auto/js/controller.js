@@ -1,4 +1,10 @@
 module.exports.controller = function (objectTemplate, uses) {
+    var fs;
+    var url;
+    if (typeof(require) !== 'undefined') {
+        fs = require('fs');
+        url = require('url');
+    }
 
     var localObjectTemplate = objectTemplate;
     var BaseController = uses('./baseController.js', "BaseController");
@@ -27,6 +33,24 @@ module.exports.controller = function (objectTemplate, uses) {
             this.posted = body.myfield;
             return {status: 303, headers: {location: uri.replace(/amorphic.*/, '')}};
         }},
+
+        onContentRequest: function(request, response) {
+            var path = url.parse(request.url, true).query.file;
+            var file = __dirname + '/./' + path;
+            try {
+                var stat = fs.statSync(file);
+            } catch(e) {
+                response.writeHead(404, {'Content-Type': 'text/plain'});
+                response.end('Not found');
+                return;
+            }
+            response.writeHead(200, {
+                'Content-Type': 'application/pdf',
+                'Content-Length': stat.size
+            });
+            var readStream = fs.createReadStream(file);
+            readStream.pipe(response);
+        },
 
         getMapFromStatic: function() {
             return MapFromStatic;

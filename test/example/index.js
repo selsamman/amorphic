@@ -5,6 +5,7 @@ let serverAmorphic = require('../../index.js');
 let sinon = require('sinon');
 let axios = require('axios');
 let fs = require('fs');
+let path = require('path');
 
 describe('Setup amorphic', function() {
     let server;
@@ -19,7 +20,10 @@ describe('Setup amorphic', function() {
         });
     });
 
-    it('make sure that the downloads directory exists');
+    it('make sure that the downloads directory exists', function() {
+        let downloadPath = path.join(path.dirname(require.main.filename), 'download');
+        assert.isTrue(fs.existsSync(downloadPath), 'The download path exists');
+    });
 
 
     after(function() {

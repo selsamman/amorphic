@@ -5,7 +5,7 @@
     "objectCacheSeconds" : 600,
     "sessionSecret" : "Ey0veeljPcLsHitdxCG2",
 	"applications" : {
-        "daemonAuto": "apps/daemon_auto"
+        "daemon_auto": "apps/daemon_auto"
     },
-	"application"  : "daemonAuto"
+	"application"  : "daemon_auto"
 }

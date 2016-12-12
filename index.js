@@ -1645,6 +1645,121 @@ function generateDownloadsDir() {
     setDownloadDir(downloads);
 }
 
+// TODO: Refactor this to be a readSchema function
+function readFile (file) {
+    return file && fs.existsSync(file) ? fs.readFileSync(file) : null;
+}
+
+function startApplication(appName, appDirectory, appList, configStore, sessionStore) {
+    
+    var path = appDirectory + '/' + appList[appName] + '/';
+    var cpath = appDirectory + '/apps/common/';
+    
+    // TODO: Completely change how we do configurations
+    var config = configStore[appName].get();
+    config.nconf = configStore[appName]; // global config
+    config.configStore = configStore;
+    
+    var schema = JSON.parse((readFile(path + '/schema.json') || readFile(cpath + '/schema.json')).toString());
+    
+    var dbConfig = {
+        dbName : config.nconf.get(appName + '_dbName') || config.nconf.get('dbName') || config.nconf.get('dbname'),
+        dbPath : config.nconf.get(appName + '_dbPath') || config.nconf.get('dbPath') || config.nconf.get('dbpath'),
+        dbDriver : config.nconf.get(appName + '_dbDriver') || config.nconf.get('dbDriver') || config.nconf.get('dbdriver') || 'mongo',
+        dbType : config.nconf.get(appName + '_dbType') || config.nconf.get('dbType') || config.nconf.get('dbtype') || 'mongo',
+        dbUser : config.nconf.get(appName + '_dbUser') || config.nconf.get('dbUser') || config.nconf.get('dbuser') || 'nodejs',
+        dbPassword : config.nconf.get(appName + '_dbPassword') || config.nconf.get('dbPassword') || config.nconf.get('dbpassword') || null,
+        dbConnections : config.nconf.get(appName + '_dbConnections') || config.nconf.get('dbconnections') || 20,
+        dbConcurrency : config.nconf.get(appName + '_dbConcurrency') || config.nconf.get('dbconcurrency') || 5
+    };
+    
+    if (dbConfig.dbName && dbConfig.dbPath) {
+        if (dbConfig.dbDriver == 'mongo') {
+            var MongoClient = require('mongodb-bluebird');
+            var dbClient = MongoClient.connect(dbConfig.dbPath + dbConfig.dbName);
+        }
+        else if (dbConfig.dbDriver == 'knex') {
+            var knex = require('knex')({
+                client: dbConfig.dbType,
+                connection: {
+                    host     : dbConfig.dbPath,
+                    database : dbConfig.dbName,
+                    user: dbConfig.dbUser,
+                    password: dbConfig.dbPassword
+                }, pool: {min: 0, max: dbConfig.dbConnections}
+            });
+            
+            var dbClient = Q(knex); // TODO: knex is already initialized because it is a synchronous function that is called when require('knex') occurs
+        }
+        
+        return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore)).catch(function (e) {
+            console.log(e.message + e.stack);
+        });
+    }
+    else {
+        // No database case
+        function injectObjectTemplate(objectTemplate) {
+            objectTemplate.config = config;
+            objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+            objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
+        }
+        
+        if (config.isDaemon) {
+            establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
+                amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
+                config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+        }
+        else {
+            establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
+                amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
+                config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+        }
+        
+        if (config.isDaemon) {
+            establishDaemon(appName);
+            console.log(appName + ' started as a daemon');
+        }
+    }
+}
+
+function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionStore, db) {
+    console.log('DB connection established to ' + dbConfig.dbName);
+    
+    // TODO: Try to pull this function out
+    function injectObjectTemplate (objectTemplate) {
+        
+        if (dbConfig.dbDriver == 'knex') {
+            objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
+        }
+        else {
+            objectTemplate.setDB(db);
+        }
+        
+        objectTemplate.setSchema(schema);
+        objectTemplate.config = config;
+        objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+        
+        objectTemplate.concurrency = dbConfig.dbConcurrency; //TODO: What does dbConcurrency do?
+        objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
+    }
+    
+    if (config.isDaemon) {
+        establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
+            amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
+            config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+    }
+    else {
+        establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
+            amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
+            config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+    }
+    
+    if (config.isDaemon) {
+        establishDaemon(appName);
+        console.log(appName + ' started as a daemon');
+    }
+}
+
 function listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
     sendToLog = sendToLogFunction;
     
@@ -1675,125 +1790,7 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
 
     for (var appKey in appList) {
         if (appStartList.indexOf(appKey) >= 0) {
-            (function () {
-                var appName = appKey;
-                var path = appDirectory + '/' + appList[appName] + '/';
-                var cpath = appDirectory + '/apps/common/';
-                
-                function readFile (file) {
-                    return file && fs.existsSync(file) ? fs.readFileSync(file) : null;
-                }
-
-                var config = configStore[appKey].get();
-                config.nconf = configStore[appKey]; // global config
-                config.configStore = configStore;
-
-                var schema = JSON.parse((readFile(path + '/schema.json') || readFile(cpath + '/schema.json')).toString());
-
-                var dbConfig = {
-                    dbName : config.nconf.get(appName + '_dbName') || config.nconf.get('dbName') || config.nconf.get('dbname'),
-                    dbPath : config.nconf.get(appName + '_dbPath') || config.nconf.get('dbPath') || config.nconf.get('dbpath'),
-                    dbDriver : config.nconf.get(appName + '_dbDriver') || config.nconf.get('dbDriver') || config.nconf.get('dbdriver') || 'mongo',
-                    dbType : config.nconf.get(appName + '_dbType') || config.nconf.get('dbType') || config.nconf.get('dbtype') || 'mongo',
-                    dbUser : config.nconf.get(appName + '_dbUser') || config.nconf.get('dbUser') || config.nconf.get('dbuser') || 'nodejs',
-                    dbPassword : config.nconf.get(appName + '_dbPassword') || config.nconf.get('dbPassword') || config.nconf.get('dbpassword') || null,
-                    dbConnections : config.nconf.get(appName + '_dbConnections') || config.nconf.get('dbconnections') || 20,
-                    dbConcurrency : config.nconf.get(appName + '_dbConcurrency') || config.nconf.get('dbconcurrency') || 5
-                };
-
-                if (dbConfig.dbName && dbConfig.dbName) {
-                    if (dbConfig.dbDriver == 'mongo') {
-                        var MongoClient = require('mongodb-bluebird');
-                        var dbClient = MongoClient.connect(dbConfig.dbPath + dbConfig.dbName);
-                    }
-                    else if (dbConfig.dbDriver == 'knex') {
-                        var knex = require('knex')({
-                            client: dbConfig.dbType,
-                            connection: {
-                                host     : dbConfig.dbPath,
-                                database : dbConfig.dbName,
-                                user: dbConfig.dbUser,
-                                password: dbConfig.dbPassword
-                            }, pool: {min: 0, max: dbConfig.dbConnections}
-                        });
-                        
-                        var dbClient = Q(knex); // TODO: knex is already intialized because it is a syncronous function that is called when require('knex') occurs
-                    }
-                    promises.push(dbClient
-                        .then (function (db) {
-                            console.log('DB connection established to ' + dbConfig.dbName);
-                            
-                            function injectObjectTemplate (objectTemplate) {
-                                
-                                if (dbConfig.dbDriver == 'knex') {
-                                    objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
-                                }
-                                else {
-                                    objectTemplate.setDB(db);
-                                }
-
-                                objectTemplate.setSchema(schema);
-                                objectTemplate.config = config;
-                                objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
-
-                                objectTemplate.concurrency = dbConfig.dbConcurrency; //TODO: What does dbConcurrency do?
-                                objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
-                            }
-
-                            if (config.isDaemon) {
-                                establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
-                                    amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
-                                    config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
-                            }
-                            else {
-                                establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
-                                    amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
-                                    config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
-                            }
-
-                            if (config.isDaemon) {
-                                establishDaemon(appName);
-                                console.log(appName + ' started as a daemon');
-                            }
-                            else {
-                                promises.push(Q(true));
-                            }
-                        },
-                        function(e) {
-                            console.log(e.message);
-                        }).fail(function (e) {
-                            console.log(e.message + e.stack);
-                        })
-                    );
-                }
-                else {
-                    // No database case
-                    function injectObjectTemplate(objectTemplate) {
-                        objectTemplate.config = config;
-                        objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
-                        objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
-                    }
-
-                    if (config.isDaemon) {
-                        establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
-                            amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
-                            config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
-                    }
-                    else {
-                        establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
-                            amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
-                            config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
-                    }
-
-                    if (config.isDaemon) {
-                        establishDaemon(appName);
-                        console.log(appName + ' started as a daemon');
-                    }
-                    else {
-                        promises.push(Q(true));
-                    }
-                }
-            })();
+            promises.push(startApplication(appKey, appDirectory, appList, configStore, sessionStore));
         }
     }
     

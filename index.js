@@ -1760,6 +1760,81 @@ function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionSto
     }
 }
 
+function startUpServer(preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter) {
+    var app = connect();
+    
+    if (amorphicOptions.compressXHR) {
+        app.use(require('compression')());
+    }
+    
+    if (preSessionInject) {
+        preSessionInject.call(null, app);
+    }
+    
+    for (var appName in appList) {
+        if (appStartList.indexOf(appName) >= 0) {
+            var path = appDirectory + '/' + appList[appName] + '/public';
+            
+            app.use('/' + appName + '/', connect.static(path, {index: 'index.html'}));
+            
+            if (appName == mainApp) {
+                app.use('/', connect.static(path, {index: 'index.html'}));
+            }
+            
+            console.log(appName + ' connected to ' + path);
+        }
+    }
+    
+    var rootSuperType;
+    
+    if (fs.existsSync(appDirectory + '/node_modules/supertype')) {
+        rootSuperType = appDirectory;
+    }
+    else {
+        rootSuperType = __dirname;
+    }
+    
+    var rootSemotus;
+    
+    if (fs.existsSync(appDirectory + '/node_modules/semotus')) {
+        rootSemotus = appDirectory;
+    }
+    else {
+        rootSemotus = __dirname;
+    }
+    
+    var rootBindster;
+    
+    if (fs.existsSync(appDirectory + '/node_modules/amorphic-bindster')) {
+        rootBindster = appDirectory;
+    }
+    else {
+        rootBindster = __dirname;
+    }
+    
+    app.use(intializePerformance)
+        .use('/modules/', connect.static(appDirectory + '/node_modules'))
+        .use('/bindster/', connect.static(rootBindster + '/node_modules/amorphic-bindster'))
+        .use('/amorphic/', connect.static(appDirectory))
+        .use('/common/', connect.static(appDirectory + '/apps/common'))
+        .use('/supertype/', connect.static(rootSuperType + '/node_modules/supertype'))
+        .use('/semotus/', connect.static(rootSemotus + '/node_modules/semotus'))
+        .use(connect.cookieParser())
+        .use(sessionRouter)
+        .use(uploadRouter)
+        .use(downloadRouter)
+        .use(connect.bodyParser())
+        .use(postRouter)
+        .use(amorphicEntry);
+    
+    if (postSessionInject) {
+        postSessionInject.call(null, app);
+    }
+    
+    app.use(router);
+    appContext.connection = app.listen(amorphicOptions.port);
+}
+
 function listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
     sendToLog = sendToLogFunction;
     
@@ -1786,7 +1861,6 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     var appStartList = amorphicOptions.appStartList;
     var mainApp = amorphicOptions.mainApp;
     var promises = [];
-    var app;
 
     for (var appKey in appList) {
         if (appStartList.indexOf(appKey) >= 0) {
@@ -1794,75 +1868,7 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
         }
     }
     
-    Q.all(promises).then(function () {
-        app = connect();
-
-        if (amorphicOptions.compressXHR) {
-            app.use(require('compression')());
-        }
-
-        if (preSessionInject) {
-            preSessionInject.call(null, app);
-        }
-
-        for (var appName in appList) {
-            if (appStartList.indexOf(appName) >= 0) {
-                var path = appDirectory + '/' + appList[appName] + '/public';
-                
-                app.use('/' + appName + '/', connect.static(path, {index: 'index.html'}));
-                
-                if (appName == mainApp) {
-                    app.use('/', connect.static(path, {index: 'index.html'}));
-                }
-                
-                console.log(appName + ' connected to ' + path);
-            }
-        }
-
-        if (fs.existsSync(appDirectory + '/node_modules/supertype')) {
-            rootSuperType = appDirectory;
-        }
-        else {
-            rootSuperType = __dirname;
-        }
-        
-        if (fs.existsSync(appDirectory + '/node_modules/semotus')) {
-            rootSemotus = appDirectory;
-        }
-        else {
-            rootSemotus = __dirname;
-        }
-        
-        if (fs.existsSync(appDirectory + '/node_modules/amorphic-bindster')) {
-            rootBindster = appDirectory;
-        }
-        else {
-            rootBindster = __dirname;
-        }
-
-         app.use(intializePerformance)
-            .use('/modules/', connect.static(appDirectory + '/node_modules'))
-            .use('/bindster/', connect.static(rootBindster + '/node_modules/amorphic-bindster'))
-            .use('/amorphic/', connect.static(appDirectory))
-            .use('/common/', connect.static(appDirectory + '/apps/common'))
-            .use('/supertype/', connect.static(rootSuperType + '/node_modules/supertype'))
-            .use('/semotus/', connect.static(rootSemotus + '/node_modules/semotus'))
-            .use(connect.cookieParser())
-            .use(sessionRouter)
-            .use(uploadRouter)
-            .use(downloadRouter)
-            .use(connect.bodyParser())
-            .use(postRouter)
-            .use(amorphicEntry);
-
-        if (postSessionInject) {
-            postSessionInject.call(null, app);
-        }
-
-        app.use(router);
-        appContext.connection = app.listen(amorphicOptions.port);
-
-    }).fail(function(e) {
+    Q.all(promises).then(startUpServer.bind(this, preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter)).catch(function(e) {
         console.log(e.message + ' ' + e.stack);
     });
 }

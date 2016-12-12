@@ -1664,8 +1664,6 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     var appStartList = rootCfg.get('application').split(';');
     var mainApp = rootCfg.get('application').split(';')[0];
     var promises = [];
-    var isNonBatch = false; //TODO: What is isNonBatch?
-    var schemas = {};
     var app;
 
     for (var appKey in appList) {

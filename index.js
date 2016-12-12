@@ -85,8 +85,11 @@ function reset (soft) {
         sourceMode: 'debug'         // Whether to minify templates.  Values: 'debug', 'prod' (minify)
     };
     
-    return soft ? Q(true) : Q()
-        .then(function () {
+    if (soft) {
+        return Q(true);
+    }
+    
+    return Q().then(function () {
             return deathWatch.reduce(function(p, task) {
                 return p.then(task);
             }, Q(true));
@@ -112,7 +115,10 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
         logLevel: logLevel || 'info'
     };
     
-    logger = loggerCall ? loggerCall : logger;
+    if (loggerCall) {
+        logger = loggerCall;
+    }
+    
     log(1, '', 'semotus establishing application for ' + appPath);
 
     if (amorphicOptions.sourceMode != 'debug' && !appConfig.isDaemon) { //TODO: Why am I not doing this in debug mode?
@@ -258,7 +264,11 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
                     
                     getPersistorProps: function () {
                         if (amorphicOptions.sourceMode == 'debug') {
-                            return objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
+                            if (objectTemplate.getPersistorProps) {
+                                return objectTemplate.getPersistorProps();
+                            }
+                            
+                            return {};
                         }
                         else {
                             return applicationPersistorProps[path];
@@ -273,7 +283,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     var newSession = false;
     
     if (!session.semotus || !session.semotus.controllers[path] || reset || newControllerId) {
-        newSession = newControllerId ? false : true;
+        newSession = !newControllerId;
         
         if (!session.semotus) {
             session.semotus = {controllers: {}, loggingContext: {}};
@@ -625,10 +635,29 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 applicationSourceCandidate[prop] = ["document.write(\"<script src='/" + clientPath + '/js/' + file + '?ver=' + config.appVersion + "'></script>\");\n\n"];
             }
             else {
-                applicationSourceCandidate[prop] = ['module.exports.' + prop + ' = ' + require_results[prop] + '\n\n' +
-                (objectTemplateInitialize ? 'module.exports.objectTemplateInitialize = ' + objectTemplateInitialize + '\n\n' : '') +
-                (mixins_initializer ? 'module.exports.' + prop + '_mixins = ' + mixins_initializer + '\n\n' : ''),
-                    '/' + clientPath + '/js/' + file + '?ver=' + config.appVersion];
+                if (mixins_initializer) {
+                    if (objectTemplateInitialize) {
+                        applicationSourceCandidate[prop] = ['module.exports.' + prop + ' = ' + require_results[prop] + '\n\n' +
+                        'module.exports.objectTemplateInitialize = ' + objectTemplateInitialize + '\n\n' + 'module.exports.' + prop + '_mixins = ' + mixins_initializer + '\n\n',
+                            '/' + clientPath + '/js/' + file + '?ver=' + config.appVersion];
+                    }
+                    else {
+                        applicationSourceCandidate[prop] = ['module.exports.' + prop + ' = ' + require_results[prop] + '\n\n' +
+                        'module.exports.' + prop + '_mixins = ' + mixins_initializer + '\n\n',
+                            '/' + clientPath + '/js/' + file + '?ver=' + config.appVersion];
+                    }
+                }
+                else {
+                    if (objectTemplateInitialize) {
+                        applicationSourceCandidate[prop] = ['module.exports.' + prop + ' = ' + require_results[prop] + '\n\n' +
+                        'module.exports.objectTemplateInitialize = ' + objectTemplateInitialize + '\n\n',
+                            '/' + clientPath + '/js/' + file + '?ver=' + config.appVersion];
+                    }
+                    else {
+                        applicationSourceCandidate[prop] = ['module.exports.' + prop + ' = ' + require_results[prop] + '\n\n',
+                            '/' + clientPath + '/js/' + file + '?ver=' + config.appVersion];
+                    }
+                }
             }
         }
 
@@ -774,7 +803,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 emptyFunction.value.body = [];
                 emptyFunction.value.argNames = [];
                 emptyFunction.value.start = UglifyJS.AST_Token({type: 'string', value: '{'});
-                emptyFunction.value.end =   UglifyJS.AST_Token({type: 'string', value: '}'});
+                emptyFunction.value.end = UglifyJS.AST_Token({type: 'string', value: '}'});
                 
                 return emptyFunction;
             }
@@ -799,14 +828,17 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                     }
                 }
             }
-
         }
     }
 
     objectTemplate.performInjections();
 
     if (applicationSource[path]) {
-        applicationPersistorProps[path] = objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
+        applicationPersistorProps[path] = {};
+        
+        if (objectTemplate.getPersistorProps) {
+            applicationPersistorProps[path] = objectTemplate.getPersistorProps();
+        }
     }
 
     if (detailedInfo) {
@@ -831,7 +863,9 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     }
 
     function addUglifiedSource(data, file) {
-        ast = applicationSource[path] ? ast : UglifyJS.parse(data, { filename: file, toplevel: ast });
+        if (!applicationSource[path]) {
+            ast = UglifyJS.parse(data, { filename: file, toplevel: ast });
+        }
     }
     
     function flatten (requires) {
@@ -846,6 +880,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         return classes;
     }
 }
+
 /**
  * Create a controller template that has a unique RemoteObjectTemplate instance that is
  * for one unique session
@@ -874,8 +909,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     var cachedController = controllers[sessionId + path];
 
     // Clear controller from cache if need be
-    if (reset || newPage)
-    {
+    if (reset || newPage) {
         if (cachedController.timeout) {
             clearTimeout(cachedController.timeout);
         }
@@ -891,8 +925,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     // We cache the controller object which will reference the object template and expire it
     // as long as there are no pending calls.  Note that with a memory store session manager
     // the act of referencing the session will expire it if needed
-    var timeoutAction = function ()
-    {
+    var timeoutAction = function () {
         sessionStore.get(sessionId, function (error, session) {
             if (!session) {
                 log(1, sessionId, 'Session has expired');
@@ -977,8 +1010,14 @@ function getController(path, controllerPath, initObjectTemplate, session, object
             objectTemplate.objectMap = {};
         }
         
-        objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
-            'Creating new controller ' + (newPage ? ' new page ' : '') + browser);
+        if (newPage) {
+            objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
+                'Creating new controller new page ' + browser);
+        }
+        else {
+            objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
+                'Creating new controller ' + browser);
+        }
     }
     else {
         objectTemplate.withoutChangeTracking(function () {
@@ -1049,6 +1088,7 @@ function compressSessionData(data) {
 function decompressSessionData(objData) {
     if (amorphicOptions.compressSession && objData.data) {
         var buffer = new Buffer(objData.data);
+        
         return zlib.inflateSync(buffer);
     }
     
@@ -1063,15 +1103,20 @@ function saveSession(path, session, controller, req) {
 
     var ourObjectTemplate = controller.__template__.objectTemplate;
     
-    var serialSession = typeof(ourObjectTemplate.serializeAndGarbageCollect) == 'function' ?
-        ourObjectTemplate.serializeAndGarbageCollect() : controller.toJSONString();
+    var serialSession;
+    
+    if (typeof(ourObjectTemplate.serializeAndGarbageCollect) == 'function') {
+        serialSession = ourObjectTemplate.serializeAndGarbageCollect();
+    }
+    else {
+        serialSession = controller.toJSONString();
+    }
 
     // Track the time of the last serialization to make sure it is valid
     var sessionData = getSessionCache(path, ourObjectTemplate.controller.__sessionId, true);
     sessionData.serializationTimeStamp = (new Date ()).getTime();
 
-    session.semotus.controllers[path] = {controller: compressSessionData(serialSession),
-        serializationTimeStamp: sessionData.serializationTimeStamp};
+    session.semotus.controllers[path] = {controller: compressSessionData(serialSession), serializationTimeStamp: sessionData.serializationTimeStamp};
     
     session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
 
@@ -1169,8 +1214,7 @@ function processPost(req, resp)
     var message = req.body;
     var path = url.parse(req.url, true).query.path;
 
-    establishServerSession(req, path, false, false, null).then (function (semotus)
-    {
+    establishServerSession(req, path, false, false, null).then (function (semotus) {
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
         if (typeof(ourObjectTemplate.controller.processPost) == 'function') {
@@ -1279,8 +1323,8 @@ function processMessage(req, resp)
     }
     
     var expectedSequence = sessionData.sequence || message.sequence;
-    var newPage = message.type == 'refresh' || message.sequence != expectedSequence ? true : false;
-    var forceReset = message.type == 'reset' ? true : false;
+    var newPage = message.type == 'refresh' || message.sequence != expectedSequence;
+    var forceReset = message.type == 'reset';
 
     establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus)
     {
@@ -1289,8 +1333,12 @@ function processMessage(req, resp)
         }
         
         semotus.objectTemplate.logger.setContextProps(message.loggingContext);
+    
+        var callContext = message.type;
         
-        var callContext = message.type + (message.type == 'call' ? '.' + message.id + '[' + message.name + ']' :  '');
+        if (message.type == 'call') {
+            callContext += '.' + message.id + '[' + message.name + ']';
+        }
         
         var context = semotus.objectTemplate.logger.setContextProps({app: path, message: callContext,
             sequence: message.sequence, expectedSequence: sessionData.sequence, session: req.session.id,
@@ -1310,11 +1358,15 @@ function processMessage(req, resp)
         ourObjectTemplate.sessionExpired = false;
 
         // If we expired just return a message telling the client to reset itself
-        if (semotus.newSession || newPage || forceReset)
-        {
-            ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
-                remoteSessionId, 'Force reset on ' + message.type + ' ' + (semotus.newSession ? 'new session' : '') +
-                ' [' + message.sequence + ']');
+        if (semotus.newSession || newPage || forceReset) {
+            if (semotus.newSession) {
+                ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
+                    remoteSessionId, 'Force reset on ' + message.type + ' ' + 'new session' + ' [' + message.sequence + ']');
+            }
+            else {
+                ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
+                    remoteSessionId, 'Force reset on ' + message.type + ' ' +  ' [' + message.sequence + ']');
+            }
             
             semotus.save(path, session, req);
             
@@ -1442,7 +1494,9 @@ function log (level, sessionId, data) {
     console.log(message);
     
     if (level == 0 && logger) {
-        setTimeout(function () {logger.call(null, message);}, 0);
+        setTimeout(function () {
+            logger.call(null, message);
+        }, 0);
     }
 
 }
@@ -1636,10 +1690,16 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                                 objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
                             }
 
-                            establishApplication(appName, path + (config.isDaemon ? '/js/' : '/public/js/'),
-                                    cpath + '/js/', injectObjectTemplate,
+                            if (config.isDaemon) {
+                                establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
                                     sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
                                     config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+                            }
+                            else {
+                                establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
+                                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                                    config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+                            }
 
                             if (config.isDaemon) {
                                 establishDaemon(appName);
@@ -1657,20 +1717,23 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                     );
                 }
                 else {
-
                     // No database case
-
                     function injectObjectTemplate(objectTemplate) {
                         objectTemplate.config = config;
                         objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
                         objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
-
                     }
 
-                    establishApplication(appName, path + (config.isDaemon ? '/js/' : '/public/js/'),
-                        cpath + '/js/', injectObjectTemplate,
-                        sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
-                        config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+                    if (config.isDaemon) {
+                        establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
+                            sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                            config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+                    }
+                    else {
+                        establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
+                            sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                            config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
+                    }
 
                     if (config.isDaemon) {
                         establishDaemon(appName);
@@ -1709,9 +1772,26 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
             }
         }
 
-        rootSuperType = fs.existsSync(dirname + '/node_modules/supertype') ? dirname : __dirname;
-        rootSemotus = fs.existsSync(dirname + '/node_modules/semotus') ? dirname : __dirname;
-        rootBindster = fs.existsSync(dirname + '/node_modules/amorphic-bindster') ? dirname : __dirname;
+        if (fs.existsSync(dirname + '/node_modules/supertype')) {
+            rootSuperType = dirname;
+        }
+        else {
+            rootSuperType = __dirname;
+        }
+        
+        if (fs.existsSync(dirname + '/node_modules/semotus')) {
+            rootSemotus = dirname;
+        }
+        else {
+            rootSemotus = __dirname;
+        }
+        
+        if (fs.existsSync(dirname + '/node_modules/amorphic-bindster')) {
+            rootBindster = dirname;
+        }
+        else {
+            rootBindster = __dirname;
+        }
 
         app
             .use(intializePerformance)
@@ -1757,7 +1837,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                     response.setHeader('Cache-Control', 'public, max-age=31556926');
                     
                     if (amorphicOptions.sourceMode == 'prod') {
-                        response.setHeader('X-SourceMap', '/amorphic/init/' + appName + '.cached.js.map?ver=' + (request.originalUrl.match(/(\?ver=[0-9]+)/) ? RegExp.$1 : ''));
+                        if (request.originalUrl.match(/(\?ver=[0-9]+)/)) {
+                            response.setHeader('X-SourceMap', '/amorphic/init/' + appName + '.cached.js.map?ver=' + RegExp.$1);
+                        }
+                        else {
+                            response.setHeader('X-SourceMap', '/amorphic/init/' + appName + '.cached.js.map?ver=');
+                        }
                     }
                     
                     response.end(getModelSource(appName));
@@ -1782,21 +1867,33 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                                     response.writeHead(controllerResp.status, controllerResp.headers || {'Content-Type': 'text/plain'});
                                     response.end(controllerResp.body || '');
                                 });
+                                
                                 request.amorphicTracking.addServerTask({name: 'Application Post'}, time);
                                 displayPerformance(request);
                             }
                             else {
                                 response.setHeader('Content-Type', 'application/javascript');
                                 response.setHeader('Cache-Control', 'public, max-age=0');
-                                response.end(
-                                    (amorphicOptions.sourceMode != 'debug'
-                                        ? "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n"
-                                        : getModelSource(appName)) +
-                                    "amorphic.setApplication('" + appName + "');" +
-                                    'amorphic.setSchema(' + JSON.stringify(session.getPersistorProps()) + ');' +
-                                    'amorphic.setConfig(' + JSON.stringify(JSON.parse(session.getServerConfigString())) + ');' +
-                                    'amorphic.setInitialMessage(' + session.getServerConnectString() + ');'
-                                );
+                                
+                                if (amorphicOptions.sourceMode != 'debug') {
+                                    response.end(
+                                        "document.write(\"<script src='" + url.replace(/\.js/, '.cached.js') + "'></script>\");\n" +
+                                        "amorphic.setApplication('" + appName + "');" +
+                                        'amorphic.setSchema(' + JSON.stringify(session.getPersistorProps()) + ');' +
+                                        'amorphic.setConfig(' + JSON.stringify(JSON.parse(session.getServerConfigString())) + ');' +
+                                        'amorphic.setInitialMessage(' + session.getServerConnectString() + ');'
+                                    );
+                                }
+                                else {
+                                    response.end(
+                                        getModelSource(appName) +
+                                        "amorphic.setApplication('" + appName + "');" +
+                                        'amorphic.setSchema(' + JSON.stringify(session.getPersistorProps()) + ');' +
+                                        'amorphic.setConfig(' + JSON.stringify(JSON.parse(session.getServerConfigString())) + ');' +
+                                        'amorphic.setInitialMessage(' + session.getServerConnectString() + ');'
+                                    );
+                                }
+                                
                                 request.amorphicTracking.addServerTask({name: 'Application Initialization'}, time);
                                 displayPerformance(request);
                             }

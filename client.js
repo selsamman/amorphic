@@ -36,7 +36,7 @@ RemoteObjectTemplate._injectIntoTemplate = function (template)
 
                 if (!props[closureProp + 'Persistor']) {
                     template.createProperty(closureProp + 'Persistor', {type: Object, toServer: false,
-                        value:{isFetched: defineProperty.autoFetch ? false : true, isFetching: false}});
+                        value:{isFetched: !defineProperty.autoFetch, isFetching: false}});
                 }
 
                 if (!template.prototype[closureProp + 'Fetch']) {
@@ -231,8 +231,10 @@ amorphic = // Needs to be global to make mocha tests work
                 self.rootId = null;
                 console.log('Forcing new controller on server');
             }
-            if (self.logLevel > 0)
-                {console.log ('sending ' + message.type + ' ' + message.name);}
+            if (self.logLevel > 0) {
+                console.log ('sending ' + message.type + ' ' + message.name);
+            }
+            
             self.lastServerInteraction = (new Date()).getTime();
 
             // Post xhr to server
@@ -251,8 +253,7 @@ amorphic = // Needs to be global to make mocha tests work
 
                 // If app version in message not uptodate
                 if (self.appVersion && message.ver != self.appVersion) {
-                    console.log('Application version ' + self.appVersion + ' out of date - ' +
-                        message.ver + ' is available - reloading in 5 seconds');
+                    console.log('Application version ' + self.appVersion + ' out of date - ' + message.ver + ' is available - reloading in 5 seconds');
                     
                     self.shutdown = true;
                     self.reload();
@@ -301,9 +302,17 @@ amorphic = // Needs to be global to make mocha tests work
         this.performanceLogging.addCompletedTask('Initial Message Processed on Browser');
 
         // Manage events for session expiration
-        this.addEvent(document.body, 'click', function() {self._windowActivity(); self.activity = true;});
-        this.addEvent(document.body, 'mousemove', function() {self._windowActivity(); self.activity = true;});
-        this.addEvent(window, 'focus', function () {self._windowActivity();});
+        this.addEvent(document.body, 'click', function() {
+            self._windowActivity(); self.activity = true;
+        });
+        
+        this.addEvent(document.body, 'mousemove', function() {
+            self._windowActivity(); self.activity = true;
+        });
+        
+        this.addEvent(window, 'focus', function () {
+            self._windowActivity();
+        });
         
         setInterval(function () {self._zombieCheck();}, 50);
 
@@ -370,6 +379,7 @@ amorphic = // Needs to be global to make mocha tests work
                 }
                 else if (self.controller.clientExpire && this.controller.clientExpire()) {    // See if expiration handled by controller
                     console.log('Server session ready to expire, controller resetting itself to be offline');
+                    
                     return; // No new timer
                 }
                 else {
@@ -432,8 +442,7 @@ amorphic = // Needs to be global to make mocha tests work
         RemoteObjectTemplate.controller = this.controller;
         
         if (appVersion && message.ver != appVersion) {
-            console.log('Application version ' + appVersion + ' out of date - ' +
-                message.ver + ' is available - reloading in 5 seconds');
+            console.log('Application version ' + appVersion + ' out of date - ' + message.ver + ' is available - reloading in 5 seconds');
             
             this.shutdown = true;
             this.bindController.call(null, this.controller, message.sessionExpiration);
@@ -461,6 +470,7 @@ amorphic = // Needs to be global to make mocha tests work
         var request = this.getxhr();
         request.open('POST', url, true);
         request.setRequestHeader('Content-Type', 'application/json');
+        
         var self = this;
         
         request.onreadystatechange = function () {
@@ -638,16 +648,21 @@ amorphic = // Needs to be global to make mocha tests work
                     
                     return RemoteObjectTemplate.__dictionary__[name.name || name];
                 };
+    
+                var initializerReturnValues;
                 
-                var initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass2, (this.config && this.config.modules) ?
-                    this.config.modules[exp.replace(/_mixins/, '')] : null);
+                if (this.config && this.config.modules) {
+                    initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass2, this.config.modules[exp.replace(/_mixins/, '')]);
+                }
+                else {
+                    initializerReturnValues = (module.exports[exp])(objectTemplateSubClass, usesV2Pass2, null);
+                }
                 
                 for (var returnVariable in initializerReturnValues) {
                     if (!RemoteObjectTemplate.__dictionary__[returnVariable]) {
                         RemoteObjectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
                     }
                 }
-
             }
             
             for (var name in RemoteObjectTemplate.__dictionary__) {
@@ -663,7 +678,10 @@ amorphic = // Needs to be global to make mocha tests work
             
             for (var exp in module.exports || {}) {
                 if (!exp.match(/_mixins/)) {
-                    var templates = (module.exports[exp])(RemoteObjectTemplate, function () {return window;});
+                    var templates = (module.exports[exp])(RemoteObjectTemplate, function () {
+                        return window;
+                    });
+                    
                     requires[exp] = templates;
                     
                     for (var template in  templates) {
@@ -676,7 +694,13 @@ amorphic = // Needs to be global to make mocha tests work
             
             for (var exp in module.exports) {
                 if (exp.match(/_mixins/)) {
-                    var templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config ? this.config.modules[exp.replace(/_mixins/, '')] : null, templates);
+                    
+                    if (this.config) {
+                        templates = (module.exports[exp])(RemoteObjectTemplate, requires, this.config.modules[exp.replace(/_mixins/, '')], templates);
+                    }
+                    else {
+                        templates = (module.exports[exp])(RemoteObjectTemplate, requires, null, templates);
+                    }
                     
                     for (var template in  templates) {
                         window[template] = templates[template];
@@ -721,7 +745,9 @@ amorphic = // Needs to be global to make mocha tests work
     
     addEvent: function (elem, evName, evFunc) {
         if (elem.attachEvent) {
-            elem.attachEvent('on' + evName, function() {evFunc.call(elem);});
+            elem.attachEvent('on' + evName, function() {
+                evFunc.call(elem);
+            });
         }
         else {
             elem.addEventListener(evName, evFunc, false);
@@ -739,8 +765,7 @@ amorphic = // Needs to be global to make mocha tests work
         document.cookie = cookie + '=' + value + '; expires=' + now.toUTCString() + '; path=/';
     },
     
-    getCookieJar: function ()
-    {
+    getCookieJar: function () {
         var cookies = document.cookie.split(';');
         var jar = new Object();
         

@@ -8,7 +8,7 @@
     "supertype": "git://github.com/nikmash/supertype.git",
     "semotus": "git://github.com/nikmash/semotus.git",
     "persistor": "git://github.com/nikmash/persistor.git#refactor",
-    "amorphic-bindster": "git://github.com/nikmash/amorphic-binster.git#refactor",
+    "amorphic-bindster": "git://github.com/nikmash/amorphic-bindster.git#refactor",
     "mongodb-bluebird": "x",
     "formidable": "1.x",
     "nconf": "0.x",

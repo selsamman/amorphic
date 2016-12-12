@@ -1610,8 +1610,7 @@ function intializePerformance(req, resp, next) {
     next();
 }
 
-function listen(dirname, sessionStore, preSessionInject, postSessionInject, sendToLogFunction)
-{
+function listen(dirname, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
     sendToLog = sendToLogFunction;
     
     // Create temporary directory for file uploads
@@ -1632,17 +1631,16 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var builder = new configBuilder(new configApi());
     var configStore = builder.build(dirname);
 
-    // Configuraiton file
+    
     var rootCfg = configStore['root'];
-    // Global varibles
-    var sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
+    
     var objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
 
     amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
     amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
     amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
     amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
-    amorphicOptions.sessionExpiration = sessionExpiration;
+    amorphicOptions.sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
     
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
     
@@ -1655,7 +1653,7 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
     var sessionRouter = connect.session(
         {
             store: sessionStore, secret: rootCfg.get('sessionSecret'),
-            cookie: {maxAge: sessionExpiration},
+            cookie: {maxAge: amorphicOptions.sessionExpiration},
             rolling: true
         } // TODO: What is rolling: true?
     );
@@ -1742,12 +1740,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
                             if (config.isDaemon) {
                                 establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
-                                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                                    amorphicOptions.sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
                                     config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
                             }
                             else {
                                 establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
-                                    sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                                    amorphicOptions.sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
                                     config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
                             }
 
@@ -1776,12 +1774,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
                     if (config.isDaemon) {
                         establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
-                            sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                            amorphicOptions.sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
                             config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
                     }
                     else {
                         establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
-                            sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                            amorphicOptions.sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
                             config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
                     }
 

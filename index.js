@@ -1633,14 +1633,13 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
     
     var rootCfg = configStore['root'];
-    
-    var objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
 
     amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
     amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
     amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
     amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
     amorphicOptions.sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
+    amorphicOptions.objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
     
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
     
@@ -1740,12 +1739,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
                             if (config.isDaemon) {
                                 establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
-                                    amorphicOptions.sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                                    amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
                                     config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
                             }
                             else {
                                 establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
-                                    amorphicOptions.sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                                    amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
                                     config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
                             }
 
@@ -1774,12 +1773,12 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
 
                     if (config.isDaemon) {
                         establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
-                            amorphicOptions.sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                            amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
                             config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
                     }
                     else {
                         establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
-                            amorphicOptions.sessionExpiration, objectCacheExpiration, sessionStore, null, config.ver, config,
+                            amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
                             config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info');
                     }
 

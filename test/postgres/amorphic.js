@@ -152,7 +152,6 @@ describe("First Group of Tests", function () {
         PostCallAssert = function () {
             expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
                 .to.equal(serverController.sam.roles[0].account);
-            console.log("foo");
         }
         clientController.mainFunc().then(function () {
             expect(serverController.sam.roles[0].account.getBalance() +
@@ -201,7 +200,6 @@ describe("First Group of Tests", function () {
         var retryCount = 0;
         this.timeout(4000);
         serverAssert = function () {
-            console.log("Updating Sam and then changing verions to 200 " + retryCount);
             serverController.sam.firstName = 'Sam';
             ++retryCount;
             return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'})
@@ -274,7 +272,6 @@ describe("First Group of Tests", function () {
         PostCallAssert = function () {
             expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
                 .to.equal(serverController.sam.roles[0].account);
-            console.log("foo");
         }
         clientController.mainFunc().then(function () {
             expect(serverController.sam.roles[0].account.getBalance() +
@@ -335,7 +332,6 @@ describe("Second Group of Tests", function () {
         PostCallAssert = function () {
             expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
                 .to.equal(serverController.sam.roles[0].account);
-            console.log("foo");
         }
         clientController.mainFunc().then(function () {
             expect(serverController.sam.roles[0].account.getBalance() +
@@ -383,7 +379,6 @@ describe("Second Group of Tests", function () {
         var retryCount = 0;
         this.timeout(4000);
         serverAssert = function () {
-            console.log("Updating Sam and then changing verions to 200 " + retryCount);
             serverController.sam.firstName = 'Sam';
             ++retryCount;
             return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'})
@@ -456,7 +451,6 @@ describe("Second Group of Tests", function () {
         PostCallAssert = function () {
             expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
                 .to.equal(serverController.sam.roles[0].account);
-            console.log("foo");
         }
         clientController.mainFunc().then(function () {
             expect(serverController.sam.roles[0].account.getBalance() +

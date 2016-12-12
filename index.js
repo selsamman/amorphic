@@ -1610,13 +1610,22 @@ function intializePerformance(req, resp, next) {
     next();
 }
 
-function fetchStartUpParams(rootCfg) {
+function fetchStartUpParams(configStore) {
+    var rootCfg = configStore['root'];
+    
     amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
     amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
     amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
     amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
     amorphicOptions.sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
     amorphicOptions.objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
+    amorphicOptions.sessionSecret = rootCfg.get('sessionSecret');
+    
+    amorphicOptions.appList = rootCfg.get('applications');
+    amorphicOptions.appStartList = rootCfg.get('application').split(';');
+    amorphicOptions.mainApp = amorphicOptions.appStartList[0];
+    
+    amorphicOptions.port = rootCfg.get('port');
 }
 
 function generateDownloadsDir() {
@@ -1642,9 +1651,7 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     var builder = new configBuilder(new configApi());
     var configStore = builder.build(appDirectory);
     
-    var rootCfg = configStore['root'];
-    
-    fetchStartUpParams(rootCfg);
+    fetchStartUpParams(configStore);
     generateDownloadsDir();
     
     console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
@@ -1653,16 +1660,16 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     
     var sessionRouter = connect.session(
         {
-            store: sessionStore, secret: rootCfg.get('sessionSecret'),
+            store: sessionStore, secret: amorphicOptions.sessionSecret,
             cookie: {maxAge: amorphicOptions.sessionExpiration},
             rolling: true
         } // TODO: What is rolling: true?
     );
 
     // Initialize applications
-    var appList = rootCfg.get('applications');
-    var appStartList = rootCfg.get('application').split(';');
-    var mainApp = rootCfg.get('application').split(';')[0];
+    var appList = amorphicOptions.appList;
+    var appStartList = amorphicOptions.appStartList;
+    var mainApp = amorphicOptions.mainApp;
     var promises = [];
     var app;
 
@@ -1862,7 +1869,7 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
         }
 
         app.use(router);
-        appContext.connection = app.listen(rootCfg.get('port'));
+        appContext.connection = app.listen(amorphicOptions.port);
 
     }).fail(function(e) {
         console.log(e.message + ' ' + e.stack);

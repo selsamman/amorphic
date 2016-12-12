@@ -34,29 +34,8 @@ var fs = require('fs');
 var Q = require('q');
 var logLevel = 1;
 var path = require('path');
-var onDeath = require('death');
 var zlib = require('zlib');
-var deathWatch = [];
 var sendToLog = null;
-
-onDeath(function () {
-    console.log('exiting gracefully ' + deathWatch.length + ' tasks to perform');
-    
-    return Q()
-        .then(function () {
-            return deathWatch.reduce(function(p, task) {
-                return p.then(task);
-            }, Q(true));
-        }).then(function () {
-            console.log('All done');
-            
-            return Q.delay(1000);
-        }).then(function () {
-            process.exit(0);
-        }).fail(function (e) {
-            console.log('on death caught exception: ' + e.message + e.stack);
-        });
-});
 
 // Module Global Variables
 var applicationConfig = {};
@@ -67,7 +46,7 @@ var appContext = {};
 var logger = null;
 var amorphicOptions;
 
-function reset (soft) {
+function reset () {
     if (appContext.connection) {
         appContext.connection.close();
     }
@@ -85,19 +64,7 @@ function reset (soft) {
         sourceMode: 'debug'         // Whether to minify templates.  Values: 'debug', 'prod' (minify)
     };
     
-    if (soft) {
-        return Q(true);
-    }
-    
-    return Q().then(function () {
-            return deathWatch.reduce(function(p, task) {
-                return p.then(task);
-            }, Q(true));
-        }).then(function () {
-            console.log('All done');
-            
-            return Q.delay(1000);
-        });
+    return Q(true);
 }
 
 reset(true);
@@ -1658,16 +1625,6 @@ function listen(dirname, sessionStore, preSessionInject, postSessionInject, send
                         });
                         
                         var dbClient = Q(knex); // TODO: knex is already intialized because it is a syncronous function that is called when require('knex') occurs
-                        
-                        (function () {
-                            var closureKnex = knex;
-                            
-                            // Closing knex socket connections
-                            deathWatch.push(function () {
-                                console.log('closing knex connection');
-                                return closureKnex.destroy();
-                            });
-                        })();
                     }
                     promises.push(dbClient
                         .then (function (db) {

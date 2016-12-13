@@ -25,7 +25,7 @@ var Persistor = require('persistor');
 
 RemoteObjectTemplate.maxCallTime = 60 * 1000; // Max time for call interlock
 
-var PersistObjectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, ObjectTemplate); // TODO: Why is ObjectTemplate being passed in twice?
+var PersistObjectTemplate = Persistor(null, null, ObjectTemplate);
 var os = require('os');
 var hostName = os.hostname();
 var formidable = require('formidable');
@@ -100,7 +100,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
         controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/); // TODO: What is this solving?
         
         var prop = RegExp.$2; //TODO: THIS SHOULD NOT BE USED IN PRODUCTION
-        var objectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+        var objectTemplate = Persistor(null, null, RemoteObjectTemplate);
         
         applicationSource[appPath] = '';
         applicationSourceMap[appPath] = '';
@@ -127,7 +127,7 @@ function establishDaemon (path) {
     var prop = matches[2] || '';
 
     // Create a new unique object template utility
-    var objectTemplate = Persistor(ObjectTemplate, null, ObjectTemplate);
+    var objectTemplate = Persistor(null, null, ObjectTemplate);
 
     // Inject into it any db or persist attributes needed for application
     initObjectTemplate(objectTemplate);
@@ -204,7 +204,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId) {
             var prop = RegExp.$2;
 
             // Create a new unique object template utility
-            var objectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+            var objectTemplate = Persistor(null, null, RemoteObjectTemplate);
 
             // Inject into it any db or persist attributes needed for application
             initObjectTemplate(objectTemplate);
@@ -927,7 +927,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     var prop = matches[2];
 
     // Create a new unique object template utility
-    var objectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+    var objectTemplate = Persistor(null, null, RemoteObjectTemplate);
 
     setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
 
@@ -939,11 +939,11 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         objectTemplate.objectMap = session.semotus.objectMap[path];
     }
 
-    // Get the controller and all of it's dependent requires which will populate a
+    // Get the controller and all of it's dependent templates which will populate a
     // key value pairs where the key is the require prefix and and the value is the
     // key value pairs of each exported template
-    var requires = getTemplates(objectTemplate, prefix, [prop + '.js'], config, path);
-    var controllerTemplate = requires[prop].Controller;
+    var templates = getTemplates(objectTemplate, prefix, [prop + '.js'], config, path);
+    var controllerTemplate = templates[prop].Controller;
     
     if (!controllerTemplate) {
         throw  new Error('Missing controller template in ' + prefix + prop + '.js');
@@ -1213,7 +1213,7 @@ function processLoggingMessage(req, resp) {
     var path = url.parse(req.url, true).query.path;
     var session = req.session;
     var message = req.body;
-    var objectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+    var objectTemplate = Persistor(null, null, RemoteObjectTemplate);
     
     if (!session.semotus) {
         session.semotus = {controllers: {}, loggingContext: {}};

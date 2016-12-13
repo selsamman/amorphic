@@ -100,13 +100,13 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
         controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/); // TODO: What is this solving?
         
         var prop = RegExp.$2; //TODO: THIS SHOULD NOT BE USED IN PRODUCTION
-        var objectTemplate = Persistor(null, null, Semotus);
+        var persistableSemotableTemplate = Persistor(null, null, Semotus);
         
         applicationSource[appPath] = '';
         applicationSourceMap[appPath] = '';
-        initObjectTemplate(objectTemplate);
+        initObjectTemplate(persistableSemotableTemplate);
         
-        getTemplates(objectTemplate, config.appPath, [prop + '.js'], config, appPath, true);
+        getTemplates(persistableSemotableTemplate, config.appPath, [prop + '.js'], config, appPath, true);
     }
 }
 
@@ -115,7 +115,7 @@ function establishDaemon (path) {
     var config = applicationConfig[path];
     
     if (!config) {
-        throw  new Error('Semotus: establishServerSession called with a path of ' + path + ' which was not registered');
+        throw  new Error('Amorphic: establishDaemon called with a path of ' + path + ' which was not registered');
     }
     
     var initObjectTemplate = config.initObjectTemplate;
@@ -127,12 +127,12 @@ function establishDaemon (path) {
     var prop = matches[2] || '';
 
     // Create a new unique object template utility
-    var objectTemplate = Persistor(null, null, SuperType);
+    var persistableTemplate = Persistor(null, null, SuperType);
 
     // Inject into it any db or persist attributes needed for application
-    initObjectTemplate(objectTemplate);
+    initObjectTemplate(persistableTemplate);
     
-    var requires = getTemplates(objectTemplate, config.appPath, [prop + '.js'], config, path);
+    var requires = getTemplates(persistableTemplate, config.appPath, [prop + '.js'], config, path);
 
     var controllerTemplate = requires[prop].Controller;
     
@@ -140,10 +140,10 @@ function establishDaemon (path) {
         throw  new Error('Missing controller template in ' + prefix + prop + '.js');
     }
     
-    controllerTemplate.objectTemplate = objectTemplate;
+    controllerTemplate.objectTemplate = persistableTemplate;
 
     var controller = new controllerTemplate();
-    objectTemplate.controller = controller;
+    persistableTemplate.controller = controller;
 
     controller.serverInit();
 }
@@ -204,10 +204,10 @@ function establishServerSession (req, path, newPage, reset, newControllerId) {
             var prop = RegExp.$2;
 
             // Create a new unique object template utility
-            var objectTemplate = Persistor(null, null, Semotus);
+            var persistableSemotableTemplate = Persistor(null, null, Semotus);
 
             // Inject into it any db or persist attributes needed for application
-            initObjectTemplate(objectTemplate);
+            initObjectTemplate(persistableSemotableTemplate);
 
             // Get the controller and all of it's dependent requires which will populate a
             // key value pairs where the key is the require prefix and and the value is the
@@ -215,7 +215,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId) {
 
             // Get the templates to be packaged up in the message if not pre-staged
             if (amorphicOptions.sourceMode == 'debug') {
-                getTemplates(objectTemplate, config.appPath, [prop + '.js'], config, path);
+                getTemplates(persistableSemotableTemplate, config.appPath, [prop + '.js'], config, path);
             }
 
             req.amorphicTracking.addServerTask({name: 'Creating Session without Controller'}, time);
@@ -235,8 +235,8 @@ function establishServerSession (req, path, newPage, reset, newControllerId) {
                     
                     getPersistorProps: function () {
                         if (amorphicOptions.sourceMode == 'debug') {
-                            if (objectTemplate.getPersistorProps) {
-                                return objectTemplate.getPersistorProps();
+                            if (persistableSemotableTemplate.getPersistorProps) {
+                                return persistableSemotableTemplate.getPersistorProps();
                             }
                             
                             return {};
@@ -927,32 +927,32 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     var prop = matches[2];
 
     // Create a new unique object template utility
-    var objectTemplate = Persistor(null, null, Semotus);
+    var persistableSemotableTemplate = Persistor(null, null, Semotus);
 
-    setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
+    setupLogger(persistableSemotableTemplate.logger, path, session.semotus.loggingContext[path]);
 
     // Inject into it any db or persist attributes needed for application
-    initObjectTemplate(objectTemplate);
+    initObjectTemplate(persistableSemotableTemplate);
 
     // Restore any saved objectMap
     if (session.semotus.objectMap && session.semotus.objectMap[path]) {
-        objectTemplate.objectMap = session.semotus.objectMap[path];
+        persistableSemotableTemplate.objectMap = session.semotus.objectMap[path];
     }
 
     // Get the controller and all of it's dependent templates which will populate a
     // key value pairs where the key is the require prefix and and the value is the
     // key value pairs of each exported template
-    var templates = getTemplates(objectTemplate, prefix, [prop + '.js'], config, path);
+    var templates = getTemplates(persistableSemotableTemplate, prefix, [prop + '.js'], config, path);
     var controllerTemplate = templates[prop].Controller;
     
     if (!controllerTemplate) {
         throw  new Error('Missing controller template in ' + prefix + prop + '.js');
     }
     
-    controllerTemplate.objectTemplate = objectTemplate;
+    controllerTemplate.objectTemplate = persistableSemotableTemplate;
 
     // Setup unique object template to manage a session
-    objectTemplate.createSession('server', null, session.id);
+    persistableSemotableTemplate.createSession('server', null, session.id);
     
     var browser = ' - browser: ' + req.headers['user-agent'] + ' from: ' + (req.headers['x-forwarded-for'] || req.connection.remoteAddress);
 
@@ -962,9 +962,9 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     if (!session.semotus.controllers[path]) {
         if (controllerId) {
             // Since we are restoring we don't changes saved or going back to the browser
-            objectTemplate.withoutChangeTracking(function () {
-                controller = objectTemplate._createEmptyObject(controllerTemplate, controllerId);
-                objectTemplate.syncSession(); // Kill changes to browser
+            persistableSemotableTemplate.withoutChangeTracking(function () {
+                controller = persistableSemotableTemplate._createEmptyObject(controllerTemplate, controllerId);
+                persistableSemotableTemplate.syncSession(); // Kill changes to browser
             });
         }
         else {
@@ -976,50 +976,50 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         }
         
         // With a brand new controller we don't want old object to persist id mappings
-        if (objectTemplate.objectMap) {
-            objectTemplate.objectMap = {};
+        if (persistableSemotableTemplate.objectMap) {
+            persistableSemotableTemplate.objectMap = {};
         }
         
         if (newPage) {
-            objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
+            persistableSemotableTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
                 'Creating new controller new page ' + browser);
         }
         else {
-            objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
+            persistableSemotableTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
                 'Creating new controller ' + browser);
         }
     }
     else {
-        objectTemplate.withoutChangeTracking(function () {
+        persistableSemotableTemplate.withoutChangeTracking(function () {
             var sessionData = getSessionCache(path, sessionId, true);
             var unserialized = session.semotus.controllers[path];
-            controller = objectTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);
+            controller = persistableSemotableTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);
             
             if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
-                objectTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
+                persistableSemotableTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
                         savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
                     'Session data not as saved');
             }
             
             // Make sure no duplicate ids are issued
-            var semotusSession = objectTemplate._getSession();
+            var semotusSession = persistableSemotableTemplate._getSession();
             
             for (var obj in semotusSession.objects) {
                 if (obj.match(/^server-[\w]*?-([0-9]+)/)) {
                     semotusSession.nextObjId = Math.max(semotusSession.nextObjId, RegExp.$1 + 1);
                 }
             }
-            
-            objectTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'restore'},
+    
+            persistableSemotableTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'restore'},
                 'Restoreing saved controller ' + (newPage ? ' new page ' : '') + browser);
             
             if (!newPage) { // No changes queued as a result unless we need it for init.js
-                objectTemplate.syncSession();
+                persistableSemotableTemplate.syncSession();
             }
         });
     }
-
-    objectTemplate.controller = controller;
+    
+    persistableSemotableTemplate.controller = controller;
     controller.__sessionId = sessionId;
 
     // Set it up in the cache
@@ -1213,7 +1213,7 @@ function processLoggingMessage(req, resp) {
     var path = url.parse(req.url, true).query.path;
     var session = req.session;
     var message = req.body;
-    var objectTemplate = Persistor(null, null, Semotus);
+    var persistableSemotableTemplate = Persistor(null, null, Semotus);
     
     if (!session.semotus) {
         session.semotus = {controllers: {}, loggingContext: {}};
@@ -1223,15 +1223,15 @@ function processLoggingMessage(req, resp) {
         session.semotus.loggingContext[path] = getLoggingContext(path);
     }
     
-    setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
-    objectTemplate.logger.setContextProps(message.loggingContext);
+    setupLogger(persistableSemotableTemplate.logger, path, session.semotus.loggingContext[path]);
+    persistableSemotableTemplate.logger.setContextProps(message.loggingContext);
     
-    objectTemplate.logger.setContextProps({session: req.session.id,
+    persistableSemotableTemplate.logger.setContextProps({session: req.session.id,
         ipaddress: (String(req.headers['x-forwarded-for'] || req.connection.remoteAddress))
             .split(',')[0].replace(/(.*)[:](.*)/, '$2') || 'unknown'});
     
     message.loggingData.from = 'browser';
-    objectTemplate.logger[message.loggingLevel](message.loggingData);
+    persistableSemotableTemplate.logger[message.loggingLevel](message.loggingData);
     resp.writeHead(200, {'Content-Type': 'text/plain'});
     resp.end('');
 }

@@ -21,10 +21,11 @@
 /*  @type RemoteObjectTemplate */
 var ObjectTemplate = require('supertype');
 var RemoteObjectTemplate = require('semotus');
+var Persistor = require('persistor');
 
 RemoteObjectTemplate.maxCallTime = 60 * 1000; // Max time for call interlock
 
-var PersistObjectTemplate = require('persistor')(ObjectTemplate, RemoteObjectTemplate, ObjectTemplate); // TODO: Why is ObjectTemplate being passed in twice?
+var PersistObjectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, ObjectTemplate); // TODO: Why is ObjectTemplate being passed in twice?
 var os = require('os');
 var hostName = os.hostname();
 var formidable = require('formidable');
@@ -99,7 +100,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
         controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/); // TODO: What is this solving?
         
         var prop = RegExp.$2; //TODO: THIS SHOULD NOT BE USED IN PRODUCTION
-        var objectTemplate = require('persistor')(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+        var objectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
         
         applicationSource[appPath] = '';
         applicationSourceMap[appPath] = '';
@@ -126,7 +127,7 @@ function establishDaemon (path) {
     var prop = matches[2] || '';
 
     // Create a new unique object template utility
-    var objectTemplate = require('persistor')(ObjectTemplate, null, ObjectTemplate);
+    var objectTemplate = Persistor(ObjectTemplate, null, ObjectTemplate);
 
     // Inject into it any db or persist attributes needed for application
     initObjectTemplate(objectTemplate);
@@ -203,7 +204,7 @@ function establishServerSession (req, path, newPage, reset, newControllerId) {
             var prop = RegExp.$2;
 
             // Create a new unique object template utility
-            var objectTemplate = require('persistor')(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+            var objectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
 
             // Inject into it any db or persist attributes needed for application
             initObjectTemplate(objectTemplate);
@@ -926,7 +927,7 @@ function getController(path, controllerPath, initObjectTemplate, session, object
     var prop = matches[2];
 
     // Create a new unique object template utility
-    var objectTemplate = require('persistor')(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+    var objectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
 
     setupLogger(objectTemplate.logger, path, session.semotus.loggingContext[path]);
 
@@ -1212,7 +1213,7 @@ function processLoggingMessage(req, resp) {
     var path = url.parse(req.url, true).query.path;
     var session = req.session;
     var message = req.body;
-    var objectTemplate = require('persistor')(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
+    var objectTemplate = Persistor(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);
     
     if (!session.semotus) {
         session.semotus = {controllers: {}, loggingContext: {}};

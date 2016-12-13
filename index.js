@@ -921,10 +921,9 @@ function getController(path, controllerPath, initObjectTemplate, session, object
         return cachedController.controller;
     }
 
-    var requires = {};
-    controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
-    var prefix = RegExp.$1;
-    var prop = RegExp.$2;
+    var matches = controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
+    var prefix = matches[1];
+    var prop = matches[2];
 
     // Create a new unique object template utility
     var objectTemplate = require('persistor')(ObjectTemplate, RemoteObjectTemplate, RemoteObjectTemplate);

@@ -197,7 +197,19 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
     
         // For a new page determine if a controller is to be omitted
         if (config.appConfig.createControllerFor && !session.semotus) {
-            establishInitialServerSession();
+            
+            var referer = '';
+    
+            if (req.headers['referer']) {
+                referer = url.parse(req.headers['referer'], true).path;
+            }
+    
+            var createControllerFor = config.appConfig.createControllerFor;
+            
+            if (!referer.match(createControllerFor) && createControllerFor != 'yes') {
+    
+                return establishInitialServerSession(req, config, controllerPath, initObjectTemplate, path, time, appVersion, sessionExpiration);
+            }
         }
     }
     
@@ -289,66 +301,57 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
     });
 }
 
-function establishInitialServerSession() {
-    var referer = req.headers['referer'] ? url.parse(req.headers['referer'], true).path : '';
-    var match = config.appConfig.createControllerFor;
+function establishInitialServerSession(req, config, controllerPath, initObjectTemplate, path, time, appVersion, sessionExpiration) {
     
-    if (!referer.match(match) && match != 'yes') {
-        // Create the templates to get the source but don't instantiate a controller yet
-        var requires = {};
-        
-        controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
-        
-        var prop = RegExp.$2;
-        
-        // Create a new unique object template utility
-        var persistableSemotableTemplate = Persistor(null, null, Semotus);
-        
-        // Inject into it any db or persist attributes needed for application
-        initObjectTemplate(persistableSemotableTemplate);
-        
-        // Get the controller and all of it's dependent requires which will populate a
-        // key value pairs where the key is the require prefix and and the value is the
-        // key value pairs of each exported template
-        
-        // Get the templates to be packaged up in the message if not pre-staged
-        if (amorphicOptions.sourceMode == 'debug') {
-            getTemplates(persistableSemotableTemplate, config.appPath, [prop + '.js'], config, path);
-        }
-        
-        req.amorphicTracking.addServerTask({name: 'Creating Session without Controller'}, time);
-        
-        return Q.fcall(function () {
-            return {
-                getServerConnectString: function () {
-                    return JSON.stringify({
-                        url: '/amorphic/xhr?path=' + path,
-                        message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
-                    });
-                },
-                
-                getServerConfigString: function () {
-                    return getServerConfigString(config);
-                },
-                
-                getPersistorProps: function () {
-                    if (amorphicOptions.sourceMode == 'debug') {
-                        if (persistableSemotableTemplate.getPersistorProps) {
-                            return persistableSemotableTemplate.getPersistorProps();
-                        }
-                        
-                        return {};
-                    }
-                    else {
-                        return applicationPersistorProps[path];
-                    }
-                }
-            };
-        });
+    var match = controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
+    
+    var prop = match[2];
+    
+    // Create a new unique object template utility
+    var persistableSemotableTemplate = Persistor(null, null, Semotus);
+    
+    // Inject into it any db or persist attributes needed for application
+    initObjectTemplate(persistableSemotableTemplate);
+    
+    // Get the controller and all of it's dependent requires which will populate a
+    // key value pairs where the key is the require prefix and and the value is the
+    // key value pairs of each exported template
+    
+    // Get the templates to be packaged up in the message if not pre-staged
+    if (amorphicOptions.sourceMode == 'debug') {
+        getTemplates(persistableSemotableTemplate, config.appPath, [prop + '.js'], config, path);
     }
+    
+    req.amorphicTracking.addServerTask({name: 'Creating Session without Controller'}, time);
+    
+    return Q.fcall(function () {
+        return {
+            getServerConnectString: function () {
+                return JSON.stringify({
+                    url: '/amorphic/xhr?path=' + path,
+                    message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
+                });
+            },
+            
+            getServerConfigString: function () {
+                return getServerConfigString(config);
+            },
+            
+            getPersistorProps: function () {
+                if (amorphicOptions.sourceMode == 'debug') {
+                    if (persistableSemotableTemplate.getPersistorProps) {
+                        return persistableSemotableTemplate.getPersistorProps();
+                    }
+                    
+                    return {};
+                }
+                else {
+                    return applicationPersistorProps[path];
+                }
+            }
+        };
+    });
 }
-
-
 
 function getServerConfigString(config) {
     var browserConfig = {};

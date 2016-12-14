@@ -914,7 +914,7 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
     // the act of referencing the session will expire it if needed
     var timeoutAction = function () {
         sessionStore.get(sessionId, function (error, connectSession) {
-            if (!session) {
+            if (!connectSession) {
                 log(1, sessionId, 'Session has expired');
             }
             

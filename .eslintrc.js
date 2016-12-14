@@ -15,10 +15,10 @@ module.exports = exports = {
     // Overrides from recommended set
     "rules": {
         // Ignore unused vars that start with underscore
-        "no-unused-vars": [ OFF, { "args": "all", "argsIgnorePattern": "^_" } ],
+        "no-unused-vars": [ ERROR, { "args": "all", "argsIgnorePattern": "^_" } ],
         
         // Possible Errors
-        "no-unexpected-multiline": OFF,
+        "no-unexpected-multiline": ERROR,
         
         // All JSDoc comments must be valid
         "valid-jsdoc": [ OFF, {

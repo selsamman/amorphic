@@ -366,7 +366,7 @@ function getServerConfigString(config) {
     return JSON.stringify(browserConfig);
 }
 
-function getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
+function getTemplates(objectTemplate, appPath, templates, config, path, _sourceOnly, detailedInfo) {
 
     var requires = {};
     var ref = {};
@@ -794,7 +794,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
     return requires;
     
-    function usesV2Pass2 (file, templateName, options) {
+    function usesV2Pass2 (file, templateName) {
         templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
         
         return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];
@@ -913,7 +913,7 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
     // as long as there are no pending calls.  Note that with a memory store session manager
     // the act of referencing the session will expire it if needed
     var timeoutAction = function () {
-        sessionStore.get(sessionId, function (error, connectSession) {
+        sessionStore.get(sessionId, function (_error, connectSession) {
             if (!connectSession) {
                 log(1, sessionId, 'Session has expired');
             }
@@ -1164,17 +1164,21 @@ function processFile(req, resp, next)
     var form = new formidable.IncomingForm();
     form.uploadDir = downloads;
     
-    form.parse(req, function(err, fields, files) {
-        if (err)
-            {console.log(err);}
+    form.parse(req, function(err, _fields, files) {
+        if (err) {
+            console.log(err);
+        }
+        
         resp.writeHead(200, {'content-type': 'text/html'});
+        
         var file = files.file.path;
         console.log(file);
         
         setTimeout(function () {
             fs.unlink(file, function (err) {
-                if (err)
-                    {console.log(err);}
+                if (err) {
+                    console.log(err);
+                }
                 else {
                     console.log(file + ' deleted');
                 }
@@ -1195,7 +1199,6 @@ function processFile(req, resp, next)
 function processPost(req, resp)
 {
     var session = req.session;
-    var message = req.body;
     var path = url.parse(req.url, true).query.path;
 
     establishServerSession(req, path, false, false, null).then (function (semotus) {
@@ -1292,7 +1295,6 @@ function getSessionCache(path, sessionId, keepTimeout) {
  */
 function processMessage(req, resp)
 {
-    var start = process.hrtime();
     var session = req.session;
     var message = req.body;
     var path = url.parse(req.url, true).query.path;
@@ -1549,17 +1551,17 @@ function downloadRouter(req, resp, next) {
     var file = url.parse(req.url, true).query.file;
     
     if (req.url.match(/amorphic\/xhr\?path\=/) && file && req.method == 'GET') {
-        processContentRequest(req, resp, next, file);
+        processContentRequest(req, resp);
     }
     else {
         next();
     }
 }
 
-function processContentRequest(request, response, next) {
+function processContentRequest(request, response) {
     var path = url.parse(request.url, true).query.path;
     
-    establishServerSession(request, path, false).then (function (semotus) {
+    establishServerSession(request, path, false).then(function (semotus) {
         if (typeof(semotus.objectTemplate.controller.onContentRequest) == 'function') {
             semotus.objectTemplate.controller.onContentRequest(request, response);
         }
@@ -1609,7 +1611,7 @@ function displayPerformance(req) {
         'Request Performance');
 }
 
-function intializePerformance(req, resp, next) {
+function intializePerformance(req, _resp, next) {
     req.amorphicTracking = {
         startTime: process.hrtime(),
         serverTasks: [],

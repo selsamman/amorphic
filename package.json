@@ -5,16 +5,15 @@
   "version": "1.5.3",
   "dependencies": {
     "q": "1.x",
-    "supertype": "file:../supertype",
-    "semotus": "file:../semotus",
-    "persistor": "file:../persistor",
-    "amorphic-bindster": "file:../amorphic-bindster",
+    "supertype": "git://github.com/nikmash/supertype.git",
+    "semotus": "git://github.com/nikmash/semotus.git",
+    "persistor": "git://github.com/nikmash/persistor.git#refactor",
+    "amorphic-bindster": "git://github.com/nikmash/amorphic-bindster.git#refactor",
     "mongodb-bluebird": "x",
     "formidable": "1.x",
     "nconf": "0.x",
     "connect": "2.6.2",
     "node-mandrill": "1.x",
-    "death": "x",
     "uglify-js": "x",
     "compression": "x"
   },
@@ -22,6 +21,7 @@
     "axios": "^0.15.2",
     "bluebird": "^3.4.6",
     "chai": "3.x",
+    "eslint": "3.7.x",
     "knex": "x",
     "istanbul": "0.4.5",
     "mocha": "^3.1.2",
@@ -34,7 +34,9 @@
     "xmlhttprequest-cookie": "x"
   },
   "scripts": {
+    "lint": "eslint .",
     "test": "istanbul cover _mocha -- test/* -R spec",
+    "test-debug": "mocha --debug-brk test/*",
     "test:config": "mocha test/config",
     "test:example": "mocha test/example"
   },

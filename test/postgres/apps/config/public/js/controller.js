@@ -9,13 +9,21 @@ module.exports.controller = function (objectTemplate, getTemplate)
     var ReturnedMail = getTemplate('model.js').ReturnedMail;
     var Role = getTemplate('model.js').Role;
     var Transaction = getTemplate('model.js').Transaction;
-    getTemplate('mail.js', {app: 'config'});
-    getTemplate('anotherMail.js');
 
     var Controller = objectTemplate.create("Controller", {
-        mainFunc: {on: "server", body: function () {
-            return serverAssert();
-        }},
+        mainFunc: {
+            on: 'server',
+            body: function () {
+                return serverAssert();
+            }
+        },
+        emptyFunc: {
+            on: 'server',
+            body: function () {
+                console.log('executed emptyFUNc');
+                return true;
+            }
+        },
         conflictData: {type: String, value: 'initial'},
         someData: {type: String, value: 'A'},
         sam:     {type: Customer, fetch: true},
@@ -25,6 +33,12 @@ module.exports.controller = function (objectTemplate, getTemplate)
         serverInit: function () {
             serverController = this;
         },
+        processPost: {on: 'server', body: function (uri, body) {
+            if (body.error) {
+                throw 'error';
+            }
+            return {status: 200, body: body.test};
+        }},
         clearDB: {on: "server", body: function () {
             var total = 0;
             return clearCollection(Role)

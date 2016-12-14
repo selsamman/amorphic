@@ -1,33 +1,34 @@
 'use strict';
 let assert = require('chai').assert;
 let Promise = require('bluebird');
-let amorphic = require('../../index.js');
+let serverAmorphic = require('../../index.js');
 let sinon = require('sinon');
 let axios = require('axios');
 let fs = require('fs');
+let path = require('path');
 
 describe('Setup amorphic', function() {
-    before(function() {
-        process.env.applications = {
-            'example': 'test/example'
-        };
-        process.env.application = 'example';
-        process.env.port = 3004;
-        process.env.sessionSecret = 'test';
-        amorphic.listen(__dirname);
+    let server;
+    before(function(done) {
+        serverAmorphic.listen(__dirname);
+        done();
     });
 
     it('can call the listen function to setup amorphic and then it can be called on the default port', function() {
-        return axios.get('http://localhost:3004').catch(function(error) {
+        return axios.get('http://localhost:3001').catch(function(error) {
             assert.strictEqual(error.response.status, 404);
         });
     });
 
     it('make sure that the downloads directory exists', function() {
-        return new Promise((resolve, reject) => {
-            resolve(assert.strictEqual(fs.existsSync(__dirname + '/../../download'), true));
-        });
-
+        let downloadPath = path.join(path.dirname(require.main.filename), 'download');
+        assert.isTrue(fs.existsSync(downloadPath), 'The download path exists');
     });
 
+
+    after(function() {
+        // Clean up server
+        // server.close();
+        return serverAmorphic.reset();
+    });
 });

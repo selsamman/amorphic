@@ -1,0 +1,11 @@
+{
+    "templateMode": "auto",
+    "port": 3001,
+    "sessionSeconds" : 3600,
+    "objectCacheSeconds" : 600,
+    "sessionSecret" : "Ey0veeljPcLsHitdxCG2",
+	"applications" : {
+        "daemon_auto": "apps/daemon_auto"
+    },
+	"application"  : "daemon_auto"
+}

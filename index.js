@@ -126,7 +126,6 @@ function establishDaemon (path) {
     var initObjectTemplate = config.initObjectTemplate;
     var controllerPath = config.appPath + (config.appConfig.controller || 'controller.js');
 
-    var requires = {};
     var matches = controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
     var prefix = matches[1] || '';
     var prop = matches[2] || '';
@@ -215,6 +214,7 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
     
     // Create or restore the controller
     var newSession = false;
+    var controller;
     
     if (!session.semotus || !session.semotus.controllers[path] || reset || newControllerId) {
         newSession = !newControllerId;
@@ -227,11 +227,11 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
             session.semotus.loggingContext[path] = getLoggingContext(path);
         }
 
-        var controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, true, newControllerId, req);
+        controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, true, newControllerId, req);
         controller.__template__.objectTemplate.reqSession = req.session;
     }
     else {
-        var controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, false, null, req);
+        controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, false, null, req);
         controller.__template__.objectTemplate.reqSession = req.session;
     }
     
@@ -562,7 +562,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                 // Return a stub that will simply setup deferred processing for extends
                 var initializerReturnValues = require_results[prop](objectTemplate,
                     function usesV2Pass1 (file, templateName, options) {
-                        var templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
+                        templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
                         var moduleName = currentContext.moduleName;
                         
                         getTemplate(file, options, true);
@@ -666,18 +666,18 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     // So we do the extends for them now after recording all info in the first pass
     var futureTemplates = {};
     
-    for (var ix = 0; ix < deferredExtends.length; ++ix) {
-        futureTemplates[deferredExtends[ix].extendedName] = deferredExtends[ix];
+    for (var ixc = 0; ixc < deferredExtends.length; ++ixc) {
+        futureTemplates[deferredExtends[ixc].extendedName] = deferredExtends[ixc];
     }
     
-    for (var ix = 0; ix < deferredExtends.length; ++ix) {
-        deferredExtends[ix].doExtend(futureTemplates);
+    for (var ixb = 0; ixb < deferredExtends.length; ++ixb) {
+        deferredExtends[ixb].doExtend(futureTemplates);
     }
 
     // Process V1 style mixins
-    for (var ix = 0; ix < mixins.length; ++ix) {
-        if (mixins[ix]) {
-            (mixins[ix])(objectTemplate, requires, flatten(requires));
+    for (var ixa = 0; ixa < mixins.length; ++ixa) {
+        if (mixins[ixa]) {
+            (mixins[ixa])(objectTemplate, requires, flatten(requires));
         }
     }
 
@@ -700,37 +700,31 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         }
     }
     
-    function usesV2Pass2 (file, templateName, options) {
-        var templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
-        
-        return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];
-    }
-    
     // Add the sources to either a structure to be uglified or to an object for including one at a time
-    for (var prop in applicationSourceCandidate) {
+    for (var propa in applicationSourceCandidate) {
         var templateNeededOnClient = false;
         
-        for (var template in requires[prop]) {
-            if (requires[prop][template].__toClient__ || typeof(requires[prop][template].__toClient__) == 'undefined') {
+        for (var template in requires[propa]) {
+            if (requires[propa][template].__toClient__ || typeof(requires[propa][template].__toClient__) == 'undefined') {
                 templateNeededOnClient = true;
             }
         }
         
-        if (filesNeeded[prop] && templateNeededOnClient) {
+        if (filesNeeded[propa] && templateNeededOnClient) {
             if (amorphicOptions.sourceMode == 'debug') {
-                applicationSource[path] += applicationSourceCandidate[prop][0];
+                applicationSource[path] += applicationSourceCandidate[propa][0];
             }
             else {
-                addUglifiedSource(applicationSourceCandidate[prop][0], applicationSourceCandidate[prop][1]);
+                addUglifiedSource(applicationSourceCandidate[propa][0], applicationSourceCandidate[propa][1]);
             }
         }
         else {
-            for (var template in requires[prop]) {
-                if (requires[prop][template]) {
-                    requires[prop][template].__toClient__ = false;
+            for (var templatea in requires[prop]) {
+                if (requires[propa][templatea]) {
+                    requires[propa][templatea].__toClient__ = false;
                 }
                 else {
-                    console.log(template + ' not found in requires for ' + prop);
+                    console.log(templatea + ' not found in requires for ' + propa);
                 }
             }
         }
@@ -799,6 +793,12 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     }
 
     return requires;
+    
+    function usesV2Pass2 (file, templateName, options) {
+        templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
+        
+        return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];
+    }
     
     function before (node,  descend) {
         
@@ -1340,6 +1340,7 @@ function processMessage(req, resp)
         };
         
         ourObjectTemplate.sessionExpired = false;
+        var startMessageProcessing;
 
         // If we expired just return a message telling the client to reset itself
         if (semotus.newSession || newPage || forceReset) {
@@ -1354,7 +1355,7 @@ function processMessage(req, resp)
             
             semotus.save(path, session, req);
             
-            var startMessageProcessing = process.hrtime();
+            startMessageProcessing = process.hrtime();
             var outbound = semotus.getMessage();
             
             outbound.ver = semotus.appVersion;
@@ -1376,7 +1377,7 @@ function processMessage(req, resp)
         // a callback to the client.  In either case return a response and prevent
         // any further messages from being generated as these will get handled on
         // the next call into the server
-        var startMessageProcessing = process.hrtime();
+        startMessageProcessing = process.hrtime();
         var sendMessage = function (message) {
             ourObjectTemplate.setSession(remoteSessionId);
             ourObjectTemplate.enableSendMessage(false);
@@ -1450,9 +1451,10 @@ function amorphicEntry(req, resp, next) {
             .split(',')[0].replace(/(.*)[:](.*)/, '$2') || 'unknown';
     
     var time = process.hrtime();
+    var appName;
     
     if (req.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js.map/)) {
-        var appName = RegExp.$1;
+        appName = RegExp.$1;
         
         req.amorphicTracking.loggingContext.app = appName;
         resp.setHeader('Content-Type', 'application/javascript');
@@ -1463,7 +1465,7 @@ function amorphicEntry(req, resp, next) {
         displayPerformance(req);
     }
     else if (req.originalUrl.match(/([A-Za-z0-9_]*)\.cached.js/)) {
-        var appName = RegExp.$1;
+        appName = RegExp.$1;
         
         req.amorphicTracking.loggingContext.app = appName;
         resp.setHeader('Content-Type', 'application/javascript');
@@ -1485,7 +1487,7 @@ function amorphicEntry(req, resp, next) {
     }
     else if (req.originalUrl.match(/([A-Za-z0-9_-]*)\.js/)) {
         var url = req.originalUrl;
-        var appName = RegExp.$1;
+        appName = RegExp.$1;
         
         req.amorphicTracking.loggingContext.app = appName;
         console.log('Establishing ' + appName);
@@ -1687,10 +1689,12 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
         dbConcurrency : config.nconf.get(appName + '_dbConcurrency') || config.nconf.get('dbconcurrency') || 5
     };
     
+    var dbClient;
+    
     if (dbConfig.dbName && dbConfig.dbPath) {
         if (dbConfig.dbDriver == 'mongo') {
             var MongoClient = require('mongodb-bluebird');
-            var dbClient = MongoClient.connect(dbConfig.dbPath + dbConfig.dbName);
+            dbClient = MongoClient.connect(dbConfig.dbPath + dbConfig.dbName);
         }
         else if (dbConfig.dbDriver == 'knex') {
             var knex = require('knex')({
@@ -1703,7 +1707,7 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
                 }, pool: {min: 0, max: dbConfig.dbConnections}
             });
             
-            var dbClient = Q(knex); // TODO: knex is already initialized because it is a synchronous function that is called when require('knex') occurs
+            dbClient = Q(knex); // TODO: knex is already initialized because it is a synchronous function that is called when require('knex') occurs
         }
         
         return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore)).catch(function (e) {

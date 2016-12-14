@@ -697,15 +697,15 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             
             recordStatics(all_require_results[prop](objectTemplate, usesV2Pass2));
             objectTemplate.create = oldCreate;
-            
-            function usesV2Pass2 (file, templateName, options) {
-                var templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
-                
-                return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];
-            }
         }
     }
-
+    
+    function usesV2Pass2 (file, templateName, options) {
+        var templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
+        
+        return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];
+    }
+    
     // Add the sources to either a structure to be uglified or to an object for including one at a time
     for (var prop in applicationSourceCandidate) {
         var templateNeededOnClient = false;
@@ -780,42 +780,6 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
         ast.print(stream);
         applicationSource[path] = stream.toString();
         applicationSourceMap[path] = source_map.toString();
-        
-        function before (node,  descend) {
-
-            if (node instanceof UglifyJS.AST_ObjectProperty && node.key == 'body' && findOnServer(walker.parent())) {
-                var emptyFunction = node.clone();
-                
-                emptyFunction.value.variables = {};
-                emptyFunction.value.body = [];
-                emptyFunction.value.argNames = [];
-                emptyFunction.value.start = UglifyJS.AST_Token({type: 'string', value: '{'});
-                emptyFunction.value.end = UglifyJS.AST_Token({type: 'string', value: '}'});
-                
-                return emptyFunction;
-            }
-            
-            node = node.clone();
-            descend(node, this);
-            
-            return node;
-            
-            function findOnServer(node) {
-                var ret = null;
-                
-                if (node.properties) {
-                    node.properties.forEach(isOnServer);
-                }
-                
-                return ret;
-                
-                function isOnServer(node) {
-                    if (node.key == 'on' && node.value && node.value.value == 'server') {
-                        ret = node;
-                    }
-                }
-            }
-        }
     }
 
     objectTemplate.performInjections();
@@ -835,6 +799,42 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     }
 
     return requires;
+    
+    function before (node,  descend) {
+        
+        if (node instanceof UglifyJS.AST_ObjectProperty && node.key == 'body' && findOnServer(walker.parent())) {
+            var emptyFunction = node.clone();
+            
+            emptyFunction.value.variables = {};
+            emptyFunction.value.body = [];
+            emptyFunction.value.argNames = [];
+            emptyFunction.value.start = UglifyJS.AST_Token({type: 'string', value: '{'});
+            emptyFunction.value.end = UglifyJS.AST_Token({type: 'string', value: '}'});
+            
+            return emptyFunction;
+        }
+        
+        node = node.clone();
+        descend(node, this);
+        
+        return node;
+        
+        function findOnServer(node) {
+            var ret = null;
+            
+            if (node.properties) {
+                node.properties.forEach(isOnServer);
+            }
+            
+            return ret;
+            
+            function isOnServer(node) {
+                if (node.key == 'on' && node.value && node.value.value == 'server') {
+                    ret = node;
+                }
+            }
+        }
+    }
 
     function recordStatics(initializerReturnValues) {
         for (var returnVariable in initializerReturnValues) {
@@ -1712,12 +1712,6 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
     }
     else {
         // No database case
-        function injectObjectTemplate(objectTemplate) {
-            objectTemplate.config = config;
-            objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
-            objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
-        }
-        
         if (config.isDaemon) {
             establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
                 amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
@@ -1733,6 +1727,12 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
             establishDaemon(appName);
             console.log(appName + ' started as a daemon');
         }
+    }
+    
+    function injectObjectTemplate(objectTemplate) {
+        objectTemplate.config = config;
+        objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
+        objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
     }
 }
 

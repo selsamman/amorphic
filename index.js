@@ -1239,7 +1239,7 @@ function restoreSession(path, session, controllerTemplate) {
 
     // Restore the controller from the session
     var controller;
-    
+
     objectTemplate.withoutChangeTracking(function () {
         var sessionData = getSessionCache(path, objectTemplate.controller.__sessionId, true);
 
@@ -1882,11 +1882,11 @@ function generateDownloadsDir() {
  * @returns {unknown} unknown
  */
 function readFile (file) {
-    
+
     if (file && fs.existsSync(file)) {
         return fs.readFileSync(file);
     }
-    
+
     return null;
 }
 

@@ -37,15 +37,15 @@ module.exports = exports = {
         }],
         
         // Whitespace
-        "indent": [OFF, 4],
-        "no-trailing-spaces": OFF,
-        "space-before-blocks": OFF,
-        "keyword-spacing": OFF,
-        "semi-spacing": OFF,
-        "comma-spacing": OFF,
-        "space-infix-ops": OFF,
-        "space-in-parens": OFF,
-        "array-bracket-spacing": OFF,
+        "indent": [ERROR, 4],
+        "no-trailing-spaces": ERROR,
+        "space-before-blocks": ERROR,
+        "keyword-spacing": ERROR,
+        "semi-spacing": ERROR,
+        "comma-spacing": ERROR,
+        "space-infix-ops": ERROR,
+        "space-in-parens": ERROR,
+        "array-bracket-spacing": ERROR,
         
         // Low Risk
         "curly": OFF,

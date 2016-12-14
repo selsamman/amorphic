@@ -91,9 +91,9 @@ reset();
  * @param {unknown} path unknown
  * @param {unknown} cpath unknown
  * @param {unknown} initObjectTemplate unknown
- * @param {unknown} sessionExpiration unknown
- * @param {unknown} objectCacheExpiration unknown
- * @param {unknown} sessionStore unknown
+ * @param {unknown} sessionExpiration session expiration time in ms
+ * @param {unknown} objectCacheExpiration object cache expiration time in ms
+ * @param {unknown} sessionStore connect-redis handle
  * @param {unknown} loggerCall unknown
  * @param {unknown} appVersion unknown
  * @param {unknown} appConfig unknown

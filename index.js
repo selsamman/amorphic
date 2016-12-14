@@ -784,7 +784,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
                     requires[propa][templatea].__toClient__ = false;
                 }
                 else {
-                    console.log(templatea + ' not found in requires for ' + propa);
+                    logMessage(templatea + ' not found in requires for ' + propa);
                 }
             }
         }
@@ -794,10 +794,10 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
     if (config && config.appConfig && config.appConfig.modules) {
         for (var mixin in config.appConfig.modules) {
             if (!config.appConfig.modules[mixin].require) {
-                console.log('Module ' + mixin + ' missing a requires property ');
+                logMessage('Module ' + mixin + ' missing a requires property ');
             }
             else if (typeof(require(config.appConfig.modules[mixin].require)[mixin + '_mixins']) != 'function') {
-                console.log(config.appConfig.modules[mixin].require + ' must export a ' + mixin + '_mixins property which is an initialization function');
+                logMessage(config.appConfig.modules[mixin].require + ' must export a ' + mixin + '_mixins property which is an initialization function');
             }
             else {
                 var requireName = config.appConfig.modules[mixin].require;
@@ -1282,7 +1282,7 @@ function setDownloadDir(dir) {
  */
 function processFile(req, resp, next) {
     if (!downloads) {
-        console.log('no download directory');
+        logMessage('no download directory');
         next();
         return;
     }
@@ -1292,21 +1292,21 @@ function processFile(req, resp, next) {
 
     form.parse(req, function(err, _fields, files) {
         if (err) {
-            console.log(err);
+            logMessage(err);
         }
 
         resp.writeHead(200, {'content-type': 'text/html'});
 
         var file = files.file.path;
-        console.log(file);
+        logMessage(file);
 
         setTimeout(function () {
             fs.unlink(file, function (err) {
                 if (err) {
-                    console.log(err);
+                    logMessage(err);
                 }
                 else {
-                    console.log(file + ' deleted');
+                    logMessage(file + ' deleted');
                 }
             });}, 60000);
 
@@ -1346,7 +1346,7 @@ function processPost(req, resp) {
             throw 'Not Accepting Posts';
         }
     }).fail(function(error) {
-        console.log('Error establishing session for processPost ', req.session.id, error.message + error.stack);
+        logMessage('Error establishing session for processPost ', req.session.id, error.message + error.stack);
         resp.writeHead(500, {'Content-Type': 'text/plain'});
         resp.end('Internal Error');
     }).done();
@@ -1607,7 +1607,7 @@ function amorphicEntry(req, resp, next) {
         next();
     }
 
-    console.log('Requesting ' + req.originalUrl);
+    logMessage('Requesting ' + req.originalUrl);
 
     req.amorphicTracking.loggingContext.session = req.session.id;
 
@@ -1655,7 +1655,7 @@ function amorphicEntry(req, resp, next) {
         appName = RegExp.$1;
 
         req.amorphicTracking.loggingContext.app = appName;
-        console.log('Establishing ' + appName);
+        logMessage('Establishing ' + appName);
 
         establishServerSession(req, appName, 'initial')
             .then (function (session) {
@@ -1768,7 +1768,7 @@ function log(level, sessionId, data) {
     var time = t.getFullYear() + '-' + (t.getMonth() + 1) + '-' + t.getDate() + ' ' + t.toTimeString().replace(/ .*/, '') + ':' + t.getMilliseconds();
     var message = (time + '(' + sessionId + ') ' + 'Semotus:' + data);
 
-    console.log(message);
+    logMessage(message);
 
     if (level == 0 && logger) {
         setTimeout(function () {
@@ -1946,7 +1946,7 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
         }
 
         return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore)).catch(function (e) {
-            console.log(e.message + e.stack);
+            logMessage(e.message + e.stack);
         });
     }
     else {
@@ -1964,7 +1964,7 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
 
         if (config.isDaemon) {
             establishDaemon(appName);
-            console.log(appName + ' started as a daemon');
+            logMessage(appName + ' started as a daemon');
         }
     }
 
@@ -1988,7 +1988,7 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
  * @param {unknown} db unknown
  */
 function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionStore, db) {
-    console.log('DB connection established to ' + dbConfig.dbName);
+    logMessage('DB connection established to ' + dbConfig.dbName);
 
     // TODO: Try to pull this function out
     function injectObjectTemplate (objectTemplate) {
@@ -2021,7 +2021,7 @@ function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionSto
 
     if (config.isDaemon) {
         establishDaemon(appName);
-        console.log(appName + ' started as a daemon');
+        logMessage(appName + ' started as a daemon');
     }
 }
 
@@ -2057,7 +2057,7 @@ function startUpServer(preSessionInject, postSessionInject, appList, appStartLis
                 app.use('/', connect.static(path, {index: 'index.html'}));
             }
 
-            console.log(appName + ' connected to ' + path);
+            logMessage(appName + ' connected to ' + path);
         }
     }
 
@@ -2129,7 +2129,7 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     fetchStartUpParams(configStore);
     generateDownloadsDir();
 
-    console.log('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
+    logMessage('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
 
     sessionStore = sessionStore || new (connect.session.MemoryStore)();
 
@@ -2154,8 +2154,18 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     }
 
     Q.all(promises).then(startUpServer.bind(this, preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter)).catch(function(e) {
-        console.log(e.message + ' ' + e.stack);
+        logMessage(e.message + ' ' + e.stack);
     });
+}
+
+
+/**
+ * Writing a function to consolidate our logMessage statements so they can be easily replaced later
+ *
+ * @param {String} message A message to be printed to the console.
+ */
+function logMessage(message) {
+    console.log(message);
 }
 
 module.exports = {

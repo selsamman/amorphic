@@ -856,7 +856,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     }
     
     function flatten (requires) {
-        classes = {};
+        var classes = {};
         
         for (var f in requires) {
             for (var c in requires[f]) {

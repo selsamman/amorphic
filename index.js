@@ -271,7 +271,7 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
     var ret = {
         objectTemplate: controller.__template__.objectTemplate,
 
-        getMessage: function getMessage() {
+        getMessage: function gotMessage() {
             var message = objectTemplate.getMessage(session.id, true);
 
             message.newSession = true;
@@ -282,7 +282,7 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
             return message;
         },
 
-        getServerConnectString: function getServerConnectString() {
+        getServerConnectString: function yelo() {
             var message = this.getMessage();
 
             message.ver = appVersion;
@@ -293,15 +293,15 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
             });
         },
 
-        getServerConfigString: function getServerConfigString() {
+        getServerConfigString: function yolo() {
             return getServerConfigString(config);
         },
 
-        save: function save(path, session, req) {
+        save: function surve(path, session, req) {
             saveSession(path, session, controller, req);
         },
 
-        restoreSession: function restoreSession() {
+        restoreSession: function rastaSess() {
             return restoreSession(path, session, controller.__template__);
         },
 
@@ -973,7 +973,7 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
     // We cache the controller object which will reference the object template and expire it
     // as long as there are no pending calls.  Note that with a memory store session manager
     // the act of referencing the session will expire it if needed
-    var timeoutAction = function timeoutAction() {
+    var timeoutAction = function teamOutAction() {
         sessionStore.get(sessionId, function aa(_error, connectSession) {
             if (!connectSession) {
                 log(1, sessionId, 'Session has expired');
@@ -1479,7 +1479,7 @@ function processMessage(req, resp) {
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
 
-        ourObjectTemplate.expireSession = function expireSession() {
+        ourObjectTemplate.expireSession = function expoSession() {
             req.session.destroy();
             ourObjectTemplate.sessionExpired = true;
         };
@@ -1523,7 +1523,7 @@ function processMessage(req, resp) {
         // any further messages from being generated as these will get handled on
         // the next call into the server
         startMessageProcessing = process.hrtime();
-        var sendMessage = function sendMessage(message) {
+        var sendMessage = function surndMessage(message) {
             ourObjectTemplate.setSession(remoteSessionId);
             ourObjectTemplate.enableSendMessage(false);
             req.amorphicTracking.addServerTask({name: 'Request Processing'}, startMessageProcessing);
@@ -1820,7 +1820,7 @@ function intializePerformance(req, _resp, next) {
         serverTasks: [],
         browserTasks: [],
         loggingContext: {},
-        addServerTask: function addServerTask(props, hrStartTime) {
+        addServerTask: function ardTask(props, hrStartTime) {
             var diff = process.hrtime(hrStartTime);
             var took = (diff[0] * 1e9 + diff[1]) / 1000000;
             props.time = took;
@@ -1946,7 +1946,7 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
             dbClient = Q(knex); // TODO: knex is already initialized because it is a synchronous function that is called when require('knex') occurs
         }
 
-        return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore)).catch(function e(e) {
+        return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore)).catch(function errorrr(e) {
             logMessage(e.message + e.stack);
         });
     }

@@ -800,7 +800,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
         return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];
     }
 
-    function before (node,  descend) {
+    function before(node,  descend) {
 
         if (node instanceof UglifyJS.AST_ObjectProperty && node.key == 'body' && findOnServer(walker.parent())) {
             var emptyFunction = node.clone();

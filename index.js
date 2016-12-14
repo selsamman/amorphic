@@ -120,7 +120,7 @@ function establishDaemon (path) {
     var config = applicationConfig[path];
 
     if (!config) {
-        throw  new Error('Amorphic: establishDaemon called with a path of ' + path + ' which was not registered');
+        throw new Error('Amorphic: establishDaemon called with a path of ' + path + ' which was not registered');
     }
 
     var initObjectTemplate = config.initObjectTemplate;
@@ -141,7 +141,7 @@ function establishDaemon (path) {
     var controllerTemplate = requires[prop].Controller;
 
     if (!controllerTemplate) {
-        throw  new Error('Missing controller template in ' + prefix + prop + '.js');
+        throw new Error('Missing controller template in ' + prefix + prop + '.js');
     }
 
     controllerTemplate.objectTemplate = persistableTemplate;
@@ -177,7 +177,7 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
     var config = applicationConfig[path];
 
     if (!config) {
-        throw  new Error('Semotus: establishServerSession called with a path of ' + path + ' which was not registered');
+        throw new Error('Semotus: establishServerSession called with a path of ' + path + ' which was not registered');
     }
 
     var initObjectTemplate = config.initObjectTemplate;
@@ -503,7 +503,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
         var mixins_initializer = (require_results[prop + '_mixins']);
 
         if (typeof(initializer) != 'function') {
-            throw  new Error(prop + ' not exported in ' + appPath + file);
+            throw new Error(prop + ' not exported in ' + appPath + file);
         }
 
         // Call application code that can poke properties into objecTemplate
@@ -1444,7 +1444,7 @@ function amorphicEntry(req, resp, next) {
         next();
     }
 
-    console.log ('Requesting ' + req.originalUrl);
+    console.log('Requesting ' + req.originalUrl);
 
     req.amorphicTracking.loggingContext.session = req.session.id;
 

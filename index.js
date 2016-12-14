@@ -56,6 +56,11 @@ var sendToLog = null;
 var sessions = {};
 
 // TODO: Remove this - this is just to set the default config options
+/**
+ * Purpose unknown
+ *
+ * @returns {unknown} unknown
+ */
 function reset () {
     if (appContext.connection) {
         appContext.connection.close();
@@ -79,6 +84,21 @@ function reset () {
 
 reset();
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} appPath unknown
+ * @param {unknown} path unknown
+ * @param {unknown} cpath unknown
+ * @param {unknown} initObjectTemplate unknown
+ * @param {unknown} sessionExpiration unknown
+ * @param {unknown} objectCacheExpiration unknown
+ * @param {unknown} sessionStore unknown
+ * @param {unknown} loggerCall unknown
+ * @param {unknown} appVersion unknown
+ * @param {unknown} appConfig unknown
+ * @param {unknown} logLevel unknown
+ */
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
     applicationConfig[appPath] = {
         appPath: path,
@@ -115,6 +135,11 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
     }
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} path unknown
+ */
 function establishDaemon (path) {
     // Retrieve configuration information
     var config = applicationConfig[path];
@@ -165,12 +190,13 @@ function establishDaemon (path) {
  *
  * 3) newControllerID - if specified the browser has created a controller and will be sending the data to the server
  *
- * @param req
- * @param path - used to identify future requests from XML
- * @param newPage - force returning everything since this is likely a session continuation on a new web page
- * @param reset - create new clean empty controller losing all data
- * @param newControllerId - client is sending us data for a new controller that it has created
- * @return {*}
+ * @param {unknown} req unknown
+ * @param {unknown} path - used to identify future requests from XML
+ * @param {unknown} newPage - force returning everything since this is likely a session continuation on a new web page
+ * @param {unknown} reset - create new clean empty controller losing all data
+ * @param {unknown} newControllerId - client is sending us data for a new controller that it has created
+ *
+ * @returns {*}
  */
 function establishServerSession(req, path, newPage, reset, newControllerId) {
     // Retrieve configuration information
@@ -300,6 +326,20 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
     });
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} config unknown
+ * @param {unknown} controllerPath unknown
+ * @param {unknown} initObjectTemplate unknown
+ * @param {unknown} path unknown
+ * @param {unknown} time unknown
+ * @param {unknown} appVersion unknown
+ * @param {unknown} sessionExpiration unknown
+ *
+ * @returns {unknown} unknown
+ */
 function establishInitialServerSession(req, config, controllerPath, initObjectTemplate, path, time, appVersion, sessionExpiration) {
     
     var match = controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
@@ -352,6 +392,13 @@ function establishInitialServerSession(req, config, controllerPath, initObjectTe
     });
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} config unknown
+ *
+ * @returns {unknown} unknown
+ */
 function getServerConfigString(config) {
     var browserConfig = {};
     var whitelist = (config.appConfig.toBrowser || {});
@@ -366,6 +413,19 @@ function getServerConfigString(config) {
     return JSON.stringify(browserConfig);
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} objectTemplate unknown
+ * @param {unknown} appPath unknown
+ * @param {unknown} templates unknown
+ * @param {unknown} config unknown
+ * @param {unknown} path unknown
+ * @param {unknown} _sourceOnly unknown
+ * @param {unknown} detailedInfo unknown
+ *
+ * @returns {unknown} unknown
+ */
 function getTemplates(objectTemplate, appPath, templates, config, path, _sourceOnly, detailedInfo) {
 
     var requires = {};
@@ -872,19 +932,20 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
  * Create a controller template that has a unique Semotus instance that is
  * for one unique session
  *
- * @param path - unique path for application
- * @param controllerPath - file path for controller objects
- * @param initObjectTemplate - callback for dependency injection into controller
- * @param connectSession - connect session object
- * @param objectCacheExpiration - seconds to expire controller object cache
- * @param sessionStore - session implementation
- * @param newPage - force returning everything since this is likely a session continuation on a new web page
- * @param reset - create new clean empty controller losing all data
- * @param req - connect request
+ * @param {unknown} path - unique path for application
+ * @param {unknown} controllerPath - file path for controller objects
+ * @param {unknown} initObjectTemplate - callback for dependency injection into controller
+ * @param {unknown} connectSession - connect session object
+ * @param {unknown} objectCacheExpiration - seconds to expire controller object cache
+ * @param {unknown} sessionStore - session implementation
+ * @param {unknown} newPage - force returning everything since this is likely a session continuation on a new web page
+ * @param {unknown} reset - create new clean empty controller losing all data
+ * @param {unknown} controllerId - unknown
+ * @param {unknown} req - connect request
+ *
  * @returns {*}
  */
-function getController(path, controllerPath, initObjectTemplate, connectSession, objectCacheExpiration, sessionStore, newPage, reset, controllerId,  req)
-{
+function getController(path, controllerPath, initObjectTemplate, connectSession, objectCacheExpiration, sessionStore, newPage, reset, controllerId,  req) {
     var sessionId = connectSession.id;
     var config = applicationConfig[path];
     
@@ -1045,6 +1106,14 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
     return controller;
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} app unknown
+ * @param {unknown} context unknown
+ *
+ * @returns {unknown} unknown
+ */
 function getLoggingContext(app, context) {
     context = context || {};
     context.environment = process.env.NODE_ENV || 'local';
@@ -1055,14 +1124,35 @@ function getLoggingContext(app, context) {
     return context;
 }
 
-function getModelSource  (path) {
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} path unknown
+ *
+ * @returns {unknown} unknown
+ */
+function getModelSource (path) {
     return applicationSource[path];
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} path unknown
+ *
+ * @returns {unknown} unknown
+ */
 function getModelSourceMap (path) {
     return applicationSourceMap[path];
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} data unknown
+ *
+ * @returns {unknown} unknown
+ */
 function compressSessionData(data) {
     if (amorphicOptions.compressSession) {
         return zlib.deflateSync(data);
@@ -1071,6 +1161,13 @@ function compressSessionData(data) {
     return data;
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} objData unknown
+ *
+ * @returns {unknown} unknown
+ */
 function decompressSessionData(objData) {
     if (amorphicOptions.compressSession && objData.data) {
         var buffer = new Buffer(objData.data);
@@ -1081,6 +1178,14 @@ function decompressSessionData(objData) {
     return objData;
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} path unknown
+ * @param {unknown} session unknown
+ * @param {unknown} controller unknown
+ * @param {unknown} req unknown
+ */
 function saveSession(path, session, controller, req) {
     var request = controller.__request;
     controller.__request = null;
@@ -1119,12 +1224,22 @@ function saveSession(path, session, controller, req) {
     controller.__request = request;
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} path unknown
+ * @param {unknown} session unknown
+ * @param {unknown} controllerTemplate unknown
+ *
+ * @returns {unknown} unknown
+ */
 function restoreSession(path, session, controllerTemplate) {
 
     var objectTemplate = controllerTemplate.objectTemplate;
 
     // Restore the controller from the session
     var controller;
+    
     objectTemplate.withoutChangeTracking(function () {
         var sessionData = getSessionCache(path, objectTemplate.controller.__sessionId, true);
         
@@ -1149,12 +1264,23 @@ function restoreSession(path, session, controllerTemplate) {
     return controller;
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} dir unknown
+ */
 function setDownloadDir(dir) {
     downloads = dir;
 }
 
-function processFile(req, resp, next)
-{
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
+ * @param {unknown} next unknown
+ */
+function processFile(req, resp, next) {
     if (!downloads) {
         console.log('no download directory');
         next();
@@ -1193,11 +1319,11 @@ function processFile(req, resp, next)
 /**
  * Process a post request by establishing a session and calling the controllers processPost method
  * which can return a response to be sent back
- * @param req
- * @param resp
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
  */
-function processPost(req, resp)
-{
+function processPost(req, resp) {
     var session = req.session;
     var path = url.parse(req.url, true).query.path;
 
@@ -1226,6 +1352,12 @@ function processPost(req, resp)
     }).done();
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
+ */
 function processLoggingMessage(req, resp) {
     var path = url.parse(req.url, true).query.path;
     var session = req.session;
@@ -1253,6 +1385,13 @@ function processLoggingMessage(req, resp) {
     resp.end('');
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} logger unknown
+ * @param {unknown} path unknown
+ * @param {unknown} context unknown
+ */
 function setupLogger(logger, path, context) {
     logger.startContext(context);
     logger.setLevel(applicationConfig[path].logLevel);
@@ -1264,8 +1403,11 @@ function setupLogger(logger, path, context) {
 
 /**
  * Manage a set of data keyed by the session id used for message sequence and serialization tracking
- * @param path String
- * @param req Object
+ *
+ * @param {String} path unknown
+ * @param {unknown} sessionId unknown
+ * @param {unknown} keepTimeout unknown
+ *
  * @returns {*|{sequence: number, serializationTimeStamp: null, timeout: null}}
  */
 function getSessionCache(path, sessionId, keepTimeout) {
@@ -1290,8 +1432,8 @@ function getSessionCache(path, sessionId, keepTimeout) {
 /**
  * Process JSON request message
  *
- * @param req
- * @param resp
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
  */
 function processMessage(req, resp)
 {
@@ -1420,6 +1562,13 @@ function processMessage(req, resp)
     }).done();
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
+ * @param {unknown} next unknown
+ */
 function router(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/)) {
         req.body.type == 'logging' ? processLoggingMessage(req, resp) : processMessage(req, resp);
@@ -1429,6 +1578,13 @@ function router(req, resp, next) {
     }
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
+ * @param {unknown} next unknown
+ */
 function uploadRouter(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.file && req.method == 'POST') {
         processFile(req, resp, next);
@@ -1438,6 +1594,13 @@ function uploadRouter(req, resp, next) {
     }
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
+ * @param {unknown} next unknown
+ */
 function amorphicEntry(req, resp, next) {
     // If we're not initalizing
     if (!req.url.match(/amorphic\/init/)) {
@@ -1538,6 +1701,13 @@ function amorphicEntry(req, resp, next) {
     }
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
+ * @param {unknown} next unknown
+ */
 function postRouter(req, resp, next) {
     if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.form && req.method == 'POST') {
         processPost(req, resp, next);
@@ -1547,6 +1717,13 @@ function postRouter(req, resp, next) {
     }
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} resp unknown
+ * @param {unknown} next unknown
+ */
 function downloadRouter(req, resp, next) {
     var file = url.parse(req.url, true).query.file;
     
@@ -1558,6 +1735,12 @@ function downloadRouter(req, resp, next) {
     }
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} request unknown
+ * @param {unknown} response unknown
+ */
 function processContentRequest(request, response) {
     var path = url.parse(request.url, true).query.path;
     
@@ -1569,7 +1752,14 @@ function processContentRequest(request, response) {
 }
 
 // Logging for rare situations where we don't have an objectTemplate
-function log (level, sessionId, data) {
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} level unknown
+ * @param {unknown} sessionId unknown
+ * @param {unknown} data unknown
+ */
+function log(level, sessionId, data) {
     if (level > logLevel) {
         return;
     }
@@ -1588,6 +1778,11 @@ function log (level, sessionId, data) {
 
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ */
 function displayPerformance(req) {
     var logger = Semotus.createLogger();
     
@@ -1611,6 +1806,13 @@ function displayPerformance(req) {
         'Request Performance');
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} req unknown
+ * @param {unknown} _resp unknown
+ * @param {unknown} next unknown
+ */
 function intializePerformance(req, _resp, next) {
     req.amorphicTracking = {
         startTime: process.hrtime(),
@@ -1628,6 +1830,11 @@ function intializePerformance(req, _resp, next) {
     next();
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} configStore unknown
+ */
 function fetchStartUpParams(configStore) {
     var rootCfg = configStore['root'];
     
@@ -1646,6 +1853,9 @@ function fetchStartUpParams(configStore) {
     amorphicOptions.port = rootCfg.get('port');
 }
 
+/**
+ * Purpose unknown
+ */
 function generateDownloadsDir() {
     // Create temporary directory for file uploads
     var downloads = path.join(path.dirname(require.main.filename), 'download');
@@ -1664,10 +1874,33 @@ function generateDownloadsDir() {
 }
 
 // TODO: Refactor this to be a readSchema function
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} file unknown
+ *
+ * @returns {unknown} unknown
+ */
 function readFile (file) {
-    return file && fs.existsSync(file) ? fs.readFileSync(file) : null;
+    
+    if (file && fs.existsSync(file)) {
+        return fs.readFileSync(file);
+    }
+    
+    return null;
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} appName unknown
+ * @param {unknown} appDirectory unknown
+ * @param {unknown} appList unknown
+ * @param {unknown} configStore unknown
+ * @param {unknown} sessionStore unknown
+ *
+ * @returns {unknown} unknown
+ */
 function startApplication(appName, appDirectory, appList, configStore, sessionStore) {
     
     var path = appDirectory + '/' + appList[appName] + '/';
@@ -1742,6 +1975,18 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
     }
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} dbConfig unknown
+ * @param {unknown} config unknown
+ * @param {unknown} appName unknown
+ * @param {unknown} path unknown
+ * @param {unknown} cpath unknown
+ * @param {unknown} schema unknown
+ * @param {unknown} sessionStore unknown
+ * @param {unknown} db unknown
+ */
 function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionStore, db) {
     console.log('DB connection established to ' + dbConfig.dbName);
     
@@ -1780,6 +2025,17 @@ function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionSto
     }
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} preSessionInject unknown
+ * @param {unknown} postSessionInject unknown
+ * @param {unknown} appList unknown
+ * @param {unknown} appStartList unknown
+ * @param {unknown} appDirectory unknown
+ * @param {unknown} mainApp unknown
+ * @param {unknown} sessionRouter unknown
+ */
 function startUpServer(preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter) {
     var app = connect();
     
@@ -1855,6 +2111,15 @@ function startUpServer(preSessionInject, postSessionInject, appList, appStartLis
     appContext.connection = app.listen(amorphicOptions.port);
 }
 
+/**
+ * Purpose unknown
+ *
+ * @param {unknown} appDirectory unknown
+ * @param {unknown} sessionStore unknown
+ * @param {unknown} preSessionInject unknown
+ * @param {unknown} postSessionInject unknown
+ * @param {unknown} sendToLogFunction unknown
+ */
 function listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
     sendToLog = sendToLogFunction;
     

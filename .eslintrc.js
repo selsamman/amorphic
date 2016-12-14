@@ -21,7 +21,7 @@ module.exports = exports = {
         "no-unexpected-multiline": ERROR,
         
         // All JSDoc comments must be valid
-        "valid-jsdoc": [ OFF, {
+        "valid-jsdoc": [ ERROR, {
             "requireReturn": false,
             "requireReturnDescription": false,
             "requireParamDescription": true,

@@ -15,13 +15,13 @@ module.exports = exports = {
     // Overrides from recommended set
     "rules": {
         // Ignore unused vars that start with underscore
-        "no-unused-vars": [ OFF, { "args": "all", "argsIgnorePattern": "^_" } ],
+        "no-unused-vars": [ ERROR, { "args": "all", "argsIgnorePattern": "^_" } ],
         
         // Possible Errors
-        "no-unexpected-multiline": OFF,
+        "no-unexpected-multiline": ERROR,
         
         // All JSDoc comments must be valid
-        "valid-jsdoc": [ OFF, {
+        "valid-jsdoc": [ ERROR, {
             "requireReturn": false,
             "requireReturnDescription": false,
             "requireParamDescription": true,
@@ -37,47 +37,47 @@ module.exports = exports = {
         }],
         
         // Whitespace
-        "indent": [OFF, 4],
-        "no-trailing-spaces": OFF,
-        "space-before-blocks": OFF,
-        "keyword-spacing": OFF,
-        "semi-spacing": OFF,
-        "comma-spacing": OFF,
-        "space-infix-ops": OFF,
-        "space-in-parens": OFF,
-        "array-bracket-spacing": OFF,
+        "indent": [ERROR, 4],
+        "no-trailing-spaces": ERROR,
+        "space-before-blocks": ERROR,
+        "keyword-spacing": ERROR,
+        "semi-spacing": ERROR,
+        "comma-spacing": ERROR,
+        "space-infix-ops": ERROR,
+        "space-in-parens": ERROR,
+        "array-bracket-spacing": ERROR,
         
         // Low Risk
-        "curly": OFF,
-        "brace-style": [OFF, "stroustrup"],
-        "semi": OFF,
-        "comma-style": OFF,
-        "comma-dangle": OFF,
-        "max-statements-per-line": OFF,
-        "quotes": [OFF, "single", { "avoidEscape": true }],
+        "curly": ERROR,
+        "brace-style": [ERROR, "stroustrup"],
+        "semi": ERROR,
+        "comma-style": ERROR,
+        "comma-dangle": ERROR,
+        "max-statements-per-line": ERROR,
+        "quotes": [ERROR, "single", { "avoidEscape": true }],
         
         // Medium Risk
-        "eqeqeq": OFF,
-        "no-nested-ternary": OFF,
-        "no-new-object": OFF,
-        "no-eval": OFF,
-        "no-extend-native": OFF,
-        "no-implicit-coercion": [OFF, { "allow": ["!!"] } ],
-        "no-extra-boolean-cast": OFF,
+        "eqeqeq": ERROR,
+        "no-nested-ternary": ERROR,
+        "no-new-object": ERROR,
+        "no-eval": ERROR,
+        "no-extend-native": ERROR,
+        "no-implicit-coercion": [ERROR, { "allow": ["!!"] } ],
+        "no-extra-boolean-cast": ERROR,
         
         // Renaming
-        "camelcase": OFF,
-        "new-cap": OFF,
-        "func-names": OFF,
-        "no-useless-rename": OFF,
+        "camelcase": ERROR,
+        "new-cap": ERROR,
+        "func-names": ERROR,
+        "no-useless-rename": ERROR,
         
         // High Risk
-        "strict": OFF,
-        "no-loop-func": OFF,
-        "max-len": [OFF, 120],
-        "max-lines": [OFF, {"max": 600, "skipBlankLines": true, "skipComments": true}],
-        "max-params": [OFF, 6],
-        "max-statements": [OFF, 35],
-        "max-depth": [OFF, 5]
+        "strict": ERROR,
+        "no-loop-func": ERROR,
+        "max-len": [ERROR, 120],
+        "max-lines": [ERROR, {"max": 600, "skipBlankLines": true, "skipComments": true}],
+        "max-params": [ERROR, 6],
+        "max-statements": [ERROR, 35],
+        "max-depth": [ERROR, 5]
     }
 };

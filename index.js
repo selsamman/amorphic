@@ -1435,8 +1435,7 @@ function getSessionCache(path, sessionId, keepTimeout) {
  * @param {unknown} req unknown
  * @param {unknown} resp unknown
  */
-function processMessage(req, resp)
-{
+function processMessage(req, resp) {
     var session = req.session;
     var message = req.body;
     var path = url.parse(req.url, true).query.path;
@@ -1454,8 +1453,7 @@ function processMessage(req, resp)
     var newPage = message.type == 'refresh' || message.sequence != expectedSequence;
     var forceReset = message.type == 'reset';
 
-    establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus)
-    {
+    establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus) {
         if (message.performanceLogging) {
             req.amorphicTracking.browser = message.performanceLogging;
         }

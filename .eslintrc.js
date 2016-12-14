@@ -48,13 +48,13 @@ module.exports = exports = {
         "array-bracket-spacing": ERROR,
         
         // Low Risk
-        "curly": OFF,
-        "brace-style": [OFF, "stroustrup"],
-        "semi": OFF,
-        "comma-style": OFF,
-        "comma-dangle": OFF,
-        "max-statements-per-line": OFF,
-        "quotes": [OFF, "single", { "avoidEscape": true }],
+        "curly": ERROR,
+        "brace-style": [ERROR, "stroustrup"],
+        "semi": ERROR,
+        "comma-style": ERROR,
+        "comma-dangle": ERROR,
+        "max-statements-per-line": ERROR,
+        "quotes": [ERROR, "single", { "avoidEscape": true }],
         
         // Medium Risk
         "eqeqeq": OFF,

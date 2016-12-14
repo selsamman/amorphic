@@ -242,55 +242,54 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
     
     var objectTemplate = controller.__template__.objectTemplate;
     
-    var ret =
-        {
-            objectTemplate: controller.__template__.objectTemplate,
+    var ret = {
+        objectTemplate: controller.__template__.objectTemplate,
+        
+        getMessage: function () {
+            var message = objectTemplate.getMessage(session.id, true);
             
-            getMessage: function () {
-                var message = objectTemplate.getMessage(session.id, true);
-                
-                message.newSession = true;
-                message.rootId = controller.__id__;
-                message.startingSequence = objectTemplate.maxClientSequence + 100000;
-                message.sessionExpiration = sessionExpiration;
-                
-                return message;
-            },
+            message.newSession = true;
+            message.rootId = controller.__id__;
+            message.startingSequence = objectTemplate.maxClientSequence + 100000;
+            message.sessionExpiration = sessionExpiration;
             
-            getServerConnectString: function () {
-                var message = this.getMessage();
-                
-                message.ver = appVersion;
-                
-                return JSON.stringify({
-                    url: '/amorphic/xhr?path=' + path,
-                    message: message
-                });
-            },
+            return message;
+        },
+        
+        getServerConnectString: function () {
+            var message = this.getMessage();
             
-            getServerConfigString: function () {
-                return getServerConfigString(config);
-            },
+            message.ver = appVersion;
+            
+            return JSON.stringify({
+                url: '/amorphic/xhr?path=' + path,
+                message: message
+            });
+        },
+        
+        getServerConfigString: function () {
+            return getServerConfigString(config);
+        },
 
-            save: function (path, session, req) {
-                saveSession(path, session, controller, req);
-            },
-            
-            restoreSession: function () {
-                return restoreSession(path, session, controller.__template__);
-            },
-            
-            newSession: newSession,
-            appVersion: appVersion,
-            
-            getPersistorProps: function () {
-                if (objectTemplate.getPersistorProps) {
-                    return objectTemplate.getPersistorProps();
-                }
-                
-                return {};
+        save: function (path, session, req) {
+            saveSession(path, session, controller, req);
+        },
+        
+        restoreSession: function () {
+            return restoreSession(path, session, controller.__template__);
+        },
+        
+        newSession: newSession,
+        appVersion: appVersion,
+        
+        getPersistorProps: function () {
+            if (objectTemplate.getPersistorProps) {
+                return objectTemplate.getPersistorProps();
             }
-        };
+            
+            return {};
+        }
+    };
 
     if (newPage) {
         saveSession(path, session, controller, req);

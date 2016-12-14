@@ -61,7 +61,7 @@ var sessions = {};
  *
  * @returns {unknown} unknown
  */
-function reset () {
+function reset() {
     if (appContext.connection) {
         appContext.connection.close();
     }
@@ -99,7 +99,7 @@ reset();
  * @param {unknown} appConfig unknown
  * @param {unknown} logLevel unknown
  */
-function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
+function establishApplication(appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
     applicationConfig[appPath] = {
         appPath: path,
         commonPath: cpath,
@@ -140,7 +140,7 @@ function establishApplication (appPath, path, cpath, initObjectTemplate, session
  *
  * @param {unknown} path unknown
  */
-function establishDaemon (path) {
+function establishDaemon(path) {
     // Retrieve configuration information
     var config = applicationConfig[path];
 
@@ -271,7 +271,7 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
     var ret = {
         objectTemplate: controller.__template__.objectTemplate,
 
-        getMessage: function () {
+        getMessage: function getMessage() {
             var message = objectTemplate.getMessage(session.id, true);
 
             message.newSession = true;
@@ -282,7 +282,7 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
             return message;
         },
 
-        getServerConnectString: function () {
+        getServerConnectString: function getServerConnectString() {
             var message = this.getMessage();
 
             message.ver = appVersion;
@@ -293,22 +293,22 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
             });
         },
 
-        getServerConfigString: function () {
+        getServerConfigString: function getServerConfigString() {
             return getServerConfigString(config);
         },
 
-        save: function (path, session, req) {
+        save: function save(path, session, req) {
             saveSession(path, session, controller, req);
         },
 
-        restoreSession: function () {
+        restoreSession: function restoreSession() {
             return restoreSession(path, session, controller.__template__);
         },
 
         newSession: newSession,
         appVersion: appVersion,
 
-        getPersistorProps: function () {
+        getPersistorProps: function getPersistorProps() {
             if (objectTemplate.getPersistorProps) {
                 return objectTemplate.getPersistorProps();
             }
@@ -321,7 +321,7 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
         saveSession(path, session, controller, req);
     }
 
-    return Q.fcall(function () {
+    return Q.fcall(function g() {
         return ret;
     });
 }
@@ -363,20 +363,20 @@ function establishInitialServerSession(req, config, controllerPath, initObjectTe
 
     req.amorphicTracking.addServerTask({name: 'Creating Session without Controller'}, time);
 
-    return Q.fcall(function () {
+    return Q.fcall(function h() {
         return {
-            getServerConnectString: function () {
+            getServerConnectString: function i() {
                 return JSON.stringify({
                     url: '/amorphic/xhr?path=' + path,
                     message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
                 });
             },
 
-            getServerConfigString: function () {
+            getServerConfigString: function j() {
                 return getServerConfigString(config);
             },
 
-            getPersistorProps: function () {
+            getPersistorProps: function k() {
                 if (amorphicOptions.sourceMode == 'debug') {
                     if (persistableSemotableTemplate.getPersistorProps) {
                         return persistableSemotableTemplate.getPersistorProps();
@@ -446,27 +446,27 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
 
     var deferredExtends = [];
 
-    function addTemplateToRequires (prop, template) {
+    function addTemplateToRequires(prop, template) {
         requires[prop] = requires[prop] || {};
         requires[prop][template.__name__] = template;
     }
 
     // An object for creating request to extend classes to be done at thend of V2 pass1
-    function usesV2ReturnPass1 (base, prop) {
+    function usesV2ReturnPass1(base, prop) {
         this.baseName = base;
         this.prop = prop;
     }
 
-    usesV2ReturnPass1.prototype.mixin = function () {};
+    usesV2ReturnPass1.prototype.mixin = function l() {};
 
-    usesV2ReturnPass1.prototype.extend = function(name) {
+    usesV2ReturnPass1.prototype.extend = function m(name) {
         this.extendedName = name;
         deferredExtends.push(this);
 
         return new usesV2ReturnPass1(name, this.prop);
     };
 
-    usesV2ReturnPass1.prototype.doExtend = function(futureTemplates) {
+    usesV2ReturnPass1.prototype.doExtend = function n(futureTemplates) {
         if (!objectTemplate.__dictionary__[this.baseName]) {
             if (futureTemplates[this.baseName]) {
                 futureTemplates[this.baseName].doExtend(futureTemplates);
@@ -574,7 +574,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
         objectTemplate.__initialized__ = true;
 
         if (config.appConfig && config.appConfig.templateMode == 'auto') {
-            (function () {
+            (function o() {
                 var closureProp = prop;
 
                 // Update objectTemplate create proxy such that it will create the template with
@@ -582,11 +582,11 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
                 // processing and so the extend really just needs to mixin the properties
                 var oldCreate = objectTemplate.create;
 
-                objectTemplate.create = function (name) {
+                objectTemplate.create = function p(name) {
                     var template = oldCreate.call(objectTemplate, name, {});
                     var originalExtend = template.extend;
 
-                    template.extend = function (name, props)  {
+                    template.extend = function q(name, props)  {
                         var template = objectTemplate.__dictionary__[name];
 
                         if (template) {
@@ -603,7 +603,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
 
                     var originalMixin = template.mixin;
 
-                    template.mixin = function () {
+                    template.mixin = function r() {
                         if (currentContext.pass == 2) {
                             originalMixin.apply(template, arguments);
                         }
@@ -621,7 +621,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
                 // Call constructor function with a subclass of objectTemplate and a special uses that wil
                 // Return a stub that will simply setup deferred processing for extends
                 var initializerReturnValues = require_results[prop](objectTemplate,
-                    function usesV2Pass1 (file, templateName, options) {
+                    function usesV2Pass1(file, templateName, options) {
                         templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
                         var moduleName = currentContext.moduleName;
 
@@ -712,7 +712,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
 
         return templates;
 
-        function usesV1 (file, options) {
+        function usesV1(file, options) {
             getTemplate(file, options, true);
         }
     }
@@ -748,7 +748,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
         for (var prop in all_require_results) {
             var oldCreate = objectTemplate.create;
 
-            objectTemplate.create = function (name, props) {
+            objectTemplate.create = function t(name, props) {
                 name = name.name || name;
                 objectTemplate.__dictionary__[name].mixin(props);
 
@@ -854,7 +854,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
 
     return requires;
 
-    function usesV2Pass2 (file, templateName) {
+    function usesV2Pass2(file, templateName) {
         templateName = templateName || file.replace(/\.js$/, '').replace(/.*?[\/\\](\w)$/, '$1');
 
         return objectTemplate.__dictionary__[templateName] || objectTemplate.__statics__[templateName];
@@ -915,7 +915,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
         }
     }
 
-    function flatten (requires) {
+    function flatten(requires) {
         var classes = {};
 
         for (var f in requires) {
@@ -945,7 +945,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
  *
  * @returns {*}
  */
-function getController(path, controllerPath, initObjectTemplate, connectSession, objectCacheExpiration, sessionStore, newPage, reset, controllerId,  req) {
+function getController(path, controllerPath, initObjectTemplate, connectSession, objectCacheExpiration, sessionStore, newPage, reset, controllerId, req) {
     var sessionId = connectSession.id;
     var config = applicationConfig[path];
 
@@ -973,8 +973,8 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
     // We cache the controller object which will reference the object template and expire it
     // as long as there are no pending calls.  Note that with a memory store session manager
     // the act of referencing the session will expire it if needed
-    var timeoutAction = function () {
-        sessionStore.get(sessionId, function (_error, connectSession) {
+    var timeoutAction = function timeoutAction() {
+        sessionStore.get(sessionId, function aa(_error, connectSession) {
             if (!connectSession) {
                 log(1, sessionId, 'Session has expired');
             }
@@ -1039,7 +1039,7 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
     if (!connectSession.semotus.controllers[path]) {
         if (controllerId) {
             // Since we are restoring we don't changes saved or going back to the browser
-            persistableSemotableTemplate.withoutChangeTracking(function () {
+            persistableSemotableTemplate.withoutChangeTracking(function bb() {
                 controller = persistableSemotableTemplate._createEmptyObject(controllerTemplate, controllerId);
                 persistableSemotableTemplate.syncSession(); // Kill changes to browser
             });
@@ -1067,7 +1067,7 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
         }
     }
     else {
-        persistableSemotableTemplate.withoutChangeTracking(function () {
+        persistableSemotableTemplate.withoutChangeTracking(function cc() {
             var sessionData = getSessionCache(path, sessionId, true);
             var unserialized = connectSession.semotus.controllers[path];
             controller = persistableSemotableTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);
@@ -1131,7 +1131,7 @@ function getLoggingContext(app, context) {
  *
  * @returns {unknown} unknown
  */
-function getModelSource (path) {
+function getModelSource(path) {
     return applicationSource[path];
 }
 
@@ -1142,7 +1142,7 @@ function getModelSource (path) {
  *
  * @returns {unknown} unknown
  */
-function getModelSourceMap (path) {
+function getModelSourceMap(path) {
     return applicationSourceMap[path];
 }
 
@@ -1240,7 +1240,7 @@ function restoreSession(path, session, controllerTemplate) {
     // Restore the controller from the session
     var controller;
 
-    objectTemplate.withoutChangeTracking(function () {
+    objectTemplate.withoutChangeTracking(function dd() {
         var sessionData = getSessionCache(path, objectTemplate.controller.__sessionId, true);
 
         // Will return in exising controller object because createEmptyObject does so
@@ -1290,7 +1290,7 @@ function processFile(req, resp, next) {
     var form = new formidable.IncomingForm();
     form.uploadDir = downloads;
 
-    form.parse(req, function(err, _fields, files) {
+    form.parse(req, function ee(err, _fields, files) {
         if (err) {
             logMessage(err);
         }
@@ -1300,8 +1300,8 @@ function processFile(req, resp, next) {
         var file = files.file.path;
         logMessage(file);
 
-        setTimeout(function () {
-            fs.unlink(file, function (err) {
+        setTimeout(function yz() {
+            fs.unlink(file, function zy(err) {
                 if (err) {
                     logMessage(err);
                 }
@@ -1328,16 +1328,17 @@ function processPost(req, resp) {
     var session = req.session;
     var path = url.parse(req.url, true).query.path;
 
-    establishServerSession(req, path, false, false, null).then (function (semotus) {
+    establishServerSession(req, path, false, false, null).then(function ff(semotus) {
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
+
         if (typeof(ourObjectTemplate.controller.processPost) == 'function') {
-            Q(ourObjectTemplate.controller.processPost(null, req.body)).then(function (controllerResp) {
+            Q(ourObjectTemplate.controller.processPost(null, req.body)).then(function gg(controllerResp) {
                 ourObjectTemplate.setSession(remoteSessionId);
                 semotus.save(path, session, req);
                 resp.writeHead(controllerResp.status, controllerResp.headers || {'Content-Type': 'text/plain'});
                 resp.end(controllerResp.body);
-            }).catch(function (e) {
+            }).catch(function hh(e) {
                 ourObjectTemplate.logger.info({component: 'amorphic', module: 'processPost', activity: 'error'}, 'Error ' + e.message + e.stack);
                 resp.writeHead(500, {'Content-Type': 'text/plain'});
                 resp.end('Internal Error');
@@ -1346,7 +1347,7 @@ function processPost(req, resp) {
         else {
             throw 'Not Accepting Posts';
         }
-    }).fail(function(error) {
+    }).fail(function ii(error) {
         logMessage('Error establishing session for processPost ', req.session.id, error.message + error.stack);
         resp.writeHead(500, {'Content-Type': 'text/plain'});
         resp.end('Internal Error');
@@ -1420,7 +1421,8 @@ function getSessionCache(path, sessionId, keepTimeout) {
         if (session.timeout) {
             clearTimeout(session.timeout);
         }
-        setTimeout(function () {
+
+        setTimeout(function jj() {
             if (sessions[key]) {
                 delete sessions[key];
             }
@@ -1454,7 +1456,7 @@ function processMessage(req, resp) {
     var newPage = message.type == 'refresh' || message.sequence != expectedSequence;
     var forceReset = message.type == 'reset';
 
-    establishServerSession(req, path, newPage, forceReset, message.rootId).then (function (semotus) {
+    establishServerSession(req, path, newPage, forceReset, message.rootId).then(function kk(semotus) {
         if (message.performanceLogging) {
             req.amorphicTracking.browser = message.performanceLogging;
         }
@@ -1477,7 +1479,7 @@ function processMessage(req, resp) {
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
 
-        ourObjectTemplate.expireSession = function () {
+        ourObjectTemplate.expireSession = function expireSession() {
             req.session.destroy();
             ourObjectTemplate.sessionExpired = true;
         };
@@ -1521,7 +1523,7 @@ function processMessage(req, resp) {
         // any further messages from being generated as these will get handled on
         // the next call into the server
         startMessageProcessing = process.hrtime();
-        var sendMessage = function (message) {
+        var sendMessage = function sendMessage(message) {
             ourObjectTemplate.setSession(remoteSessionId);
             ourObjectTemplate.enableSendMessage(false);
             req.amorphicTracking.addServerTask({name: 'Request Processing'}, startMessageProcessing);
@@ -1554,7 +1556,7 @@ function processMessage(req, resp) {
             resp.end(error.toString());
         }
 
-    }).fail(function(error) {
+    }).fail(function failure(error) {
         log(0, req.session.id, error.message + error.stack);
         resp.writeHead(500, {'Content-Type': 'text/plain'});
         resp.end(error.toString());
@@ -1657,11 +1659,11 @@ function amorphicEntry(req, resp, next) {
         logMessage('Establishing ' + appName);
 
         establishServerSession(req, appName, 'initial')
-            .then (function (session) {
+            .then (function a(session) {
                 var time = process.hrtime();
 
                 if (req.method == 'POST' && session.objectTemplate.controller.processPost) {
-                    Q(session.objectTemplate.controller.processPost(req.originalUrl, req.body, req)).then(function (controllerResp) {
+                    Q(session.objectTemplate.controller.processPost(req.originalUrl, req.body, req)).then(function b(controllerResp) {
                         session.save(appName, req.session, req);
                         resp.writeHead(controllerResp.status, controllerResp.headers || {'Content-Type': 'text/plain'});
                         resp.end(controllerResp.body || '');
@@ -1743,7 +1745,7 @@ function downloadRouter(req, resp, next) {
 function processContentRequest(request, response) {
     var path = url.parse(request.url, true).query.path;
 
-    establishServerSession(request, path, false).then(function (semotus) {
+    establishServerSession(request, path, false).then(function zz(semotus) {
         if (typeof(semotus.objectTemplate.controller.onContentRequest) == 'function') {
             semotus.objectTemplate.controller.onContentRequest(request, response);
         }
@@ -1770,7 +1772,7 @@ function log(level, sessionId, data) {
     logMessage(message);
 
     if (level == 0 && logger) {
-        setTimeout(function () {
+        setTimeout(function c() {
             logger.call(null, message);
         }, 0);
     }
@@ -1791,7 +1793,7 @@ function displayPerformance(req) {
     var totalTime = (diff[0] * 1e9 + diff[1]) / 1000000;
     var taskTime = 0;
 
-    req.amorphicTracking.serverTasks.forEach(function(task) {
+    req.amorphicTracking.serverTasks.forEach(function d(task) {
         taskTime += task.time;
     });
 
@@ -1818,7 +1820,7 @@ function intializePerformance(req, _resp, next) {
         serverTasks: [],
         browserTasks: [],
         loggingContext: {},
-        addServerTask: function (props, hrStartTime) {
+        addServerTask: function addServerTask(props, hrStartTime) {
             var diff = process.hrtime(hrStartTime);
             var took = (diff[0] * 1e9 + diff[1]) / 1000000;
             props.time = took;
@@ -1880,7 +1882,7 @@ function generateDownloadsDir() {
  *
  * @returns {unknown} unknown
  */
-function readFile (file) {
+function readFile(file) {
 
     if (file && fs.existsSync(file)) {
         return fs.readFileSync(file);
@@ -1944,7 +1946,7 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
             dbClient = Q(knex); // TODO: knex is already initialized because it is a synchronous function that is called when require('knex') occurs
         }
 
-        return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore)).catch(function (e) {
+        return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore)).catch(function e(e) {
             logMessage(e.message + e.stack);
         });
     }
@@ -1990,7 +1992,7 @@ function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionSto
     logMessage('DB connection established to ' + dbConfig.dbName);
 
     // TODO: Try to pull this function out
-    function injectObjectTemplate (objectTemplate) {
+    function injectObjectTemplate(objectTemplate) {
 
         if (dbConfig.dbDriver == 'knex') {
             objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
@@ -2152,9 +2154,10 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
         }
     }
 
-    Q.all(promises).then(startUpServer.bind(this, preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter)).catch(function(e) {
-        logMessage(e.message + ' ' + e.stack);
-    });
+    Q.all(promises).then(startUpServer.bind(this, preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter))
+        .catch(function f(e) {
+            logMessage(e.message + ' ' + e.stack);
+        });
 }
 
 

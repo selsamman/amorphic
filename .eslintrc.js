@@ -57,27 +57,27 @@ module.exports = exports = {
         "quotes": [ERROR, "single", { "avoidEscape": true }],
         
         // Medium Risk
-        "eqeqeq": OFF,
-        "no-nested-ternary": OFF,
-        "no-new-object": OFF,
-        "no-eval": OFF,
-        "no-extend-native": OFF,
-        "no-implicit-coercion": [OFF, { "allow": ["!!"] } ],
-        "no-extra-boolean-cast": OFF,
+        "eqeqeq": ERROR,
+        "no-nested-ternary": ERROR,
+        "no-new-object": ERROR,
+        "no-eval": ERROR,
+        "no-extend-native": ERROR,
+        "no-implicit-coercion": [ERROR, { "allow": ["!!"] } ],
+        "no-extra-boolean-cast": ERROR,
         
         // Renaming
-        "camelcase": OFF,
-        "new-cap": OFF,
-        "func-names": OFF,
-        "no-useless-rename": OFF,
+        "camelcase": ERROR,
+        "new-cap": ERROR,
+        "func-names": ERROR,
+        "no-useless-rename": ERROR,
         
         // High Risk
-        "strict": OFF,
-        "no-loop-func": OFF,
-        "max-len": [OFF, 120],
-        "max-lines": [OFF, {"max": 600, "skipBlankLines": true, "skipComments": true}],
-        "max-params": [OFF, 6],
-        "max-statements": [OFF, 35],
-        "max-depth": [OFF, 5]
+        "strict": ERROR,
+        "no-loop-func": ERROR,
+        "max-len": [ERROR, 120],
+        "max-lines": [ERROR, {"max": 600, "skipBlankLines": true, "skipComments": true}],
+        "max-params": [ERROR, 6],
+        "max-statements": [ERROR, 35],
+        "max-depth": [ERROR, 5]
     }
 };

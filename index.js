@@ -1074,7 +1074,7 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
 
             if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
                 persistableSemotableTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
-                        savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
+                    savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
                     'Session data not as saved');
             }
 
@@ -1249,7 +1249,7 @@ function restoreSession(path, session, controllerTemplate) {
 
         if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
             objectTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
-                    savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
+                savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
                 'Session data not as saved');
         }
 
@@ -1308,7 +1308,8 @@ function processFile(req, resp, next) {
                 else {
                     logMessage(file + ' deleted');
                 }
-            });}, 60000);
+            });
+        }, 60000);
 
         var fileName = files.file.name;
         req.session.file = file;

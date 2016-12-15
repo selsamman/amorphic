@@ -1347,7 +1347,7 @@ function processPost(req, resp) {
         else {
             throw 'Not Accepting Posts';
         }
-    }).fail(function ii(error) {
+    }).catch(function ii(error) {
         logMessage('Error establishing session for processPost ', req.session.id, error.message + error.stack);
         resp.writeHead(500, {'Content-Type': 'text/plain'});
         resp.end('Internal Error');
@@ -1556,7 +1556,7 @@ function processMessage(req, resp) {
             resp.end(error.toString());
         }
 
-    }).fail(function failure(error) {
+    }).catch(function failure(error) {
         log(0, req.session.id, error.message + error.stack);
         resp.writeHead(500, {'Content-Type': 'text/plain'});
         resp.end(error.toString());

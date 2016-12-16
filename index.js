@@ -779,7 +779,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, _sourceO
             }
         }
         else {
-            for (var templatea in requires[prop]) {
+            for (var templatea in requires[propa]) {
                 if (requires[propa][templatea]) {
                     requires[propa][templatea].__toClient__ = false;
                 }

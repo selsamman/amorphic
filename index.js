@@ -88,6 +88,7 @@ var Utils = require('./lib/utils');
 var log = Utils.log;
 var logMessage = Utils.logMessage;
 var getTemplates = require('./lib/getTemplates').getTemplates;
+
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
   amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
@@ -296,6 +297,7 @@ function establishServerSession(req, path, newPage, reset, newControllerId) {
  * @param {unknown} time unknown
  * @param {unknown} appVersion unknown
  * @param {unknown} sessionExpiration unknown
+ * @param {unknown} applicationPersistorProps unknown
  *
  * @returns {unknown} unknown
  */
@@ -467,7 +469,6 @@ function getController(path, controllerPath, initObjectTemplate, connectSession,
     var templates = getTemplates(persistableSemotableTemplate, prefix, [prop + '.js'], config, path, null, null, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
     var controllerTemplate = templates[prop].Controller;
 
- 
     if (!controllerTemplate) {
         throw  new Error('Missing controller template in ' + prefix + prop + '.js');
     }

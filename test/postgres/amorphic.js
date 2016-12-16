@@ -105,506 +105,506 @@ function beforeEachDescribe(done, appName, createControllerFor, sourceMode) {
 }
 
 describe("First Group of Tests", function () {
-    this.timeout(1000000);
-    before(function(done) {
-        return beforeEachDescribe(done, 'test');
-    });
-    after(afterEachDescribe);
+   this.timeout(1000000);
+   before(function(done) {
+       return beforeEachDescribe(done, 'test');
+   });
+   after(afterEachDescribe);
 
-    it("clears the bank and saves everything", function (done) {
-        serverAssert = function (count) {
-            expect(count).to.equal(0);
-            serverController.sam.roles[0].account.listTransactions();
-            serverController.sam.roles[1].account.listTransactions();
-            expect(serverController.sam.roles[0].account.getBalance() +
-                   serverController.sam.roles[1].account.getBalance()).to.equal(225);
-            expect(serverController.preServerCallObjects['Controller']).to.equal(true);
-        }
-        clientController.clearDB().then(function () {
-            done();
-        }).fail(function(e) {
+   it("clears the bank and saves everything", function (done) {
+       serverAssert = function (count) {
+           expect(count).to.equal(0);
+           serverController.sam.roles[0].account.listTransactions();
+           serverController.sam.roles[1].account.listTransactions();
+           expect(serverController.sam.roles[0].account.getBalance() +
+                  serverController.sam.roles[1].account.getBalance()).to.equal(225);
+           expect(serverController.preServerCallObjects['Controller']).to.equal(true);
+       }
+       clientController.clearDB().then(function () {
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
+
+   it("fetch everything back", function (done) {
+       serverAssert = function () {
+           serverController.sam.roles[0].account.listTransactions();
+           serverController.sam.roles[1].account.listTransactions();
+           expect(serverController.sam.roles[0].account.getBalance() +
+                  serverController.sam.roles[1].account.getBalance()).to.equal(225);
+           expect(serverController.preServerCallObjects['Controller']).to.equal(true);
+       }
+       clientController.mainFunc().then(function () {
+           expect(serverController.sam.roles[0].account.getBalance() +
+               serverController.sam.roles[1].account.getBalance()).to.equal(225);
+           expect(serverController.preServerCallObjects['Controller']).to.equal(true);
+           done();
+       }).fail(function(e) {
             done(e)
-        });
-    });
+       });
+   });
+   it("change results on server", function (done) {
+       serverAssert = function () {
+           serverController.sam.roles[0].account.transactions[0].amount += 1;
+           serverController.version = serverController.sam.roles[0].account.__version__;
+       }
+       PostCallAssert = function () {
+           expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
+               .to.equal(serverController.sam.roles[0].account);
+       }
+       clientController.mainFunc().then(function () {
+           expect(serverController.sam.roles[0].account.getBalance() +
+                  serverController.sam.roles[1].account.getBalance()).to.equal(226);
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
 
-    it("fetch everything back", function (done) {
-        serverAssert = function () {
-            serverController.sam.roles[0].account.listTransactions();
-            serverController.sam.roles[1].account.listTransactions();
-            expect(serverController.sam.roles[0].account.getBalance() +
-                   serverController.sam.roles[1].account.getBalance()).to.equal(225);
-            expect(serverController.preServerCallObjects['Controller']).to.equal(true);
-        }
-        clientController.mainFunc().then(function () {
-            expect(serverController.sam.roles[0].account.getBalance() +
-                serverController.sam.roles[1].account.getBalance()).to.equal(225);
-            expect(serverController.preServerCallObjects['Controller']).to.equal(true);
-            done();
-        }).fail(function(e) {
-             done(e)
-        });
-    });
-    it("change results on server", function (done) {
-        serverAssert = function () {
-            serverController.sam.roles[0].account.transactions[0].amount += 1;
-            serverController.version = serverController.sam.roles[0].account.__version__;
-        }
-        PostCallAssert = function () {
-            expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
-                .to.equal(serverController.sam.roles[0].account);
-        }
-        clientController.mainFunc().then(function () {
-            expect(serverController.sam.roles[0].account.getBalance() +
-                   serverController.sam.roles[1].account.getBalance()).to.equal(226);
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
+   it("throw an execption", function (done) {
+       serverAssert = function () {
+           throw "get stuffed";
+       }
+       PostCallAssert = function () {
+       }
+       clientController.mainFunc()
+           .then(function () {
+               expect("Should not be here").to.equal(false);
+           }, function (e) {
+               expect(e.message).to.equal("get stuffed");
+               done()
+           }).fail(function(e) {
+               done(e)
+           });
+   });
 
-    it("throw an execption", function (done) {
-        serverAssert = function () {
-            throw "get stuffed";
-        }
-        PostCallAssert = function () {
-        }
-        clientController.mainFunc()
-            .then(function () {
-                expect("Should not be here").to.equal(false);
-            }, function (e) {
-                expect(e.message).to.equal("get stuffed");
-                done()
-            }).fail(function(e) {
-                done(e)
-            });
-    });
+   it("can get it's data freshened", function (done) {
+       serverAssert = function () {
+           expect(serverController.sam.roles[0].account.__version__ * 1).to.equal(serverController.version * 1 + 1);
+           expect(serverController.sam.firstName).to.equal("Sammy");
+       }
+       var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
+       Q().then(function () {
+           return knex('customer').where({'_id': serverController.sam._id}).update({'firstName': 'Sammy', '__version__': 100})
+       }).then(function () {
+           return clientController.mainFunc()
+       }).then(function () {
+           expect(clientController.sam.firstName).to.equal("Sammy");
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
+   it("can retry an update conflict", function (done) {
+       var retryCount = 0;
+       this.timeout(4000);
+       serverAssert = function () {
+           serverController.sam.firstName = 'Sam';
+           ++retryCount;
+           return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'})
+       }
+       var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
+       Q().then(function () {
+           return clientController.mainFunc()
+       }).then( function () {
+           expect(clientController.sam.firstName).to.equal("Sam");
+           expect(clientController.sam.lastName).to.equal("The Man");
+           expect(retryCount).to.equal(2);
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
 
-    it("can get it's data freshened", function (done) {
-        serverAssert = function () {
-            expect(serverController.sam.roles[0].account.__version__ * 1).to.equal(serverController.version * 1 + 1);
-            expect(serverController.sam.firstName).to.equal("Sammy");
-        }
-        var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
-        Q().then(function () {
-            return knex('customer').where({'_id': serverController.sam._id}).update({'firstName': 'Sammy', '__version__': 100})
-        }).then(function () {
-            return clientController.mainFunc()
-        }).then(function () {
-            expect(clientController.sam.firstName).to.equal("Sammy");
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
-    it("can retry an update conflict", function (done) {
-        var retryCount = 0;
-        this.timeout(4000);
-        serverAssert = function () {
-            serverController.sam.firstName = 'Sam';
-            ++retryCount;
-            return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'})
-        }
-        var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
-        Q().then(function () {
-            return clientController.mainFunc()
-        }).then( function () {
-            expect(clientController.sam.firstName).to.equal("Sam");
-            expect(clientController.sam.lastName).to.equal("The Man");
-            expect(retryCount).to.equal(2);
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
+   it("can do a resetSession", function (done) {
+       clientController.conflictData = 'foo';
+       Q().then(function () {
+           serverAssert = function () {expect(serverController.conflictData).to.equal('foo')}
+           return clientController.mainFunc();
+       }).then(function () {
+           amorphic.resetSession();
+           return clientController.mainFunc();
+       }).then(function () {
+           expect("Should not be here").to.equal(false);
+       }, function (e) {
+           serverAssert = function () {expect(serverController.conflictData).to.equal('initial')}
+           return clientController.mainFunc();
+       }).then(function () {
+           expect(clientController.conflictData).to.equal('initial');
+           done()
+       }).fail(function(e) {
+           done(e instanceof Error ? e : new Error(JSON.stringify(e)))
+       });
+   });
 
-    it("can do a resetSession", function (done) {
-        clientController.conflictData = 'foo';
-        Q().then(function () {
-            serverAssert = function () {expect(serverController.conflictData).to.equal('foo')}
-            return clientController.mainFunc();
-        }).then(function () {
-            amorphic.resetSession();
-            return clientController.mainFunc();
-        }).then(function () {
-            expect("Should not be here").to.equal(false);
-        }, function (e) {
-            serverAssert = function () {expect(serverController.conflictData).to.equal('initial')}
-            return clientController.mainFunc();
-        }).then(function () {
-            expect(clientController.conflictData).to.equal('initial');
-            done()
-        }).fail(function(e) {
-            done(e instanceof Error ? e : new Error(JSON.stringify(e)))
-        });
-    });
+   it("can get a synchronization error", function (done) {
+       serverAssert = function () {
+           expect(serverController.conflictData).to.equal('foo');
+       }
+       clientController.conflictData = 'foo';
+       Q().then(function () {
+           return clientController.mainFunc();
+       }).then(function () {
+           expect("Should not be here").to.equal(false);
+       }, function (e) {
+           expect(e.text).to.equal("An internal error occured");
+           serverAssert = function () {expect(serverController.conflictData).to.equal('foo');}
+           return clientController.mainFunc();  // Next call will fail too because it gets a sync
+       }).then(function () {
+           expect(clientController.conflictData).to.equal('foo');
+           done()
+       }).fail(function(e) {
+           if (e.code == 'reset')
+               done();
+           else
+               done(e instanceof Error ? e : new Error(JSON.stringify(e)))
+       });
+       serverController.conflictData = 'bar';
 
-    it("can get a synchronization error", function (done) {
-        serverAssert = function () {
-            expect(serverController.conflictData).to.equal('foo');
-        }
-        clientController.conflictData = 'foo';
-        Q().then(function () {
-            return clientController.mainFunc();
-        }).then(function () {
-            expect("Should not be here").to.equal(false);
-        }, function (e) {
-            expect(e.text).to.equal("An internal error occured");
-            serverAssert = function () {expect(serverController.conflictData).to.equal('foo');}
-            return clientController.mainFunc();  // Next call will fail too because it gets a sync
-        }).then(function () {
-            expect(clientController.conflictData).to.equal('foo');
-            done()
-        }).fail(function(e) {
-            if (e.code == 'reset')
-                done();
-            else
-                done(e instanceof Error ? e : new Error(JSON.stringify(e)))
-        });
-        serverController.conflictData = 'bar';
-
-    });
-    it("change results on server", function (done) {
-        var version;
-        serverAssert = function () {
-            serverController.sam.roles[0].account.transactions[0].amount += 1;
-            serverController.version = serverController.sam.roles[0].account.__version__;
-        }
-        PostCallAssert = function () {
-            expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
-                .to.equal(serverController.sam.roles[0].account);
-        }
-        clientController.mainFunc().then(function () {
-            expect(serverController.sam.roles[0].account.getBalance() +
-                serverController.sam.roles[1].account.getBalance()).to.equal(226);
-            PostCallAssert = function () {}
-            done();
-        }).fail(function(e) {
-            PostCallAssert = function () {}
-            done(e)
-        });
-    });
+   });
+   it("change results on server", function (done) {
+       var version;
+       serverAssert = function () {
+           serverController.sam.roles[0].account.transactions[0].amount += 1;
+           serverController.version = serverController.sam.roles[0].account.__version__;
+       }
+       PostCallAssert = function () {
+           expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
+               .to.equal(serverController.sam.roles[0].account);
+       }
+       clientController.mainFunc().then(function () {
+           expect(serverController.sam.roles[0].account.getBalance() +
+               serverController.sam.roles[1].account.getBalance()).to.equal(226);
+           PostCallAssert = function () {}
+           done();
+       }).fail(function(e) {
+           PostCallAssert = function () {}
+           done(e)
+       });
+   });
 });
 
 describe("Second Group of Tests", function () {
-    before(function(done) {
-        return beforeEachDescribe(done, 'test');
-    });
-    after(afterEachDescribe);
-    it ("clears the bank and saves everything", function (done) {
-        serverAssert = function (count) {
-            expect(count).to.equal(0);
-            serverController.sam.roles[0].account.listTransactions();
-            serverController.sam.roles[1].account.listTransactions();
-            expect(serverController.sam.roles[0].account.getBalance() +
-                serverController.sam.roles[1].account.getBalance()).to.equal(225);
-            expect(serverController.preServerCallObjects['Controller']).to.equal(true);
-        }
-        clientController.clearDB().then(function () {
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
+   before(function(done) {
+       return beforeEachDescribe(done, 'test');
+   });
+   after(afterEachDescribe);
+   it ("clears the bank and saves everything", function (done) {
+       serverAssert = function (count) {
+           expect(count).to.equal(0);
+           serverController.sam.roles[0].account.listTransactions();
+           serverController.sam.roles[1].account.listTransactions();
+           expect(serverController.sam.roles[0].account.getBalance() +
+               serverController.sam.roles[1].account.getBalance()).to.equal(225);
+           expect(serverController.preServerCallObjects['Controller']).to.equal(true);
+       }
+       clientController.clearDB().then(function () {
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
 
-    it("fetch everything back", function (done) {
-        serverAssert = function () {
-            serverController.sam.roles[0].account.listTransactions();
-            serverController.sam.roles[1].account.listTransactions();
-            expect(serverController.sam.roles[0].account.getBalance() +
-                serverController.sam.roles[1].account.getBalance()).to.equal(225);
-            expect(serverController.preServerCallObjects['Controller']).to.equal(true);
-        }
-        clientController.mainFunc().then(function () {
-            expect(serverController.sam.roles[0].account.getBalance() +
-                serverController.sam.roles[1].account.getBalance()).to.equal(225);
-            expect(serverController.preServerCallObjects['Controller']).to.equal(true);
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
-    it("change results on server", function (done) {
-        var version;
-        serverAssert = function () {
-            serverController.sam.roles[0].account.transactions[0].amount += 1;
-            serverController.version = serverController.sam.roles[0].account.__version__;
-        }
-        PostCallAssert = function () {
-            expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
-                .to.equal(serverController.sam.roles[0].account);
-        }
-        clientController.mainFunc().then(function () {
-            expect(serverController.sam.roles[0].account.getBalance() +
-                serverController.sam.roles[1].account.getBalance()).to.equal(226);
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
-    it("throw an execption", function (done) {
-        serverAssert = function () {
-            throw "get stuffed";
-        }
-        PostCallAssert = function () {
-        }
-        clientController.mainFunc()
-            .then(function () {
-                expect("Should not be here").to.equal(false);
-            }, function (e) {
-                expect(e.message).to.equal("get stuffed");
-                done()
-            }).fail(function(e) {
-            done(e)
-        });
-    });
+   it("fetch everything back", function (done) {
+       serverAssert = function () {
+           serverController.sam.roles[0].account.listTransactions();
+           serverController.sam.roles[1].account.listTransactions();
+           expect(serverController.sam.roles[0].account.getBalance() +
+               serverController.sam.roles[1].account.getBalance()).to.equal(225);
+           expect(serverController.preServerCallObjects['Controller']).to.equal(true);
+       }
+       clientController.mainFunc().then(function () {
+           expect(serverController.sam.roles[0].account.getBalance() +
+               serverController.sam.roles[1].account.getBalance()).to.equal(225);
+           expect(serverController.preServerCallObjects['Controller']).to.equal(true);
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
+   it("change results on server", function (done) {
+       var version;
+       serverAssert = function () {
+           serverController.sam.roles[0].account.transactions[0].amount += 1;
+           serverController.version = serverController.sam.roles[0].account.__version__;
+       }
+       PostCallAssert = function () {
+           expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
+               .to.equal(serverController.sam.roles[0].account);
+       }
+       clientController.mainFunc().then(function () {
+           expect(serverController.sam.roles[0].account.getBalance() +
+               serverController.sam.roles[1].account.getBalance()).to.equal(226);
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
+   it("throw an execption", function (done) {
+       serverAssert = function () {
+           throw "get stuffed";
+       }
+       PostCallAssert = function () {
+       }
+       clientController.mainFunc()
+           .then(function () {
+               expect("Should not be here").to.equal(false);
+           }, function (e) {
+               expect(e.message).to.equal("get stuffed");
+               done()
+           }).fail(function(e) {
+           done(e)
+       });
+   });
 
-    it("can get it's data freshened", function (done) {
-        serverAssert = function () {
-            expect(serverController.sam.roles[0].account.__version__ * 1).to.equal(serverController.version * 1 + 1);
-            expect(serverController.sam.firstName).to.equal("Sammy");
-        }
-        var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
-        Q().then(function () {
-            return knex('customer').where({'_id': serverController.sam._id}).update({'firstName': 'Sammy', '__version__': 100})
-        }).then(function () {
-            return clientController.mainFunc()
-        }).then( function () {
-            expect(clientController.sam.firstName).to.equal("Sammy");
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
-    it("can retry an update conflict", function (done) {
-        var retryCount = 0;
-        this.timeout(4000);
-        serverAssert = function () {
-            serverController.sam.firstName = 'Sam';
-            ++retryCount;
-            return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'})
-        }
-        var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
-        Q().then(function () {
-            return clientController.mainFunc()
-        }).then( function () {
-            expect(clientController.sam.firstName).to.equal("Sam");
-            expect(clientController.sam.lastName).to.equal("The Man");
-            expect(retryCount).to.equal(2);
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
-    it("can do a resetSession", function () {
-        clientController.conflictData = 'foo';
-        return Q().then(function () {
-            serverAssert = function () {
-                expect(serverController.conflictData).to.equal('foo');
-            }
-            return clientController.mainFunc();
-        }).then(function () {
-            amorphic.resetSession();
-            serverAssert = function() {
-                expect(serverController.conflictData).to.equal('initial');
-            }
-            return clientController.mainFunc().catch(function(e) {
-                expect(e.code).to.equal('reset');
-                expect(e.text).to.equal('Session resynchronized');
-                expect(clientController.conflictData).to.equal('initial');
-                return clientController.mainFunc();
-            });
-        }).then(function () {
-            expect(clientController.conflictData).to.equal('initial');
-        });
-    });
+   it("can get it's data freshened", function (done) {
+       serverAssert = function () {
+           expect(serverController.sam.roles[0].account.__version__ * 1).to.equal(serverController.version * 1 + 1);
+           expect(serverController.sam.firstName).to.equal("Sammy");
+       }
+       var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
+       Q().then(function () {
+           return knex('customer').where({'_id': serverController.sam._id}).update({'firstName': 'Sammy', '__version__': 100})
+       }).then(function () {
+           return clientController.mainFunc()
+       }).then( function () {
+           expect(clientController.sam.firstName).to.equal("Sammy");
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
+   it("can retry an update conflict", function (done) {
+       var retryCount = 0;
+       this.timeout(4000);
+       serverAssert = function () {
+           serverController.sam.firstName = 'Sam';
+           ++retryCount;
+           return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'})
+       }
+       var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
+       Q().then(function () {
+           return clientController.mainFunc()
+       }).then( function () {
+           expect(clientController.sam.firstName).to.equal("Sam");
+           expect(clientController.sam.lastName).to.equal("The Man");
+           expect(retryCount).to.equal(2);
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
+   it("can do a resetSession", function () {
+       clientController.conflictData = 'foo';
+       return Q().then(function () {
+           serverAssert = function () {
+               expect(serverController.conflictData).to.equal('foo');
+           }
+           return clientController.mainFunc();
+       }).then(function () {
+           amorphic.resetSession();
+           serverAssert = function() {
+               expect(serverController.conflictData).to.equal('initial');
+           }
+           return clientController.mainFunc().catch(function(e) {
+               expect(e.code).to.equal('reset');
+               expect(e.text).to.equal('Session resynchronized');
+               expect(clientController.conflictData).to.equal('initial');
+               return clientController.mainFunc();
+           });
+       }).then(function () {
+           expect(clientController.conflictData).to.equal('initial');
+       });
+   });
 
-    it("can get a synchronization error", function (done) {
-        serverAssert = function () {
-            expect(serverController.conflictData).to.equal('foo');
-        }
-        clientController.conflictData = 'foo';
-        Q().then(function () {
-            return clientController.mainFunc();
-        }).then(function () {
-            expect("Should not be here").to.equal(false);
-        }, function (e) {
-            expect(e.text).to.equal("An internal error occured");
-            serverAssert = function () {expect(serverController.conflictData).to.equal('foo');}
-            return clientController.mainFunc();  // Next call will fail too because it gets a sync
-        }).then(function () {
-            expect(clientController.conflictData).to.equal('foo');
-            done()
-        }).fail(function(e) {
-            if (e.code == 'reset')
-                done();
-            else
-                done(e instanceof Error ? e : new Error(JSON.stringify(e)))
-        });
-        serverController.conflictData = 'bar';
-    });
-    it("change results on server", function (done) {
-        var version;
-        serverAssert = function () {
-            serverController.sam.roles[0].account.transactions[0].amount += 1;
-            serverController.version = serverController.sam.roles[0].account.__version__;
-        }
-        PostCallAssert = function () {
-            expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
-                .to.equal(serverController.sam.roles[0].account);
-        }
-        clientController.mainFunc().then(function () {
-            expect(serverController.sam.roles[0].account.getBalance() +
-                serverController.sam.roles[1].account.getBalance()).to.equal(226);
-            done();
-        }).fail(function(e) {
-            done(e)
-        });
-    });
+   it("can get a synchronization error", function (done) {
+       serverAssert = function () {
+           expect(serverController.conflictData).to.equal('foo');
+       }
+       clientController.conflictData = 'foo';
+       Q().then(function () {
+           return clientController.mainFunc();
+       }).then(function () {
+           expect("Should not be here").to.equal(false);
+       }, function (e) {
+           expect(e.text).to.equal("An internal error occured");
+           serverAssert = function () {expect(serverController.conflictData).to.equal('foo');}
+           return clientController.mainFunc();  // Next call will fail too because it gets a sync
+       }).then(function () {
+           expect(clientController.conflictData).to.equal('foo');
+           done()
+       }).fail(function(e) {
+           if (e.code == 'reset')
+               done();
+           else
+               done(e instanceof Error ? e : new Error(JSON.stringify(e)))
+       });
+       serverController.conflictData = 'bar';
+   });
+   it("change results on server", function (done) {
+       var version;
+       serverAssert = function () {
+           serverController.sam.roles[0].account.transactions[0].amount += 1;
+           serverController.version = serverController.sam.roles[0].account.__version__;
+       }
+       PostCallAssert = function () {
+           expect(serverController.__template__.__objectTemplate__.currentTransaction.touchObjects[serverController.sam.roles[0].account.__id__])
+               .to.equal(serverController.sam.roles[0].account);
+       }
+       clientController.mainFunc().then(function () {
+           expect(serverController.sam.roles[0].account.getBalance() +
+               serverController.sam.roles[1].account.getBalance()).to.equal(226);
+           done();
+       }).fail(function(e) {
+           done(e)
+       });
+   });
 
-    //Internal Routes (aka used by client.js)
-    it('should ignore a non-sequenced post message', function() {
-        return axios({
-            method: 'post',
-            url: 'http://localhost:3001/amorphic/xhr?path=test',
-            data: {
-                key:'value'
-            },
-            validateStatus: function (status) {
-                return true;
-            }
-        }).then(function(res) {
-            expect(res.status).to.equal(500);
-            expect(res.data).to.equal('ignoring non-sequenced message');
-        });
-    });
+   //Internal Routes (aka used by client.js)
+   it('should ignore a non-sequenced post message', function() {
+       return axios({
+           method: 'post',
+           url: 'http://localhost:3001/amorphic/xhr?path=test',
+           data: {
+               key:'value'
+           },
+           validateStatus: function (status) {
+               return true;
+           }
+       }).then(function(res) {
+           expect(res.status).to.equal(500);
+           expect(res.data).to.equal('ignoring non-sequenced message');
+       });
+   });
 
-    it('should establish a session for a request with a sequnce number in the payload', function () {
-        return axios({
-            method: 'post',
-            url: 'http://localhost:3001/amorphic/xhr?path=test',
-            data: {
-                sequence: 1
-            },
-            validateStatus: function (status) {
-                return true;
-            }
-        }).then(function (res) {
-            expect(res.status).to.equal(200);
-            expect(res.data.changes).to.equal('{"server-Controller-1":{"conflictData":[null,"initial"],"someData":[null,"A"],"sam":[null,null],"karen":[null,null],"ashling":[null,null],"updatedCount":[null,0]}}');
-        });
-    });
+   it('should establish a session for a request with a sequnce number in the payload', function () {
+       return axios({
+           method: 'post',
+           url: 'http://localhost:3001/amorphic/xhr?path=test',
+           data: {
+               sequence: 1
+           },
+           validateStatus: function (status) {
+               return true;
+           }
+       }).then(function (res) {
+           expect(res.status).to.equal(200);
+           expect(res.data.changes).to.equal('{"server-Controller-1":{"conflictData":[null,"initial"],"someData":[null,"A"],"sam":[null,null],"karen":[null,null],"ashling":[null,null],"updatedCount":[null,0]}}');
+       });
+   });
 
-    it('should throw an error if you are making a request to a non registered app', function() {
-        return axios({
-            method: 'post',
-            url: 'http://localhost:3001/amorphic/xhr?path=error',
-            data: {
-                sequence: 1
-            },
-            validateStatus: function (status) {
-                return true;
-            }
-        }).then(function(res) {
-            //TODO: Add a test later for the specific res.data message being sent back unfortunately that is currently a server stack trace
-            expect(res.status).to.equal(500);
-            expect(res.statusText).to.equal('Internal Server Error');
-        });
-    });
+   it('should throw an error if you are making a request to a non registered app', function() {
+       return axios({
+           method: 'post',
+           url: 'http://localhost:3001/amorphic/xhr?path=error',
+           data: {
+               sequence: 1
+           },
+           validateStatus: function (status) {
+               return true;
+           }
+       }).then(function(res) {
+           //TODO: Add a test later for the specific res.data message being sent back unfortunately that is currently a server stack trace
+           expect(res.status).to.equal(500);
+           expect(res.statusText).to.equal('Internal Server Error');
+       });
+   });
 
-    it('should not be able to process a post from xhr request if no processPost function is defined', function() {
-        return axios({
-            method: 'post',
-            url: 'http://localhost:3001/amorphic/xhr?path=test&form=true',
-            data: {
-                sequence: 1
-            },
-            validateStatus: function (status) {
-                return true;
-            }
-        }).then(function (res) {
-            expect(res.status).to.equal(500);
-            expect(res.data).to.equal('Internal Error');
-        });
-    });
+   it('should not be able to process a post from xhr request if no processPost function is defined', function() {
+       return axios({
+           method: 'post',
+           url: 'http://localhost:3001/amorphic/xhr?path=test&form=true',
+           data: {
+               sequence: 1
+           },
+           validateStatus: function (status) {
+               return true;
+           }
+       }).then(function (res) {
+           expect(res.status).to.equal(500);
+           expect(res.data).to.equal('Internal Error');
+       });
+   });
 });
 
 describe('third group of tests', function() {
-    before(function(done) {
-        return beforeEachDescribe(done, 'test', 'yes');
-    });
-    after(afterEachDescribe);
+   before(function(done) {
+       return beforeEachDescribe(done, 'test', 'yes');
+   });
+   after(afterEachDescribe);
 
-    it('should handle a post request without a processPost function', function() {
-        return axios({
-            method: 'post',
-            url: 'http://localhost:3001/amorphic/init/test.js'
-        }).then(function(res) {
-            expect(res.status).to.equal(200);
-            expect(res.data).to.equal('document.write("<script src=\'/test/js/model.js?ver=0\'></script>");\n\ndocument.write("<script src=\'/config/js/mail.js?ver=0\'></script>");\n\ndocument.write("<script src=\'/common/js/anotherMail.js?ver=0\'></script>");\n\ndocument.write("<script src=\'/test/js/controller.js?ver=0\'></script>");\n\namorphic.setApplication(\'test\');amorphic.setSchema({"Customer":{"referredBy":1,"referrers":1,"addresses":1,"roles":1},"Address":{"customer":1,"returnedMail":1,"account":1},"ReturnedMail":{"address":1},"Role":{"customer":1,"account":1},"Account":{"roles":1,"address":1,"transactions":1,"fromAccountTransactions":1},"Transaction":{"account":1,"fromAccount":1}});amorphic.setConfig({"modules":{}});amorphic.setInitialMessage({"url":"/amorphic/xhr?path=test","message":{"type":"sync","sync":true,"value":null,"name":null,"remoteCallId":null,"changes":"{\\"server-Controller-1\\":{\\"conflictData\\":[null,\\"initial\\"],\\"someData\\":[null,\\"A\\"],\\"sam\\":[null,null],\\"karen\\":[null,null],\\"ashling\\":[null,null],\\"updatedCount\\":[null,0]}}","newSession":true,"rootId":"server-Controller-1","startingSequence":100001,"sessionExpiration":3600000,"ver":"0"}});');
-        });
-    });
+   it('should handle a post request without a processPost function', function() {
+       return axios({
+           method: 'post',
+           url: 'http://localhost:3001/amorphic/init/test.js'
+       }).then(function(res) {
+           expect(res.status).to.equal(200);
+           expect(res.data).to.equal('document.write("<script src=\'/test/js/model.js?ver=0\'></script>");\n\ndocument.write("<script src=\'/config/js/mail.js?ver=0\'></script>");\n\ndocument.write("<script src=\'/common/js/anotherMail.js?ver=0\'></script>");\n\ndocument.write("<script src=\'/test/js/controller.js?ver=0\'></script>");\n\namorphic.setApplication(\'test\');amorphic.setSchema({"Customer":{"referredBy":1,"referrers":1,"addresses":1,"roles":1},"Address":{"customer":1,"returnedMail":1,"account":1},"ReturnedMail":{"address":1},"Role":{"customer":1,"account":1},"Account":{"roles":1,"address":1,"transactions":1,"fromAccountTransactions":1},"Transaction":{"account":1,"fromAccount":1}});amorphic.setConfig({"modules":{}});amorphic.setInitialMessage({"url":"/amorphic/xhr?path=test","message":{"type":"sync","sync":true,"value":null,"name":null,"remoteCallId":null,"changes":"{\\"server-Controller-1\\":{\\"conflictData\\":[null,\\"initial\\"],\\"someData\\":[null,\\"A\\"],\\"sam\\":[null,null],\\"karen\\":[null,null],\\"ashling\\":[null,null],\\"updatedCount\\":[null,0]}}","newSession":true,"rootId":"server-Controller-1","startingSequence":100001,"sessionExpiration":3600000,"ver":"0"}});');
+       });
+   });
 
-    // WORK IN PROGRESS
-    it('should handle a post request with a processPost function', function() {
-        return axios({
-            method: 'post',
-            url: 'http://localhost:3001/amorphic/init/config.js',
-            data: {
-                test: 'hellooo'
-            }
-        }).then(function(res) {
-            expect(res.status).to.equal(200);
-            expect(res.data).to.equal('hellooo');
-        });
-    });
+   // WORK IN PROGRESS
+   it('should handle a post request with a processPost function', function() {
+       return axios({
+           method: 'post',
+           url: 'http://localhost:3001/amorphic/init/config.js',
+           data: {
+               test: 'hellooo'
+           }
+       }).then(function(res) {
+           expect(res.status).to.equal(200);
+           expect(res.data).to.equal('hellooo');
+       });
+   });
 
-    it('should process a POST from xhr request when a processPost function is defined', function() {
-        return axios({
-            method: 'post',
-            url: 'http://localhost:3001/amorphic/xhr?path=config&form=true',
-            data: {
-                test: 'hellooooo'
-            },
-            validateStatus: function (status) {
-                return true;
-            }
-        }).then(function(res){
-            expect(res.status).to.equal(200);
-            expect(res.data).to.equal('hellooooo');
-        });
-    });
+   it('should process a POST from xhr request when a processPost function is defined', function() {
+       return axios({
+           method: 'post',
+           url: 'http://localhost:3001/amorphic/xhr?path=config&form=true',
+           data: {
+               test: 'hellooooo'
+           },
+           validateStatus: function (status) {
+               return true;
+           }
+       }).then(function(res){
+           expect(res.status).to.equal(200);
+           expect(res.data).to.equal('hellooooo');
+       });
+   });
 
 });
 
 describe('processLoggingMessage', function() {
-    before(function(done){
-        return beforeEachDescribe(done, 'test', 'no');
-    });
+   before(function(done){
+       return beforeEachDescribe(done, 'test', 'no');
+   });
 
-    beforeEach(function(){
-        sinon.spy(amorphic, '_post');
-    });
+   beforeEach(function(){
+       sinon.spy(amorphic, '_post');
+   });
 
-    after(afterEachDescribe);
+   after(afterEachDescribe);
 
-    afterEach(function(){
-        amorphic._post.restore();
-    });
+   afterEach(function(){
+       amorphic._post.restore();
+   });
 
-    it('should post a message to the server of type "logging"', function(){
-        amorphic.sendLoggingMessage('warn', { foo: 'bar' });
+   it('should post a message to the server of type "logging"', function(){
+       amorphic.sendLoggingMessage('warn', { foo: 'bar' });
 
-        var url = 'http://localhost:3001/amorphic/xhr?path=test'
-        var payload = {
-            type: 'logging',
-            loggingLevel: 'warn',
-            loggingContext: {},
-            loggingData: { foo: 'bar' }
-        };
+       var url = 'http://localhost:3001/amorphic/xhr?path=test'
+       var payload = {
+           type: 'logging',
+           loggingLevel: 'warn',
+           loggingContext: {},
+           loggingData: { foo: 'bar' }
+       };
 
-        expect(amorphic._post.calledOnce).to.be.true;
-        expect(amorphic._post.calledWith(url, payload)).to.be.true;
-    });
+       expect(amorphic._post.calledOnce).to.be.true;
+       expect(amorphic._post.calledWith(url, payload)).to.be.true;
+   });
 });
 
 describe('source mode prod testing', function () {
@@ -624,7 +624,7 @@ describe('source mode prod testing', function () {
                 expect(res.data).to.equal('document.write("<script src=\'/amorphic/init/config.cached.js\'></script>");\namorphic.setApplication(\'config\');amorphic.setSchema({"Customer":{"referredBy":1,"referrers":1,"addresses":1,"roles":1},"Address":{"customer":1,"returnedMail":1,"account":1},"ReturnedMail":{"address":1},"Role":{"customer":1,"account":1},"Account":{"roles":1,"address":1,"transactions":1,"fromAccountTransactions":1},"Transaction":{"account":1,"fromAccount":1}});amorphic.setConfig({"modules":{}});amorphic.setInitialMessage({"url":"/amorphic/xhr?path=config","message":{"ver":"0","startingSequence":0,"sessionExpiration":3600000}});');
             });
         });
-    })
+    });
 
     describe('createControllerFor yes', function() {
         before(function(done) {

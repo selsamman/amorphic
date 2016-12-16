@@ -22,6 +22,7 @@
     "bluebird": "^3.4.6",
     "chai": "3.x",
     "eslint": "3.7.x",
+    "form-data": "^2.1.2",
     "knex": "x",
     "istanbul": "0.4.5",
     "mocha": "^3.1.2",
@@ -38,7 +39,9 @@
     "test": "istanbul cover _mocha -- test/* -R spec",
     "test-debug": "mocha --debug-brk test/*",
     "test:config": "mocha test/config",
-    "test:example": "mocha test/example"
+    "test:example": "mocha test/example",
+    "test-d": "istanbul cover _mocha -- test/daemon/* -R spec",
+    "test-da": "istanbul cover _mocha -- test/daemon_auto/* -R spec"
   },
   "directories": {},
   "engines": {

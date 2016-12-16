@@ -10,8 +10,14 @@ var amorphic = require('../../index.js');
 var collections = JSON.parse(fs.readFileSync(__dirname + "/model/schema.json"));
 PersistObjectTemplate.setSchema(collections);
 PersistObjectTemplate.setDB({}, PersistObjectTemplate.DB_Mongo);
+
+var amorphicOptions = {};
+var applicationSource = {};
+var applicationSourceMap = {};
+var applicationPersistorProps = {};
 var requires = amorphic.getTemplates(PersistObjectTemplate, __dirname + '/model/',
-	['ticket.js','person.js','person.js','project.js'], {appConfig: {}});
+	['ticket.js','person.js','person.js','project.js'], {appConfig: {}},
+    null, null, null, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
 
 var Ticket = requires.ticket.Ticket;
 var TicketItem = requires.ticket.TicketItem;

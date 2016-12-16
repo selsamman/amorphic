@@ -29,7 +29,6 @@ var Persistor = require('persistor');
 var Q = require('q');
 var Semotus = require('semotus');
 var SuperType = require('supertype');
-var UglifyJS = require('uglify-js');
 var url = require('url');
 var zlib = require('zlib');
 
@@ -49,7 +48,6 @@ var applicationSourceMap = {};
 var controllers = {};
 var downloads;
 var hostName = os.hostname();
-var logger = null;
 var nonObjTemplatelogLevel = 1;
 var PersistObjectTemplate = Persistor(null, null, SuperType);
 var sendToLog = null;

@@ -90,6 +90,10 @@ var Utils = require('./lib/utils');
 var log = Utils.log;
 var logMessage = Utils.logMessage;
 var getTemplates = require('./lib/getTemplates').getTemplates;
+function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
+    return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
+  amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
+}
 
 /**
  * Purpose unknown
@@ -1591,7 +1595,7 @@ module.exports = {
     uploadRouter: uploadRouter,
     postRouter: postRouter,
     downloadRouter: downloadRouter,
-    getTemplates: getTemplates,
+    getTemplates: localGetTemplates,
     setDownloadDir: setDownloadDir,
     listen: listen,
     getModelSource: getModelSource,

@@ -84,6 +84,7 @@ reset();
 
 
 var establishApplication = require('./lib/establishApplication').establishApplication;
+var establishDaemon = require('./lib/establishDaemon').establishDaemon;
 var Utils = require('./lib/utils');
 var log = Utils.log;
 var logMessage = Utils.logMessage;
@@ -92,48 +93,6 @@ var getTemplates = require('./lib/getTemplates').getTemplates;
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
   amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} path unknown
- */
-function establishDaemon(path) {
-    // Retrieve configuration information
-    var config = applicationConfig[path];
-
-    if (!config) {
-        throw new Error('Amorphic: establishDaemon called with a path of ' + path + ' which was not registered');
-    }
-
-    var initObjectTemplate = config.initObjectTemplate;
-    var controllerPath = config.appPath + (config.appConfig.controller || 'controller.js');
-
-    var matches = controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
-    var prefix = matches[1] || '';
-    var prop = matches[2] || '';
-
-    // Create a new unique object template utility
-    var persistableTemplate = Persistor(null, null, SuperType);
-
-    // Inject into it any db or persist attributes needed for application
-    initObjectTemplate(persistableTemplate);
-
-    var requires = getTemplates(persistableTemplate, config.appPath, [prop + '.js'], config, path, null, null, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-
-    var controllerTemplate = requires[prop].Controller;
-
-    if (!controllerTemplate) {
-        throw new Error('Missing controller template in ' + prefix + prop + '.js');
-    }
-
-    controllerTemplate.objectTemplate = persistableTemplate;
-
-    var controller = new controllerTemplate();
-    persistableTemplate.controller = controller;
-
-    controller.serverInit();
 }
 
 /**
@@ -1386,7 +1345,7 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
         }
 
         if (config.isDaemon) {
-            establishDaemon(appName);
+            establishDaemon(appName, applicationConfig, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
             logMessage(appName + ' started as a daemon');
         }
     }
@@ -1445,7 +1404,7 @@ function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionSto
     }
 
     if (config.isDaemon) {
-        establishDaemon(appName);
+        establishDaemon(appName, applicationConfig, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
         logMessage(appName + ' started as a daemon');
     }
 }

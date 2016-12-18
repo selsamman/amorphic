@@ -30,7 +30,6 @@ var Q = require('q');
 var Semotus = require('semotus');
 var SuperType = require('supertype');
 var url = require('url');
-var zlib = require('zlib');
 
 // Local Modules
 var configBuilder = require('./configBuilder').ConfigBuilder;
@@ -82,452 +81,20 @@ function reset() {
 
 reset();
 
-
 var establishApplication = require('./lib/establishApplication').establishApplication;
 var establishDaemon = require('./lib/establishDaemon').establishDaemon;
+var establishServerSession = require('./lib/establishServerSession').establishServerSession;
 var Utils = require('./lib/utils');
 var log = Utils.log;
 var logMessage = Utils.logMessage;
+var getLoggingContext = Utils.getLoggingContext;
+var setupLogger = Utils.setupLogger;
 var getTemplates = require('./lib/getTemplates').getTemplates;
+var getSessionCache = require('./lib/getSessionCache').getSessionCache;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
   amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-}
-
-/**
- * Establish a server session
-
- * The entire session mechanism is predicated on the fact that there is a unique instance
- * of object templates for each session.  There are three main use cases:
- *
- * 1) newPage == true means the browser wants to get everything sent to it mostly because it is arriving on a new page
- *    or a refresh or recovery from an error (refresh)
- *
- * 2) reset == true - clear the current session and start fresh
- *
- * 3) newControllerID - if specified the browser has created a controller and will be sending the data to the server
- *
- * @param {unknown} req unknown
- * @param {unknown} path - used to identify future requests from XML
- * @param {unknown} newPage - force returning everything since this is likely a session continuation on a new web page
- * @param {unknown} reset - create new clean empty controller losing all data
- * @param {unknown} newControllerId - client is sending us data for a new controller that it has created
- *
- * @returns {*}
- */
-function establishServerSession(req, path, newPage, reset, newControllerId) {
-    // Retrieve configuration information
-    var config = applicationConfig[path];
-
-    if (!config) {
-        throw new Error('Semotus: establishServerSession called with a path of ' + path + ' which was not registered');
-    }
-
-    var initObjectTemplate = config.initObjectTemplate;
-    var controllerPath = config.appPath + '/' + (config.appConfig.controller || 'controller.js');
-    var objectCacheExpiration = config.objectCacheExpiration;
-    var sessionExpiration = config.sessionExpiration;
-    var sessionStore = config.sessionStore;
-    var appVersion = config.appVersion;
-    var session = req.session;
-    var time = process.hrtime();
-    var sessionData = getSessionCache(path, req.session.id, false);
-
-    if (newPage === 'initial') {
-
-        sessionData.sequence = 1;
-
-        // For a new page determine if a controller is to be omitted
-        if (config.appConfig.createControllerFor && !session.semotus) {
-
-            var referer = '';
-
-            if (req.headers['referer']) {
-                referer = url.parse(req.headers['referer'], true).path;
-            }
-
-            var createControllerFor = config.appConfig.createControllerFor;
-
-            if (!referer.match(createControllerFor) && createControllerFor != 'yes') {
-
-                return establishInitialServerSession(req, config, controllerPath, initObjectTemplate, path, time, appVersion, sessionExpiration,
-                applicationPersistorProps);
-            }
-        }
-    }
-
-    // Create or restore the controller
-    var newSession = false;
-    var controller;
-
-    if (!session.semotus || !session.semotus.controllers[path] || reset || newControllerId) {
-        newSession = !newControllerId;
-
-        if (!session.semotus) {
-            session.semotus = {controllers: {}, loggingContext: {}};
-        }
-
-        if (!session.semotus.loggingContext[path]) {
-            session.semotus.loggingContext[path] = getLoggingContext(path);
-        }
-
-        controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, true, newControllerId, req);
-        controller.__template__.objectTemplate.reqSession = req.session;
-    }
-    else {
-        controller = getController(path, controllerPath, initObjectTemplate, session, objectCacheExpiration, sessionStore, newPage, false, null, req);
-        controller.__template__.objectTemplate.reqSession = req.session;
-    }
-
-    req.amorphicTracking.addServerTask({name: 'Create Controller'}, time);
-
-    controller.__request = req;
-    controller.__sessionExpiration = sessionExpiration;
-
-    var objectTemplate = controller.__template__.objectTemplate;
-
-    var ret = {
-        objectTemplate: controller.__template__.objectTemplate,
-
-        getMessage: function gotMessage() {
-            var message = objectTemplate.getMessage(session.id, true);
-
-            message.newSession = true;
-            message.rootId = controller.__id__;
-            message.startingSequence = objectTemplate.maxClientSequence + 100000;
-            message.sessionExpiration = sessionExpiration;
-
-            return message;
-        },
-
-        getServerConnectString: function yelo() {
-            var message = this.getMessage();
-
-            message.ver = appVersion;
-
-            return JSON.stringify({
-                url: '/amorphic/xhr?path=' + path,
-                message: message
-            });
-        },
-
-        getServerConfigString: function yolo() {
-            return getServerConfigString(config);
-        },
-
-        save: function surve(path, session, req) {
-            saveSession(path, session, controller, req);
-        },
-
-        restoreSession: function rastaSess() {
-            return restoreSession(path, session, controller.__template__);
-        },
-
-        newSession: newSession,
-        appVersion: appVersion,
-
-        getPersistorProps: function getPersistorProps() {
-            if (objectTemplate.getPersistorProps) {
-                return objectTemplate.getPersistorProps();
-            }
-
-            return {};
-        }
-    };
-
-    if (newPage) {
-        saveSession(path, session, controller, req);
-    }
-
-    return Q.fcall(function g() {
-        return ret;
-    });
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
- * @param {unknown} config unknown
- * @param {unknown} controllerPath unknown
- * @param {unknown} initObjectTemplate unknown
- * @param {unknown} path unknown
- * @param {unknown} time unknown
- * @param {unknown} appVersion unknown
- * @param {unknown} sessionExpiration unknown
- * @param {unknown} applicationPersistorProps unknown
- *
- * @returns {unknown} unknown
- */
-function establishInitialServerSession(req, config, controllerPath, initObjectTemplate, path, time, appVersion, sessionExpiration,
-    applicationPersistorProps) {
-
-    var match = controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
-
-    var prop = match[2];
-
-    // Create a new unique object template utility
-    var persistableSemotableTemplate = Persistor(null, null, Semotus);
-
-    // Inject into it any db or persist attributes needed for application
-    initObjectTemplate(persistableSemotableTemplate);
-
-    // Get the controller and all of it's dependent requires which will populate a
-    // key value pairs where the key is the require prefix and and the value is the
-    // key value pairs of each exported template
-
-    // Get the templates to be packaged up in the message if not pre-staged
-    if (amorphicOptions.sourceMode == 'debug') {
-        getTemplates(persistableSemotableTemplate, config.appPath, [prop + '.js'], config, path, null, null, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-    }
-
-    req.amorphicTracking.addServerTask({name: 'Creating Session without Controller'}, time);
-
-    return Q.fcall(function h() {
-        return {
-            getServerConnectString: function i() {
-                return JSON.stringify({
-                    url: '/amorphic/xhr?path=' + path,
-                    message: {ver: appVersion, startingSequence: 0, sessionExpiration: sessionExpiration}
-                });
-            },
-
-            getServerConfigString: function j() {
-                return getServerConfigString(config);
-            },
-
-            getPersistorProps: function k() {
-                if (amorphicOptions.sourceMode == 'debug') {
-                    if (persistableSemotableTemplate.getPersistorProps) {
-                        return persistableSemotableTemplate.getPersistorProps();
-                    }
-
-                    return {};
-                }
-                else {
-                    return applicationPersistorProps[path];
-                }
-            }
-        };
-    });
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} config unknown
- *
- * @returns {unknown} unknown
- */
-function getServerConfigString(config) {
-    var browserConfig = {};
-    var whitelist = (config.appConfig.toBrowser || {});
-
-    whitelist.modules = true;
-    whitelist.templateMode = true;
-
-    for (var key in whitelist) {
-        browserConfig[key] = config.appConfig[key];
-    }
-
-    return JSON.stringify(browserConfig);
-}
-
-/**
- * Create a controller template that has a unique Semotus instance that is
- * for one unique session
- *
- * @param {unknown} path - unique path for application
- * @param {unknown} controllerPath - file path for controller objects
- * @param {unknown} initObjectTemplate - callback for dependency injection into controller
- * @param {unknown} connectSession - connect session object
- * @param {unknown} objectCacheExpiration - seconds to expire controller object cache
- * @param {unknown} sessionStore - session implementation
- * @param {unknown} newPage - force returning everything since this is likely a session continuation on a new web page
- * @param {unknown} reset - create new clean empty controller losing all data
- * @param {unknown} controllerId - unknown
- * @param {unknown} req - connect request
- *
- * @returns {*}
- */
-function getController(path, controllerPath, initObjectTemplate, connectSession, objectCacheExpiration, sessionStore, newPage, reset, controllerId, req) {
-    var sessionId = connectSession.id;
-    var config = applicationConfig[path];
-
-    // Manage the controller cache
-    if (!controllers[sessionId + path]) {
-        controllers[sessionId + path] = {};
-    }
-
-    var cachedController = controllers[sessionId + path];
-
-    // Clear controller from cache if need be
-    if (reset || newPage) {
-        if (cachedController.timeout) {
-            clearTimeout(cachedController.timeout);
-        }
-
-        controllers[sessionId + path] = {};
-        cachedController = controllers[sessionId + path];
-
-        if (reset) { // Hard reset makes sure we create a new controller
-            connectSession.semotus.controllers[path] = null;
-        }
-    }
-
-    // We cache the controller object which will reference the object template and expire it
-    // as long as there are no pending calls.  Note that with a memory store session manager
-    // the act of referencing the session will expire it if needed
-    var timeoutAction = function teamOutAction() {
-        sessionStore.get(sessionId, function aa(_error, connectSession) {
-            if (!connectSession) {
-                log(1, sessionId, 'Session has expired', nonObjTemplatelogLevel);
-            }
-
-            if (!connectSession || cachedController.controller.__template__.objectTemplate.getPendingCallCount() == 0) {
-                controllers[sessionId + path] = null;
-                log(1, sessionId, 'Expiring controller cache for ' + path, nonObjTemplatelogLevel);
-            }
-            else {
-                cachedController.timeout = setTimeout(timeoutAction, objectCacheExpiration);
-                log(2, sessionId, 'Extending controller cache timeout because of pending calls for ' + path, nonObjTemplatelogLevel);
-            }
-        });
-    };
-
-    // Return controller from the cache if possible regenerating timeout
-    if (cachedController.controller) {
-        clearTimeout(cachedController.timeout);
-        cachedController.timeout = setTimeout(timeoutAction, objectCacheExpiration);
-        log(2, sessionId, 'Extending controller cache timeout because of reference ', nonObjTemplatelogLevel);
-
-        return cachedController.controller;
-    }
-
-    var matches = controllerPath.match(/(.*?)([0-9A-Za-z_]*)\.js$/);
-    var prefix = matches[1];
-    var prop = matches[2];
-
-    // Create a new unique object template utility
-    var persistableSemotableTemplate = Persistor(null, null, Semotus);
-
-    setupLogger(persistableSemotableTemplate.logger, path, connectSession.semotus.loggingContext[path]);
-
-    // Inject into it any db or persist attributes needed for application
-    initObjectTemplate(persistableSemotableTemplate);
-
-    // Restore any saved objectMap
-    if (connectSession.semotus.objectMap && connectSession.semotus.objectMap[path]) {
-        persistableSemotableTemplate.objectMap = connectSession.semotus.objectMap[path];
-    }
-
-    // Get the controller and all of it's dependent templates which will populate a
-    // key value pairs where the key is the require prefix and and the value is the
-    // key value pairs of each exported template
-    var templates = getTemplates(persistableSemotableTemplate, prefix, [prop + '.js'], config, path, null, null, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-    var controllerTemplate = templates[prop].Controller;
-
-    if (!controllerTemplate) {
-        throw  new Error('Missing controller template in ' + prefix + prop + '.js');
-    }
-
-    controllerTemplate.objectTemplate = persistableSemotableTemplate;
-
-    // Setup unique object template to manage a session
-    persistableSemotableTemplate.createSession('server', null, connectSession.id);
-
-    var browser = ' - browser: ' + req.headers['user-agent'] + ' from: ' + (req.headers['x-forwarded-for'] || req.connection.remoteAddress);
-
-    // Either restore the controller from the serialized string in the session or create a new one
-    var controller;
-
-    if (!connectSession.semotus.controllers[path]) {
-        if (controllerId) {
-            // Since we are restoring we don't changes saved or going back to the browser
-            persistableSemotableTemplate.withoutChangeTracking(function bb() {
-                controller = persistableSemotableTemplate._createEmptyObject(controllerTemplate, controllerId);
-                persistableSemotableTemplate.syncSession(); // Kill changes to browser
-            });
-        }
-        else {
-            controller = new controllerTemplate();
-        }
-
-        if (typeof(controller.serverInit) == 'function') {
-            controller.serverInit();
-        }
-
-        // With a brand new controller we don't want old object to persist id mappings
-        if (persistableSemotableTemplate.objectMap) {
-            persistableSemotableTemplate.objectMap = {};
-        }
-
-        if (newPage) {
-            persistableSemotableTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
-                'Creating new controller new page ' + browser);
-        }
-        else {
-            persistableSemotableTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'new', controllerId: controller.__id__, requestedControllerId: controllerId || 'none'},
-                'Creating new controller ' + browser);
-        }
-    }
-    else {
-        persistableSemotableTemplate.withoutChangeTracking(function cc() {
-            var sessionData = getSessionCache(path, sessionId, true);
-            var unserialized = connectSession.semotus.controllers[path];
-            controller = persistableSemotableTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);
-
-            if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
-                persistableSemotableTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
-                    savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
-                    'Session data not as saved');
-            }
-
-            // Make sure no duplicate ids are issued
-            var semotusSession = persistableSemotableTemplate._getSession();
-
-            for (var obj in semotusSession.objects) {
-                if (obj.match(/^server-[\w]*?-([0-9]+)/)) {
-                    semotusSession.nextObjId = Math.max(semotusSession.nextObjId, RegExp.$1 + 1);
-                }
-            }
-
-            persistableSemotableTemplate.logger.info({component: 'amorphic', module: 'getController', activity: 'restore'},
-                'Restoreing saved controller ' + (newPage ? ' new page ' : '') + browser);
-
-            if (!newPage) { // No changes queued as a result unless we need it for init.js
-                persistableSemotableTemplate.syncSession();
-            }
-        });
-    }
-
-    persistableSemotableTemplate.controller = controller;
-    controller.__sessionId = sessionId;
-
-    // Set it up in the cache
-    cachedController.controller = controller;
-    cachedController.timeout = setTimeout(timeoutAction, objectCacheExpiration);
-
-    return controller;
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} app unknown
- * @param {unknown} context unknown
- *
- * @returns {unknown} unknown
- */
-function getLoggingContext(app, context) {
-    context = context || {};
-    context.environment = process.env.NODE_ENV || 'local';
-    context.name = app;
-    context.hostname = hostName;
-    context.pid = process.pid;
-
-    return context;
 }
 
 /**
@@ -550,124 +117,6 @@ function getModelSource(path) {
  */
 function getModelSourceMap(path) {
     return applicationSourceMap[path];
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} data unknown
- *
- * @returns {unknown} unknown
- */
-function compressSessionData(data) {
-    if (amorphicOptions.compressSession) {
-        return zlib.deflateSync(data);
-    }
-
-    return data;
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} objData unknown
- *
- * @returns {unknown} unknown
- */
-function decompressSessionData(objData) {
-    if (amorphicOptions.compressSession && objData.data) {
-        var buffer = new Buffer(objData.data);
-
-        return zlib.inflateSync(buffer);
-    }
-
-    return objData;
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} path unknown
- * @param {unknown} session unknown
- * @param {unknown} controller unknown
- * @param {unknown} req unknown
- */
-function saveSession(path, session, controller, req) {
-    var request = controller.__request;
-    controller.__request = null;
-
-    var time = process.hrtime();
-
-    var ourObjectTemplate = controller.__template__.objectTemplate;
-
-    var serialSession;
-
-    if (typeof(ourObjectTemplate.serializeAndGarbageCollect) == 'function') {
-        serialSession = ourObjectTemplate.serializeAndGarbageCollect();
-    }
-    else {
-        serialSession = controller.toJSONString();
-    }
-
-    // Track the time of the last serialization to make sure it is valid
-    var sessionData = getSessionCache(path, ourObjectTemplate.controller.__sessionId, true);
-    sessionData.serializationTimeStamp = (new Date ()).getTime();
-
-    session.semotus.controllers[path] = {controller: compressSessionData(serialSession), serializationTimeStamp: sessionData.serializationTimeStamp};
-
-    session.semotus.lastAccess = new Date(); // Tickle it to force out cookie
-
-    if (ourObjectTemplate.objectMap) {
-        if (!session.semotus.objectMap) {
-            session.semotus.objectMap = {};
-        }
-
-        session.semotus.objectMap[path] = ourObjectTemplate.objectMap;
-    }
-
-    req.amorphicTracking.addServerTask({name: 'Save Session', size: session.semotus.controllers[path].controller.length}, time);
-
-    controller.__request = request;
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} path unknown
- * @param {unknown} session unknown
- * @param {unknown} controllerTemplate unknown
- *
- * @returns {unknown} unknown
- */
-function restoreSession(path, session, controllerTemplate) {
-
-    var objectTemplate = controllerTemplate.objectTemplate;
-
-    // Restore the controller from the session
-    var controller;
-
-    objectTemplate.withoutChangeTracking(function dd() {
-        var sessionData = getSessionCache(path, objectTemplate.controller.__sessionId, true);
-
-        // Will return in exising controller object because createEmptyObject does so
-        var unserialized = session.semotus.controllers[path];
-        controller = objectTemplate.fromJSON(decompressSessionData(unserialized.controller), controllerTemplate);
-
-        if (unserialized.serializationTimeStamp != sessionData.serializationTimeStamp) {
-            objectTemplate.logger.error({component: 'amorphic', module: 'getController', activity: 'restore',
-                savedAs: sessionData.serializationTimeStamp, foundToBe: unserialized.serializationTimeStamp},
-                'Session data not as saved');
-        }
-
-        if (session.semotus.objectMap && session.semotus.objectMap[path]) {
-            objectTemplate.objectMap = session.semotus.objectMap[path];
-        }
-
-        objectTemplate.logger.info({component: 'amorphic', module: 'restoreSession', activity: 'restoring'});
-        objectTemplate.syncSession();  // Clean tracking of changes
-    });
-
-    return controller;
 }
 
 /**
@@ -734,7 +183,7 @@ function processPost(req, resp) {
     var session = req.session;
     var path = url.parse(req.url, true).query.path;
 
-    establishServerSession(req, path, false, false, null).then(function ff(semotus) {
+    establishServerSession(req, path, false, false, null, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog).then(function ff(semotus) {
         var ourObjectTemplate = semotus.objectTemplate;
         var remoteSessionId = req.session.id;
 
@@ -777,10 +226,10 @@ function processLoggingMessage(req, resp) {
     }
 
     if (!session.semotus.loggingContext[path]) {
-        session.semotus.loggingContext[path] = getLoggingContext(path);
+        session.semotus.loggingContext[path] = getLoggingContext(path, null, hostName);
     }
 
-    setupLogger(persistableSemotableTemplate.logger, path, session.semotus.loggingContext[path]);
+    setupLogger(persistableSemotableTemplate.logger, path, session.semotus.loggingContext[path], applicationConfig);
     persistableSemotableTemplate.logger.setContextProps(message.loggingContext);
 
     persistableSemotableTemplate.logger.setContextProps({session: req.session.id,
@@ -794,51 +243,6 @@ function processLoggingMessage(req, resp) {
 }
 
 /**
- * Purpose unknown
- *
- * @param {unknown} logger unknown
- * @param {unknown} path unknown
- * @param {unknown} context unknown
- */
-function setupLogger(logger, path, context) {
-    logger.startContext(context);
-    logger.setLevel(applicationConfig[path].logLevel);
-
-    if (sendToLog) {
-        logger.sendToLog = sendToLog;
-    }
-}
-
-/**
- * Manage a set of data keyed by the session id used for message sequence and serialization tracking
- *
- * @param {String} path unknown
- * @param {unknown} sessionId unknown
- * @param {unknown} keepTimeout unknown
- *
- * @returns {*|{sequence: number, serializationTimeStamp: null, timeout: null}}
- */
-function getSessionCache(path, sessionId, keepTimeout) {
-    var key = path + '-' + sessionId;
-    var session = sessions[key] || {sequence: 1, serializationTimeStamp: null, timeout: null};
-    sessions[key] = session;
-
-    if (!keepTimeout) {
-        if (session.timeout) {
-            clearTimeout(session.timeout);
-        }
-
-        setTimeout(function jj() {
-            if (sessions[key]) {
-                delete sessions[key];
-            }
-        }, amorphicOptions.sessionExpiration);
-    }
-
-    return session;
-}
-
-/**
  * Process JSON request message
  *
  * @param {unknown} req unknown
@@ -848,7 +252,7 @@ function processMessage(req, resp) {
     var session = req.session;
     var message = req.body;
     var path = url.parse(req.url, true).query.path;
-    var sessionData = getSessionCache(path, req.session.id);
+    var sessionData = getSessionCache(path, req.session.id, false, sessions, amorphicOptions);
 
     if (!message.sequence) {
         log(1, req.session.id, 'ignoring non-sequenced message', nonObjTemplatelogLevel);
@@ -862,7 +266,7 @@ function processMessage(req, resp) {
     var newPage = message.type == 'refresh' || message.sequence != expectedSequence;
     var forceReset = message.type == 'reset';
 
-    establishServerSession(req, path, newPage, forceReset, message.rootId).then(function kk(semotus) {
+    establishServerSession(req, path, newPage, forceReset, message.rootId, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog).then(function kk(semotus) {
         if (message.performanceLogging) {
             req.amorphicTracking.browser = message.performanceLogging;
         }
@@ -1064,7 +468,7 @@ function amorphicEntry(req, resp, next) {
         req.amorphicTracking.loggingContext.app = appName;
         logMessage('Establishing ' + appName);
 
-        establishServerSession(req, appName, 'initial')
+        establishServerSession(req, appName, 'initial', false, null, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog)
             .then (function a(session) {
                 var time = process.hrtime();
 
@@ -1151,7 +555,7 @@ function downloadRouter(req, resp, next) {
 function processContentRequest(request, response) {
     var path = url.parse(request.url, true).query.path;
 
-    establishServerSession(request, path, false).then(function zz(semotus) {
+    establishServerSession(request, path, false, false, null, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog).then(function zz(semotus) {
         if (typeof(semotus.objectTemplate.controller.onContentRequest) == 'function') {
             semotus.objectTemplate.controller.onContentRequest(request, response);
         }
@@ -1547,7 +951,6 @@ module.exports = {
     establishApplication: establishApplication,
     establishDaemon: establishDaemon,
     establishServerSession: establishServerSession,
-    saveSession: saveSession,
     processMessage: processMessage,
     router: router,
     uploadRouter: uploadRouter,

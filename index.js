@@ -97,6 +97,7 @@ var displayPerformance = require('./lib/displayPerformance').displayPerformance;
 var readFile = require('./lib/readFile').readFile;
 var intializePerformance = require('./lib/intializePerformance').intializePerformance;
 var handleDBCase = require('./lib/handleDBCase').handleDBCase;
+var generateDownloadsDir = require('./lib/generateDownloadsDir').generateDownloadsDir;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
@@ -231,26 +232,6 @@ function fetchStartUpParams(configStore) {
     amorphicOptions.mainApp = amorphicOptions.appStartList[0];
 
     amorphicOptions.port = rootCfg.get('port');
-}
-
-/**
- * Purpose unknown
- */
-function generateDownloadsDir() {
-    // Create temporary directory for file uploads
-    var dloads = path.join(path.dirname(require.main.filename), 'download');
-
-    if (!fs.existsSync(dloads)) {
-        fs.mkdirSync(dloads);
-    }
-
-    var files = fs.readdirSync(dloads);
-
-    for (var ix = 0; ix < files.length; ++ix) {
-        fs.unlinkSync(path.join(dloads, files[ix]));
-    }
-
-    downloads = dloads;
 }
 
 /**
@@ -443,7 +424,7 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     var configStore = builder.build(appDirectory);
 
     fetchStartUpParams(configStore);
-    generateDownloadsDir();
+    downloads = generateDownloadsDir(path);
 
     logMessage('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
 

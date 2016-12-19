@@ -98,6 +98,7 @@ var readFile = require('./lib/readFile').readFile;
 var intializePerformance = require('./lib/intializePerformance').intializePerformance;
 var handleDBCase = require('./lib/handleDBCase').handleDBCase;
 var generateDownloadsDir = require('./lib/generateDownloadsDir').generateDownloadsDir;
+var fetchStartUpParams = require('./lib/fetchStartUpParams').fetchStartUpParams;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
@@ -209,29 +210,6 @@ function amorphicEntry(req, resp, next) {
                 }
             }).done();
     }
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} configStore unknown
- */
-function fetchStartUpParams(configStore) {
-    var rootCfg = configStore['root'];
-
-    amorphicOptions.compressXHR = rootCfg.get('compressXHR') || amorphicOptions.compressXHR;
-    amorphicOptions.sourceMode = rootCfg.get('sourceMode') || amorphicOptions.sourceMode;
-    amorphicOptions.compressSession = rootCfg.get('compressSession') || amorphicOptions.compressSession;
-    amorphicOptions.conflictMode = rootCfg.get('conflictMode') || amorphicOptions.conflictMode;
-    amorphicOptions.sessionExpiration = rootCfg.get('sessionSeconds') * 1000;
-    amorphicOptions.objectCacheExpiration = rootCfg.get('objectCacheSeconds') * 1000;
-    amorphicOptions.sessionSecret = rootCfg.get('sessionSecret');
-
-    amorphicOptions.appList = rootCfg.get('applications');
-    amorphicOptions.appStartList = rootCfg.get('application').split(';');
-    amorphicOptions.mainApp = amorphicOptions.appStartList[0];
-
-    amorphicOptions.port = rootCfg.get('port');
 }
 
 /**
@@ -423,7 +401,7 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
     var builder = new configBuilder(new configApi());
     var configStore = builder.build(appDirectory);
 
-    fetchStartUpParams(configStore);
+    fetchStartUpParams(configStore, amorphicOptions);
     downloads = generateDownloadsDir(path);
 
     logMessage('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));

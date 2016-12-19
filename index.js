@@ -91,49 +91,13 @@ var getModelSource = require('./lib/getModelSource').getModelSource;
 var getModelSourceMap = require('./lib/getModelSourceMap').getModelSourceMap;
 var router = require('./lib/router').router;
 var uploadRouter = require('./lib/uploadRouter').uploadRouter;
+var postRouter = require('./lib/postRouter').postRouter;
 var displayPerformance = require('./lib/displayPerformance').displayPerformance;
 var readFile = require('./lib/readFile').readFile;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
   amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-}
-
-/**
- * Process a post request by establishing a session and calling the controllers processPost method
- * which can return a response to be sent back
- *
- * @param {unknown} req unknown
- * @param {unknown} resp unknown
- */
-function processPost(req, resp) {
-    var session = req.session;
-    var path = url.parse(req.url, true).query.path;
-
-    establishServerSession(req, path, false, false, null, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog).then(function ff(semotus) {
-        var ourObjectTemplate = semotus.objectTemplate;
-        var remoteSessionId = req.session.id;
-
-        if (typeof(ourObjectTemplate.controller.processPost) == 'function') {
-            Q(ourObjectTemplate.controller.processPost(null, req.body)).then(function gg(controllerResp) {
-                ourObjectTemplate.setSession(remoteSessionId);
-                semotus.save(path, session, req);
-                resp.writeHead(controllerResp.status, controllerResp.headers || {'Content-Type': 'text/plain'});
-                resp.end(controllerResp.body);
-            }).catch(function hh(e) {
-                ourObjectTemplate.logger.info({component: 'amorphic', module: 'processPost', activity: 'error'}, 'Error ' + e.message + e.stack);
-                resp.writeHead(500, {'Content-Type': 'text/plain'});
-                resp.end('Internal Error');
-            });
-        }
-        else {
-            throw 'Not Accepting Posts';
-        }
-    }).catch(function ii(error) {
-        logMessage('Error establishing session for processPost ', req.session.id, error.message + error.stack);
-        resp.writeHead(500, {'Content-Type': 'text/plain'});
-        resp.end('Internal Error');
-    }).done();
 }
 
 /**
@@ -240,22 +204,6 @@ function amorphicEntry(req, resp, next) {
                     displayPerformance(req);
                 }
             }).done();
-    }
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
- * @param {unknown} resp unknown
- * @param {unknown} next unknown
- */
-function postRouter(req, resp, next) {
-    if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.form && req.method == 'POST') {
-        processPost(req, resp, next);
-    }
-    else {
-        next();
     }
 }
 
@@ -574,7 +522,7 @@ function startUpServer(preSessionInject, postSessionInject, appList, appStartLis
         .use(uploadRouter.bind(this, downloads))
         .use(downloadRouter)
         .use(connect.bodyParser())
-        .use(postRouter)
+        .use(postRouter.bind(this, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog))
         .use(amorphicEntry);
 
     if (postSessionInject) {

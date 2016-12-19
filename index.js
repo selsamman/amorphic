@@ -85,47 +85,16 @@ var establishApplication = require('./lib/establishApplication').establishApplic
 var establishDaemon = require('./lib/establishDaemon').establishDaemon;
 var establishServerSession = require('./lib/establishServerSession').establishServerSession;
 var Utils = require('./lib/utils');
-var log = Utils.log;
 var logMessage = Utils.logMessage;
-var getLoggingContext = Utils.getLoggingContext;
-var setupLogger = Utils.setupLogger;
 var getTemplates = require('./lib/getTemplates').getTemplates;
-var getSessionCache = require('./lib/getSessionCache').getSessionCache;
+var getModelSource = require('./lib/getModelSource').getModelSource;
+var getModelSourceMap = require('./lib/getModelSourceMap').getModelSourceMap;
+var router = require('./lib/router').router;
+var displayPerformance = require('./lib/displayPerformance').displayPerformance;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
   amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} path unknown
- *
- * @returns {unknown} unknown
- */
-function getModelSource(path) {
-    return applicationSource[path];
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} path unknown
- *
- * @returns {unknown} unknown
- */
-function getModelSourceMap(path) {
-    return applicationSourceMap[path];
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} dir unknown
- */
-function setDownloadDir(dir) {
-    downloads = dir;
 }
 
 /**
@@ -214,186 +183,6 @@ function processPost(req, resp) {
  *
  * @param {unknown} req unknown
  * @param {unknown} resp unknown
- */
-function processLoggingMessage(req, resp) {
-    var path = url.parse(req.url, true).query.path;
-    var session = req.session;
-    var message = req.body;
-    var persistableSemotableTemplate = Persistor(null, null, Semotus);
-
-    if (!session.semotus) {
-        session.semotus = {controllers: {}, loggingContext: {}};
-    }
-
-    if (!session.semotus.loggingContext[path]) {
-        session.semotus.loggingContext[path] = getLoggingContext(path, null, hostName);
-    }
-
-    setupLogger(persistableSemotableTemplate.logger, path, session.semotus.loggingContext[path], applicationConfig);
-    persistableSemotableTemplate.logger.setContextProps(message.loggingContext);
-
-    persistableSemotableTemplate.logger.setContextProps({session: req.session.id,
-        ipaddress: (String(req.headers['x-forwarded-for'] || req.connection.remoteAddress))
-            .split(',')[0].replace(/(.*)[:](.*)/, '$2') || 'unknown'});
-
-    message.loggingData.from = 'browser';
-    persistableSemotableTemplate.logger[message.loggingLevel](message.loggingData);
-    resp.writeHead(200, {'Content-Type': 'text/plain'});
-    resp.end('');
-}
-
-/**
- * Process JSON request message
- *
- * @param {unknown} req unknown
- * @param {unknown} resp unknown
- */
-function processMessage(req, resp) {
-    var session = req.session;
-    var message = req.body;
-    var path = url.parse(req.url, true).query.path;
-    var sessionData = getSessionCache(path, req.session.id, false, sessions, amorphicOptions);
-
-    if (!message.sequence) {
-        log(1, req.session.id, 'ignoring non-sequenced message', nonObjTemplatelogLevel);
-        resp.writeHead(500, {'Content-Type': 'text/plain'});
-        resp.end('ignoring non-sequenced message');
-
-        return;
-    }
-
-    var expectedSequence = sessionData.sequence || message.sequence;
-    var newPage = message.type == 'refresh' || message.sequence != expectedSequence;
-    var forceReset = message.type == 'reset';
-
-    establishServerSession(req, path, newPage, forceReset, message.rootId, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog).then(function kk(semotus) {
-        if (message.performanceLogging) {
-            req.amorphicTracking.browser = message.performanceLogging;
-        }
-
-        semotus.objectTemplate.logger.setContextProps(message.loggingContext);
-
-        var callContext = message.type;
-
-        if (message.type == 'call') {
-            callContext += '.' + message.id + '[' + message.name + ']';
-        }
-
-        var context = semotus.objectTemplate.logger.setContextProps({app: path, message: callContext,
-            sequence: message.sequence, expectedSequence: sessionData.sequence, session: req.session.id,
-            ipaddress: (String(req.headers['x-forwarded-for'] || req.connection.remoteAddress))
-                .split(',')[0].replace(/(.*)[:](.*)/, '$2') || 'unknown'});
-
-        ++sessionData.sequence;
-
-        var ourObjectTemplate = semotus.objectTemplate;
-        var remoteSessionId = req.session.id;
-
-        ourObjectTemplate.expireSession = function expoSession() {
-            req.session.destroy();
-            ourObjectTemplate.sessionExpired = true;
-        };
-
-        ourObjectTemplate.sessionExpired = false;
-        var startMessageProcessing;
-
-        // If we expired just return a message telling the client to reset itself
-        if (semotus.newSession || newPage || forceReset) {
-            if (semotus.newSession) {
-                ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
-                    remoteSessionId, 'Force reset on ' + message.type + ' ' + 'new session' + ' [' + message.sequence + ']');
-            }
-            else {
-                ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'reset'},
-                    remoteSessionId, 'Force reset on ' + message.type + ' ' +  ' [' + message.sequence + ']');
-            }
-
-            semotus.save(path, session, req);
-
-            startMessageProcessing = process.hrtime();
-            var outbound = semotus.getMessage();
-
-            outbound.ver = semotus.appVersion;
-            ourObjectTemplate.logger.clearContextProps(context);
-            resp.end(JSON.stringify(outbound));  // return a sync message assuming no queued messages
-
-            for (var prop in ourObjectTemplate.logger.context) {
-                req.amorphicTracking.loggingContext[prop] = ourObjectTemplate.logger.context[prop];
-            }
-
-            req.amorphicTracking.addServerTask({name: 'Reset Processing'}, startMessageProcessing);
-            sessionData.sequence = message.sequence + 1;
-            displayPerformance(req);
-
-            return;
-        }
-
-        // When Semotus sends a message it will either be a response or
-        // a callback to the client.  In either case return a response and prevent
-        // any further messages from being generated as these will get handled on
-        // the next call into the server
-        startMessageProcessing = process.hrtime();
-        var sendMessage = function surndMessage(message) {
-            ourObjectTemplate.setSession(remoteSessionId);
-            ourObjectTemplate.enableSendMessage(false);
-            req.amorphicTracking.addServerTask({name: 'Request Processing'}, startMessageProcessing);
-            semotus.save(path, session, req);
-            message.ver = semotus.appVersion;
-            message.sessionExpired = ourObjectTemplate.sessionExpired;
-
-            var respstr = JSON.stringify(message);
-
-            for (var prop in ourObjectTemplate.logger.context) {
-                req.amorphicTracking.loggingContext[prop] = ourObjectTemplate.logger.context[prop];
-            }
-
-            ourObjectTemplate.logger.clearContextProps(context);
-            resp.end(respstr);
-            displayPerformance(req);
-        };
-
-        ourObjectTemplate.incomingIP = (String(req.headers['x-forwarded-for'] || req.connection.remoteAddress)) .split(',')[0].replace(/(.*)[:](.*)/, '$2') || 'unknown';
-
-        ourObjectTemplate.enableSendMessage(true, sendMessage);  // Enable the sending of the message in the response
-
-        try {
-            ourObjectTemplate.processMessage(message, null, semotus.restoreSession);
-        }
-        catch (error) {
-            ourObjectTemplate.logger.info({component: 'amorphic', module: 'processMessage', activity: 'error'}, error.message + error.stack);
-            resp.writeHead(500, {'Content-Type': 'text/plain'});
-            ourObjectTemplate.logger.clearContextProps(context);
-            resp.end(error.toString());
-        }
-
-    }).catch(function failure(error) {
-        log(0, req.session.id, error.message + error.stack, nonObjTemplatelogLevel);
-        resp.writeHead(500, {'Content-Type': 'text/plain'});
-        resp.end(error.toString());
-    }).done();
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
- * @param {unknown} resp unknown
- * @param {unknown} next unknown
- */
-function router(req, resp, next) {
-    if (req.url.match(/amorphic\/xhr\?path\=/)) {
-        req.body.type == 'logging' ? processLoggingMessage(req, resp) : processMessage(req, resp);
-    }
-    else {
-        next();
-    }
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
- * @param {unknown} resp unknown
  * @param {unknown} next unknown
  */
 function uploadRouter(req, resp, next) {
@@ -435,7 +224,7 @@ function amorphicEntry(req, resp, next) {
         req.amorphicTracking.loggingContext.app = appName;
         resp.setHeader('Content-Type', 'application/javascript');
         resp.setHeader('Cache-Control', 'public, max-age=31556926');
-        resp.end(getModelSourceMap(appName));
+        resp.end(getModelSourceMap(appName, applicationSourceMap));
 
         req.amorphicTracking.addServerTask({name: 'Request Source Map'}, time);
         displayPerformance(req);
@@ -456,7 +245,7 @@ function amorphicEntry(req, resp, next) {
             }
         }
 
-        resp.end(getModelSource(appName));
+        resp.end(getModelSource(appName, applicationSource));
 
         req.amorphicTracking.addServerTask('Request Compressed Sources', time);
         displayPerformance(req);
@@ -497,7 +286,7 @@ function amorphicEntry(req, resp, next) {
                     }
                     else {
                         resp.end(
-                            getModelSource(appName) +
+                            getModelSource(appName, applicationSource) +
                             "amorphic.setApplication('" + appName + "');" +
                             'amorphic.setSchema(' + JSON.stringify(session.getPersistorProps()) + ');' +
                             'amorphic.setConfig(' + JSON.stringify(JSON.parse(session.getServerConfigString())) + ');' +
@@ -566,34 +355,6 @@ function processContentRequest(request, response) {
  * Purpose unknown
  *
  * @param {unknown} req unknown
- */
-function displayPerformance(req) {
-    var logger = Semotus.createLogger();
-
-    logger.setContextProps(req.amorphicTracking.loggingContext);
-
-    var diff = process.hrtime(req.amorphicTracking.startTime);
-    var totalTime = (diff[0] * 1e9 + diff[1]) / 1000000;
-    var taskTime = 0;
-
-    req.amorphicTracking.serverTasks.forEach(function d(task) {
-        taskTime += task.time;
-    });
-
-    logger.info({
-        component: 'amorphic',
-        module: 'listen',
-        duration: totalTime,
-        browserPerformance: req.amorphicTracking.browser,
-        serverTasks: req.amorphicTracking.serverTasks,
-        unaccounted: totalTime - taskTime},
-        'Request Performance');
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
  * @param {unknown} _resp unknown
  * @param {unknown} next unknown
  */
@@ -642,19 +403,19 @@ function fetchStartUpParams(configStore) {
  */
 function generateDownloadsDir() {
     // Create temporary directory for file uploads
-    var downloads = path.join(path.dirname(require.main.filename), 'download');
+    var dloads = path.join(path.dirname(require.main.filename), 'download');
 
-    if (!fs.existsSync(downloads)) {
-        fs.mkdirSync(downloads);
+    if (!fs.existsSync(dloads)) {
+        fs.mkdirSync(dloads);
     }
 
-    var files = fs.readdirSync(downloads);
+    var files = fs.readdirSync(dloads);
 
     for (var ix = 0; ix < files.length; ++ix) {
-        fs.unlinkSync(path.join(downloads, files[ix]));
+        fs.unlinkSync(path.join(dloads, files[ix]));
     }
 
-    setDownloadDir(downloads);
+    downloads = dloads;
 }
 
 // TODO: Refactor this to be a readSchema function
@@ -895,7 +656,8 @@ function startUpServer(preSessionInject, postSessionInject, appList, appStartLis
         postSessionInject.call(null, app);
     }
 
-    app.use(router);
+    app.use(router.bind(this, hostName, applicationConfig, sendToLog, sessions, amorphicOptions, nonObjTemplatelogLevel,
+                        applicationSource, applicationSourceMap, applicationPersistorProps, controllers));
     appContext.connection = app.listen(amorphicOptions.port);
 }
 
@@ -948,18 +710,10 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
 }
 
 module.exports = {
-    establishApplication: establishApplication,
-    establishDaemon: establishDaemon,
-    establishServerSession: establishServerSession,
-    processMessage: processMessage,
-    router: router,
     uploadRouter: uploadRouter,
     postRouter: postRouter,
     downloadRouter: downloadRouter,
     getTemplates: localGetTemplates,
-    setDownloadDir: setDownloadDir,
     listen: listen,
-    getModelSource: getModelSource,
-    getModelSourceMap: getModelSourceMap,
     reset: reset
 };

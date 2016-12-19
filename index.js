@@ -96,6 +96,7 @@ var downloadRouter = require('./lib/downloadRouter').downloadRouter;
 var displayPerformance = require('./lib/displayPerformance').displayPerformance;
 var readFile = require('./lib/readFile').readFile;
 var intializePerformance = require('./lib/intializePerformance').intializePerformance;
+var handleDBCase = require('./lib/handleDBCase').handleDBCase;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
@@ -307,7 +308,7 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
             dbClient = Q(knex); // TODO: knex is already initialized because it is a synchronous function that is called when require('knex') occurs
         }
 
-        return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore)).catch(function errorrr(e) {
+        return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore, PersistObjectTemplate, amorphicOptions, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps)).catch(function errorrr(e) {
             logMessage(e.message + e.stack);
         });
     }
@@ -336,58 +337,6 @@ function startApplication(appName, appDirectory, appList, configStore, sessionSt
         objectTemplate.config = config;
         objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
         objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
-    }
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} dbConfig unknown
- * @param {unknown} config unknown
- * @param {unknown} appName unknown
- * @param {unknown} path unknown
- * @param {unknown} cpath unknown
- * @param {unknown} schema unknown
- * @param {unknown} sessionStore unknown
- * @param {unknown} db unknown
- */
-function handleDBCase(dbConfig, config, appName, path, cpath, schema, sessionStore, db) {
-    logMessage('DB connection established to ' + dbConfig.dbName);
-
-    // TODO: Try to pull this function out
-    function injectObjectTemplate(objectTemplate) {
-
-        if (dbConfig.dbDriver == 'knex') {
-            objectTemplate.setDB(db, PersistObjectTemplate.DB_Knex);
-        }
-        else {
-            objectTemplate.setDB(db);
-        }
-
-        objectTemplate.setSchema(schema);
-        objectTemplate.config = config;
-        objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
-
-        objectTemplate.concurrency = dbConfig.dbConcurrency; //TODO: What does dbConcurrency do?
-        objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
-    }
-
-    if (config.isDaemon) {
-        establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
-            amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
-            config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info',
-            amorphicOptions, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps);
-    }
-    else {
-        establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
-            amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
-            config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info',
-            amorphicOptions, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps);
-    }
-
-    if (config.isDaemon) {
-        establishDaemon(appName, applicationConfig, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-        logMessage(appName + ' started as a daemon');
     }
 }
 
@@ -527,9 +476,6 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
 }
 
 module.exports = {
-    uploadRouter: uploadRouter,
-    postRouter: postRouter,
-    downloadRouter: downloadRouter,
     getTemplates: localGetTemplates,
     listen: listen,
     reset: reset

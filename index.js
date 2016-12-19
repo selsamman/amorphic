@@ -90,55 +90,13 @@ var getTemplates = require('./lib/getTemplates').getTemplates;
 var getModelSource = require('./lib/getModelSource').getModelSource;
 var getModelSourceMap = require('./lib/getModelSourceMap').getModelSourceMap;
 var router = require('./lib/router').router;
+var uploadRouter = require('./lib/uploadRouter').uploadRouter;
 var displayPerformance = require('./lib/displayPerformance').displayPerformance;
+var readFile = require('./lib/readFile').readFile;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
   amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
- * @param {unknown} resp unknown
- * @param {unknown} next unknown
- */
-function processFile(req, resp, next) {
-    if (!downloads) {
-        logMessage('no download directory');
-        next();
-        return;
-    }
-
-    var form = new formidable.IncomingForm();
-    form.uploadDir = downloads;
-
-    form.parse(req, function ee(err, _fields, files) {
-        if (err) {
-            logMessage(err);
-        }
-
-        resp.writeHead(200, {'content-type': 'text/html'});
-
-        var file = files.file.path;
-        logMessage(file);
-
-        setTimeout(function yz() {
-            fs.unlink(file, function zy(err) {
-                if (err) {
-                    logMessage(err);
-                }
-                else {
-                    logMessage(file + ' deleted');
-                }
-            });
-        }, 60000);
-
-        var fileName = files.file.name;
-        req.session.file = file;
-        resp.end('<html><body><script>parent.amorphic.prepareFileUpload(\'package\');parent.amorphic.uploadFunction.call(null, "' +  fileName + '"' + ')</script></body></html>');
-    });
 }
 
 /**
@@ -176,22 +134,6 @@ function processPost(req, resp) {
         resp.writeHead(500, {'Content-Type': 'text/plain'});
         resp.end('Internal Error');
     }).done();
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
- * @param {unknown} resp unknown
- * @param {unknown} next unknown
- */
-function uploadRouter(req, resp, next) {
-    if (req.url.match(/amorphic\/xhr\?path\=/) && url.parse(req.url, true).query.file && req.method == 'POST') {
-        processFile(req, resp, next);
-    }
-    else {
-        next();
-    }
 }
 
 /**
@@ -418,23 +360,6 @@ function generateDownloadsDir() {
     downloads = dloads;
 }
 
-// TODO: Refactor this to be a readSchema function
-/**
- * Purpose unknown
- *
- * @param {unknown} file unknown
- *
- * @returns {unknown} unknown
- */
-function readFile(file) {
-
-    if (file && fs.existsSync(file)) {
-        return fs.readFileSync(file);
-    }
-
-    return null;
-}
-
 /**
  * Purpose unknown
  *
@@ -646,7 +571,7 @@ function startUpServer(preSessionInject, postSessionInject, appList, appStartLis
         .use('/semotus/', connect.static(rootSemotus + '/node_modules/semotus'))
         .use(connect.cookieParser())
         .use(sessionRouter)
-        .use(uploadRouter)
+        .use(uploadRouter.bind(this, downloads))
         .use(downloadRouter)
         .use(connect.bodyParser())
         .use(postRouter)

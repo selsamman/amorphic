@@ -92,6 +92,7 @@ var getModelSourceMap = require('./lib/getModelSourceMap').getModelSourceMap;
 var router = require('./lib/router').router;
 var uploadRouter = require('./lib/uploadRouter').uploadRouter;
 var postRouter = require('./lib/postRouter').postRouter;
+var downloadRouter = require('./lib/downloadRouter').downloadRouter;
 var displayPerformance = require('./lib/displayPerformance').displayPerformance;
 var readFile = require('./lib/readFile').readFile;
 
@@ -205,40 +206,6 @@ function amorphicEntry(req, resp, next) {
                 }
             }).done();
     }
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
- * @param {unknown} resp unknown
- * @param {unknown} next unknown
- */
-function downloadRouter(req, resp, next) {
-    var file = url.parse(req.url, true).query.file;
-
-    if (req.url.match(/amorphic\/xhr\?path\=/) && file && req.method == 'GET') {
-        processContentRequest(req, resp);
-    }
-    else {
-        next();
-    }
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} request unknown
- * @param {unknown} response unknown
- */
-function processContentRequest(request, response) {
-    var path = url.parse(request.url, true).query.path;
-
-    establishServerSession(request, path, false, false, null, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog).then(function zz(semotus) {
-        if (typeof(semotus.objectTemplate.controller.onContentRequest) == 'function') {
-            semotus.objectTemplate.controller.onContentRequest(request, response);
-        }
-    });
 }
 
 /**
@@ -520,7 +487,7 @@ function startUpServer(preSessionInject, postSessionInject, appList, appStartLis
         .use(connect.cookieParser())
         .use(sessionRouter)
         .use(uploadRouter.bind(this, downloads))
-        .use(downloadRouter)
+        .use(downloadRouter.bind(this, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog))
         .use(connect.bodyParser())
         .use(postRouter.bind(this, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog))
         .use(amorphicEntry);

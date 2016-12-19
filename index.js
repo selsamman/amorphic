@@ -95,6 +95,7 @@ var postRouter = require('./lib/postRouter').postRouter;
 var downloadRouter = require('./lib/downloadRouter').downloadRouter;
 var displayPerformance = require('./lib/displayPerformance').displayPerformance;
 var readFile = require('./lib/readFile').readFile;
+var intializePerformance = require('./lib/intializePerformance').intializePerformance;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
@@ -206,30 +207,6 @@ function amorphicEntry(req, resp, next) {
                 }
             }).done();
     }
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} req unknown
- * @param {unknown} _resp unknown
- * @param {unknown} next unknown
- */
-function intializePerformance(req, _resp, next) {
-    req.amorphicTracking = {
-        startTime: process.hrtime(),
-        serverTasks: [],
-        browserTasks: [],
-        loggingContext: {},
-        addServerTask: function ardTask(props, hrStartTime) {
-            var diff = process.hrtime(hrStartTime);
-            var took = (diff[0] * 1e9 + diff[1]) / 1000000;
-            props.time = took;
-            this.serverTasks.push(props);
-        }
-    };
-
-    next();
 }
 
 /**

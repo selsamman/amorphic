@@ -21,7 +21,6 @@
 
 // Node Modules
 var connect = require('connect');
-var formidable = require('formidable');
 var fs = require('fs');
 var os = require('os');
 var path = require('path');
@@ -81,200 +80,20 @@ function reset() {
 
 reset();
 
-var establishApplication = require('./lib/establishApplication').establishApplication;
-var establishDaemon = require('./lib/establishDaemon').establishDaemon;
 var Utils = require('./lib/utils');
 var logMessage = Utils.logMessage;
 var getTemplates = require('./lib/getTemplates').getTemplates;
 var router = require('./lib/router').router;
-var uploadRouter = require('./lib/uploadRouter').uploadRouter;
-var postRouter = require('./lib/postRouter').postRouter;
-var downloadRouter = require('./lib/downloadRouter').downloadRouter;
 var displayPerformance = require('./lib/displayPerformance').displayPerformance;
 var readFile = require('./lib/readFile').readFile;
-var intializePerformance = require('./lib/intializePerformance').intializePerformance;
-var handleDBCase = require('./lib/handleDBCase').handleDBCase;
 var generateDownloadsDir = require('./lib/generateDownloadsDir').generateDownloadsDir;
 var fetchStartUpParams = require('./lib/fetchStartUpParams').fetchStartUpParams;
-var amorphicEntry = require('./lib/amorphicEntry').amorphicEntry;
+var startApplication = require('./lib/startApplication').startApplication;
+var startUpServer = require('./lib/startUpServer').startUpServer;
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
   amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} appName unknown
- * @param {unknown} appDirectory unknown
- * @param {unknown} appList unknown
- * @param {unknown} configStore unknown
- * @param {unknown} sessionStore unknown
- *
- * @returns {unknown} unknown
- */
-function startApplication(appName, appDirectory, appList, configStore, sessionStore) {
-
-    var path = appDirectory + '/' + appList[appName] + '/';
-    var cpath = appDirectory + '/apps/common/';
-
-    // TODO: Completely change how we do configurations
-    var config = configStore[appName].get();
-    config.nconf = configStore[appName]; // global config
-    config.configStore = configStore;
-
-    var schema = JSON.parse((readFile(path + '/schema.json') || readFile(cpath + '/schema.json')).toString());
-
-    var dbConfig = {
-        dbName : config.nconf.get(appName + '_dbName') || config.nconf.get('dbName') || config.nconf.get('dbname'),
-        dbPath : config.nconf.get(appName + '_dbPath') || config.nconf.get('dbPath') || config.nconf.get('dbpath'),
-        dbDriver : config.nconf.get(appName + '_dbDriver') || config.nconf.get('dbDriver') || config.nconf.get('dbdriver') || 'mongo',
-        dbType : config.nconf.get(appName + '_dbType') || config.nconf.get('dbType') || config.nconf.get('dbtype') || 'mongo',
-        dbUser : config.nconf.get(appName + '_dbUser') || config.nconf.get('dbUser') || config.nconf.get('dbuser') || 'nodejs',
-        dbPassword : config.nconf.get(appName + '_dbPassword') || config.nconf.get('dbPassword') || config.nconf.get('dbpassword') || null,
-        dbConnections : config.nconf.get(appName + '_dbConnections') || config.nconf.get('dbconnections') || 20,
-        dbConcurrency : config.nconf.get(appName + '_dbConcurrency') || config.nconf.get('dbconcurrency') || 5
-    };
-
-    var dbClient;
-
-    if (dbConfig.dbName && dbConfig.dbPath) {
-        if (dbConfig.dbDriver == 'mongo') {
-            var MongoClient = require('mongodb-bluebird');
-            dbClient = MongoClient.connect(dbConfig.dbPath + dbConfig.dbName);
-        }
-        else if (dbConfig.dbDriver == 'knex') {
-            var knex = require('knex')({
-                client: dbConfig.dbType,
-                connection: {
-                    host     : dbConfig.dbPath,
-                    database : dbConfig.dbName,
-                    user: dbConfig.dbUser,
-                    password: dbConfig.dbPassword
-                }, pool: {min: 0, max: dbConfig.dbConnections}
-            });
-
-            dbClient = Q(knex); // TODO: knex is already initialized because it is a synchronous function that is called when require('knex') occurs
-        }
-
-        return dbClient.then(handleDBCase.bind(this, dbConfig, config, appName, path, cpath, schema, sessionStore, PersistObjectTemplate, amorphicOptions, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps)).catch(function errorrr(e) {
-            logMessage(e.message + e.stack);
-        });
-    }
-    else {
-        // No database case
-        if (config.isDaemon) {
-            establishApplication(appName, path + '/js/', cpath + '/js/', injectObjectTemplate,
-                amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
-                config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info',
-                amorphicOptions, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps);
-        }
-        else {
-            establishApplication(appName, path + '/public/js/', cpath + '/js/', injectObjectTemplate,
-                amorphicOptions.sessionExpiration, amorphicOptions.objectCacheExpiration, sessionStore, null, config.ver, config,
-                config.nconf.get(appName + '_logLevel') || config.nconf.get('logLevel') || 'info',
-                amorphicOptions, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps);
-        }
-
-        if (config.isDaemon) {
-            establishDaemon(appName, applicationConfig, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
-            logMessage(appName + ' started as a daemon');
-        }
-    }
-
-    function injectObjectTemplate(objectTemplate) {
-        objectTemplate.config = config;
-        objectTemplate.logLevel = config.nconf.get('logLevel') || 1;
-        objectTemplate.__conflictMode__ = amorphicOptions.conflictMode;
-    }
-}
-
-/**
- * Purpose unknown
- *
- * @param {unknown} preSessionInject unknown
- * @param {unknown} postSessionInject unknown
- * @param {unknown} appList unknown
- * @param {unknown} appStartList unknown
- * @param {unknown} appDirectory unknown
- * @param {unknown} mainApp unknown
- * @param {unknown} sessionRouter unknown
- */
-function startUpServer(preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter) {
-    var app = connect();
-
-    if (amorphicOptions.compressXHR) {
-        app.use(require('compression')());
-    }
-
-    if (preSessionInject) {
-        preSessionInject.call(null, app);
-    }
-
-    for (var appName in appList) {
-        if (appStartList.indexOf(appName) >= 0) {
-            var path = appDirectory + '/' + appList[appName] + '/public';
-
-            app.use('/' + appName + '/', connect.static(path, {index: 'index.html'}));
-
-            if (appName == mainApp) {
-                app.use('/', connect.static(path, {index: 'index.html'}));
-            }
-
-            logMessage(appName + ' connected to ' + path);
-        }
-    }
-
-    var rootSuperType;
-
-    if (fs.existsSync(appDirectory + '/node_modules/supertype')) {
-        rootSuperType = appDirectory;
-    }
-    else {
-        rootSuperType = __dirname;
-    }
-
-    var rootSemotus;
-
-    if (fs.existsSync(appDirectory + '/node_modules/semotus')) {
-        rootSemotus = appDirectory;
-    }
-    else {
-        rootSemotus = __dirname;
-    }
-
-    var rootBindster;
-
-    if (fs.existsSync(appDirectory + '/node_modules/amorphic-bindster')) {
-        rootBindster = appDirectory;
-    }
-    else {
-        rootBindster = __dirname;
-    }
-
-    app.use(intializePerformance)
-        .use('/modules/', connect.static(appDirectory + '/node_modules'))
-        .use('/bindster/', connect.static(rootBindster + '/node_modules/amorphic-bindster'))
-        .use('/amorphic/', connect.static(appDirectory))
-        .use('/common/', connect.static(appDirectory + '/apps/common'))
-        .use('/supertype/', connect.static(rootSuperType + '/node_modules/supertype'))
-        .use('/semotus/', connect.static(rootSemotus + '/node_modules/semotus'))
-        .use(connect.cookieParser())
-        .use(sessionRouter)
-        .use(uploadRouter.bind(this, downloads))
-        .use(downloadRouter.bind(this, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog))
-        .use(connect.bodyParser())
-        .use(postRouter.bind(this, applicationConfig, sessions, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog))
-        .use(amorphicEntry.bind(this, applicationSourceMap, amorphicOptions, applicationSource, applicationConfig, sessions, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog));
-
-    if (postSessionInject) {
-        postSessionInject.call(null, app);
-    }
-
-    app.use(router.bind(this, hostName, applicationConfig, sendToLog, sessions, amorphicOptions, nonObjTemplatelogLevel,
-                        applicationSource, applicationSourceMap, applicationPersistorProps, controllers));
-    appContext.connection = app.listen(amorphicOptions.port);
 }
 
 /**
@@ -315,11 +134,11 @@ function listen(appDirectory, sessionStore, preSessionInject, postSessionInject,
 
     for (var appKey in appList) {
         if (appStartList.indexOf(appKey) >= 0) {
-            promises.push(startApplication(appKey, appDirectory, appList, configStore, sessionStore));
+            promises.push(startApplication(appKey, appDirectory, appList, configStore, sessionStore, PersistObjectTemplate, amorphicOptions, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps));
         }
     }
 
-    Q.all(promises).then(startUpServer.bind(this, preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter))
+    Q.all(promises).then(startUpServer.bind(this, preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter, amorphicOptions, downloads, applicationConfig, sessions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog, appContext))
         .catch(function f(e) {
             logMessage(e.message + ' ' + e.stack);
         });

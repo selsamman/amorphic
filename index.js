@@ -20,21 +20,15 @@
  */
 
 // Node Modules
-var connect = require('connect');
-var fs = require('fs');
 var os = require('os');
-var path = require('path');
 var Persistor = require('persistor');
 var Q = require('q');
 var Semotus = require('semotus');
 var SuperType = require('supertype');
-var url = require('url');
 
 // Local Modules
-var configBuilder = require('./configBuilder').ConfigBuilder;
-var configApi = require('./configBuilder').ConfigAPI;
-
-Semotus.maxCallTime = 60 * 1000; // Max time for call interlock
+var getTemplates = require('./lib/getTemplates').getTemplates;
+var listen = require('./lib/listen').listen;
 
 // Module Global Variables
 var amorphicOptions;
@@ -50,6 +44,8 @@ var nonObjTemplatelogLevel = 1;
 var PersistObjectTemplate = Persistor(null, null, SuperType);
 var sendToLog = null;
 var sessions = {};
+
+Semotus.maxCallTime = 60 * 1000; // Max time for call interlock
 
 // TODO: Remove this - this is just to set the default config options
 /**
@@ -80,72 +76,19 @@ function reset() {
 
 reset();
 
-var Utils = require('./lib/utils');
-var logMessage = Utils.logMessage;
-var getTemplates = require('./lib/getTemplates').getTemplates;
-var router = require('./lib/router').router;
-var displayPerformance = require('./lib/displayPerformance').displayPerformance;
-var readFile = require('./lib/readFile').readFile;
-var generateDownloadsDir = require('./lib/generateDownloadsDir').generateDownloadsDir;
-var fetchStartUpParams = require('./lib/fetchStartUpParams').fetchStartUpParams;
-var startApplication = require('./lib/startApplication').startApplication;
-var startUpServer = require('./lib/startUpServer').startUpServer;
-
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
   amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
 }
 
-/**
- * Purpose unknown
- *
- * @param {unknown} appDirectory unknown
- * @param {unknown} sessionStore unknown
- * @param {unknown} preSessionInject unknown
- * @param {unknown} postSessionInject unknown
- * @param {unknown} sendToLogFunction unknown
- */
-function listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
-    sendToLog = sendToLogFunction;
-
-    var builder = new configBuilder(new configApi());
-    var configStore = builder.build(appDirectory);
-
-    fetchStartUpParams(configStore, amorphicOptions);
-    downloads = generateDownloadsDir(path);
-
-    logMessage('Starting Amorphic with options: ' + JSON.stringify(amorphicOptions));
-
-    sessionStore = sessionStore || new (connect.session.MemoryStore)();
-
-    var sessionRouter = connect.session(
-        {
-            store: sessionStore, secret: amorphicOptions.sessionSecret,
-            cookie: {maxAge: amorphicOptions.sessionExpiration},
-            rolling: true
-        } // TODO: What is rolling: true?
-    );
-
-    // Initialize applications
-    var appList = amorphicOptions.appList;
-    var appStartList = amorphicOptions.appStartList;
-    var mainApp = amorphicOptions.mainApp;
-    var promises = [];
-
-    for (var appKey in appList) {
-        if (appStartList.indexOf(appKey) >= 0) {
-            promises.push(startApplication(appKey, appDirectory, appList, configStore, sessionStore, PersistObjectTemplate, amorphicOptions, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps));
-        }
-    }
-
-    Q.all(promises).then(startUpServer.bind(this, preSessionInject, postSessionInject, appList, appStartList, appDirectory, mainApp, sessionRouter, amorphicOptions, downloads, applicationConfig, sessions, applicationSource, applicationSourceMap, applicationPersistorProps, hostName, controllers, nonObjTemplatelogLevel, sendToLog, appContext))
-        .catch(function f(e) {
-            logMessage(e.message + ' ' + e.stack);
-        });
+function localListen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
+    listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction, sendToLog,
+        amorphicOptions, downloads, PersistObjectTemplate, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps,
+        sessions, hostName, controllers, appContext);
 }
 
 module.exports = {
     getTemplates: localGetTemplates,
-    listen: listen,
+    listen: localListen,
     reset: reset
 };

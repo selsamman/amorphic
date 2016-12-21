@@ -18,13 +18,11 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+"use strict";
 
 // Node Modules
-var os = require('os');
-var Persistor = require('persistor');
 var Q = require('q');
 var Semotus = require('semotus');
-var SuperType = require('supertype');
 
 // Local Modules
 var getTemplates = require('./lib/getTemplates').getTemplates;
@@ -37,13 +35,6 @@ var applicationConfig = {};
 var applicationPersistorProps = {};
 var applicationSource = {};
 var applicationSourceMap = {};
-var controllers = {};
-var downloads;
-var hostName = os.hostname();
-var nonObjTemplatelogLevel = 1;
-var PersistObjectTemplate = Persistor(null, null, SuperType);
-var sendToLog = null;
-var sessions = {};
 
 Semotus.maxCallTime = 60 * 1000; // Max time for call interlock
 
@@ -82,9 +73,9 @@ function localGetTemplates(objectTemplate, appPath, templates, config, path, sou
 }
 
 function localListen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
-    listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction, sendToLog,
-        amorphicOptions, downloads, PersistObjectTemplate, applicationConfig, nonObjTemplatelogLevel, applicationSource, applicationSourceMap, applicationPersistorProps,
-        sessions, hostName, controllers, appContext);
+    listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction,
+        amorphicOptions, applicationConfig, applicationSource, applicationSourceMap, applicationPersistorProps,
+        appContext);
 }
 
 module.exports = {

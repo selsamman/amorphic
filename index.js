@@ -73,7 +73,8 @@ function localGetTemplates(objectTemplate, appPath, templates, config, path, sou
 
 function localListen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
     listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction,
-        amorphicOptions, applicationConfig, applicationSource, applicationSourceMap, applicationPersistorProps, appContext);
+        amorphicOptions, applicationConfig, applicationSource, applicationSourceMap, applicationPersistorProps,
+        appContext);
 }
 
 module.exports = {

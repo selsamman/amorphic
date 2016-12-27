@@ -29,12 +29,7 @@ var getTemplates = require('./lib/getTemplates').getTemplates;
 var listen = require('./lib/listen').listen;
 
 // Module Global Variables
-var amorphicOptions;
-var appContext = {};
-var applicationConfig = {};
-var applicationPersistorProps = {};
-var applicationSource = {};
-var applicationSourceMap = {};
+var AmorphicContext = require('./lib/AmorphicContext');
 
 Semotus.maxCallTime = 60 * 1000; // Max time for call interlock
 
@@ -45,23 +40,7 @@ Semotus.maxCallTime = 60 * 1000; // Max time for call interlock
  * @returns {unknown} unknown
  */
 function reset() {
-    if (appContext.connection) {
-        appContext.connection.close();
-    }
-
-    appContext.connection = undefined;
-    applicationConfig = {};
-    applicationSource = {};
-    applicationSourceMap = {};
-    applicationPersistorProps = {};
-
-    amorphicOptions = {
-        conflictMode: 'soft',       // Whether to abort changes based on "old value" matching.  Values: 'soft', 'hard'
-        compressSession: false,     // Whether to compress data going to REDIS
-        compressXHR: true,          // Whether to compress XHR responses
-        sourceMode: 'debug'         // Whether to minify templates.  Values: 'debug', 'prod' (minify)
-    };
-
+    AmorphicContext.reset();
     return Q(true);
 }
 
@@ -69,13 +48,12 @@ reset();
 
 function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
     return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
-  amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
+        AmorphicContext.amorphicOptions, AmorphicContext.applicationSource, AmorphicContext.applicationSourceMap,
+        AmorphicContext.applicationPersistorProps);
 }
 
 function localListen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
-    listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction,
-        amorphicOptions, applicationConfig, applicationSource, applicationSourceMap, applicationPersistorProps,
-        appContext);
+    listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction);
 }
 
 module.exports = {

@@ -46,18 +46,8 @@ function reset() {
 
 reset();
 
-function localGetTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
-    return getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo,
-        AmorphicContext.amorphicOptions, AmorphicContext.applicationSource, AmorphicContext.applicationSourceMap,
-        AmorphicContext.applicationPersistorProps);
-}
-
-function localListen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction) {
-    listen(appDirectory, sessionStore, preSessionInject, postSessionInject, sendToLogFunction);
-}
-
 module.exports = {
-    getTemplates: localGetTemplates,
-    listen: localListen,
+    getTemplates: getTemplates,
+    listen: listen,
     reset: reset
 };

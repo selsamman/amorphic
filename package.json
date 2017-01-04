@@ -38,7 +38,7 @@
     "lint": "eslint .",
     "test": "istanbul cover _mocha -- test/* -R spec",
     "test:trace": "mocha test/*",
-    "test-debug": "mocha --debug-brk test/*",
+    "test:debug": "mocha --debug-brk test/*",
     "test:config": "mocha test/config",
     "test:example": "mocha test/example",
     "test-d": "istanbul cover _mocha -- test/daemon/* -R spec",

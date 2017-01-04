@@ -22,7 +22,7 @@ module.exports.person = function (objectTemplate, getTemplate)
 			getFullName: function() {
 				return this.firstName + (this.middleName ? " " + this.middleName  + " ": " ") + this.lastName;
 			},
-            save: function () {
+			saveModel: function () {
                return this.persistSave();
             }
 

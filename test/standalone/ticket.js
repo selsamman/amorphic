@@ -11,13 +11,8 @@ var collections = JSON.parse(fs.readFileSync(__dirname + "/model/schema.json"));
 PersistObjectTemplate.setSchema(collections);
 PersistObjectTemplate.setDB({}, PersistObjectTemplate.DB_Mongo);
 
-var amorphicOptions = {};
-var applicationSource = {};
-var applicationSourceMap = {};
-var applicationPersistorProps = {};
 var requires = amorphic.getTemplates(PersistObjectTemplate, __dirname + '/model/',
-	['ticket.js','person.js','person.js','project.js'], {appConfig: {}},
-    null, null, null, amorphicOptions, applicationSource, applicationSourceMap, applicationPersistorProps);
+	['ticket.js','person.js','person.js','project.js'], {appConfig: {}}, null, null, null);
 
 var Ticket = requires.ticket.Ticket;
 var TicketItem = requires.ticket.TicketItem;
@@ -132,16 +127,16 @@ describe("Ticket System Test Suite", function () {
 
         // Save stuff and make sure keys are good
 
-        sam.save().then( function () {
+        sam.saveModel().then( function () {
             expect(sam._id.length).to.equal(24);
             return karen.persistSave();
         }.bind(this)).then( function () {
             expect(karen._id.length).to.equal(24);
-            return projectSemotus.save();
+            return projectSemotus.saveModel();
         }.bind(this)).then(function() {
             expect(projectSemotus._id.length).to.equal(24);
             semotus_id = projectSemotus._id;
-            return projectTravel.save();
+            return projectTravel.saveModel();
         }.bind(this)).then( function (id) {
             expect(projectTravel._id.length).to.equal(24);
             done();
@@ -183,7 +178,7 @@ describe("Ticket System Test Suite", function () {
             projectSemotus.tickets[ix].remove();
         for (var ix = 0; ix < count; ++ix)
             projectSemotus.addTicket("Ticket", ix + 1);
-        projectSemotus.save().then(function(){done()});
+        projectSemotus.saveModel().then(function(){done()});
     });
 
     it ("can read back " + batchSize + " tickets at a time", function (done)

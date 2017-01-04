@@ -65,7 +65,7 @@ module.exports.ticket = function (objectTemplate, getTemplate)
                         this.project.splice(ix,1)
 		}},
 
-		save: {on: "server", body: function ()
+		saveModel: {on: "server", body: function ()
 		{
             if (!this.title)
                 throw "Need a title";

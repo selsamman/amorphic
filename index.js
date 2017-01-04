@@ -21,7 +21,7 @@
 "use strict";
 
 // Node Modules
-var Q = require('q');
+var Bluebird = require('bluebird');
 var Semotus = require('semotus');
 
 // Local Modules
@@ -41,7 +41,7 @@ Semotus.maxCallTime = 60 * 1000; // Max time for call interlock
  */
 function reset() {
     AmorphicContext.reset();
-    return Q(true);
+    return Bluebird.resolve(true);
 }
 
 reset();

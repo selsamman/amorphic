@@ -24,7 +24,7 @@ module.exports.project = function (objectTemplate, getTemplate)
 			this.person = person;
 			this.created = new Date();
 		},
-		save: function() {
+		saveModel: function() {
 		}
 
 	});
@@ -91,7 +91,7 @@ module.exports.project = function (objectTemplate, getTemplate)
 			return null;
 		},
 
-		save: function (authenticatedPerson)
+		saveModel: function (authenticatedPerson)
 		{
             this.creator = this.getSecurityContext().principal;
             this.created = new Date();

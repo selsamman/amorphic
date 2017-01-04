@@ -1,6 +1,5 @@
 module.exports.model = function (objectTemplate, getTemplate)
 {
-    var Controller = getTemplate('./controller.js').Controller;
     var Customer = objectTemplate.create("Customer", {
         init: function (first, middle, last) {
             this.firstName = first;

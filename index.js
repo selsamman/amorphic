@@ -31,20 +31,22 @@ var listen = require('./lib/listen').listen;
 // Module Global Variables
 var AmorphicContext = require('./lib/AmorphicContext');
 
+// TODO: This should be a default set in Semotus
 Semotus.maxCallTime = 60 * 1000; // Max time for call interlock
 
 // TODO: Remove this - this is just to set the default config options
+// TODO: At a minimum change our tests to not expect a promise back and we can eliminate this function.
 /**
- * Purpose unknown
+ * This function exists to reset AmorphicContext to the default options.
+ *  It is only used by our tests.  Once our tests have been updated to properly stub
+ *  AmorphicContext out this should be removed.
  *
- * @returns {unknown} unknown
+ * @returns {Promise<Boolean>} A promise that resolves to true.
  */
 function reset() {
     AmorphicContext.reset();
     return Bluebird.resolve(true);
 }
-
-reset();
 
 module.exports = {
     getTemplates: getTemplates,

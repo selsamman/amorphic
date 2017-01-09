@@ -3,8 +3,8 @@ var expect = require('chai').expect;
 var mockfs = require('mock-fs');
 
 
-var configBuilder = require('../../configBuilder').ConfigBuilder;
-var configApi = require('../../configBuilder').ConfigAPI;
+var configBuilder = require('../../lib/util/configBuilder').ConfigBuilder;
+var configApi = require('../../lib/util/configBuilder').ConfigAPI;
 
 describe('configBuilder', function() {
 
@@ -18,7 +18,7 @@ describe('configBuilder', function() {
     });
 
     describe('empty application list', function(){
-    
+
         var myCfg;
         beforeEach(function(){
             myCfg = new configApi();
@@ -54,7 +54,7 @@ describe('configBuilder', function() {
             mockfs.restore();
         });
     });
-    
+
     describe('single application not in the list', function(){
         var myCfg;
         beforeEach(function(){
@@ -65,7 +65,7 @@ describe('configBuilder', function() {
         });
 
         it('should return the "root" config and all available configs', function(){
-        
+
             var builder = new configBuilder(myCfg);
             mockfs({
                 '/my/root': {
@@ -88,7 +88,7 @@ describe('configBuilder', function() {
             expect(configStore['root']).to.deep.equal(myCfg);
 
             expect(configStore['app1']).to.not.be.null;
-            
+
         });
 
         afterEach(function(){
@@ -123,7 +123,7 @@ describe('configBuilder', function() {
                 }
             });
             var configStore = builder.build('/my/root');
-            
+
             var props = Object.getOwnPropertyNames(configStore);
             expect(props.length).to.equal(4);
             expect(props[0]).to.equal('root');
@@ -140,7 +140,7 @@ describe('configBuilder', function() {
             expect(configStore['app2'].get('testkey')).to.equal('rootvalue');
 
             expect(configStore['app3']).to.not.be.null;
-            
+
         });
 
         it('should return the app config with the app level override, including all available', function(){
@@ -164,17 +164,17 @@ describe('configBuilder', function() {
                 }
             });
             var configStore = builder.build('/my/root');
-            
+
             var props = Object.getOwnPropertyNames(configStore);
             expect(props.length).to.equal(4);
             expect(props[0]).to.equal('root');
             expect(props[1]).to.equal('app1');
             expect(props[2]).to.equal('app2');
             expect(props[3]).to.equal('app3');
-            
+
             expect(configStore['root']).to.not.be.null;
             expect(configStore['app1']).to.not.be.null;
-            
+
             //without overrides it will be same as root config
             expect(configStore['app2']).to.not.be.null;
             expect(configStore['app2'].get('testkey')).to.equal('dir_app2_value');
@@ -203,7 +203,7 @@ describe('configBuilder', function() {
                 }
             });
             var configStore = builder.build('/my/root');
-            
+
             var props = Object.getOwnPropertyNames(configStore);
             expect(props.length).to.equal(4);
             expect(props[0]).to.equal('root');
@@ -274,7 +274,7 @@ describe('configBuilder', function() {
                 }
             });
             var configStore = builder.build('/my/root');
-            
+
             var props = Object.getOwnPropertyNames(configStore);
             expect(props.length).to.equal(6);
             expect(props[0]).to.equal('root');

@@ -11,27 +11,20 @@
     "formidable": "1.x",
     "mongodb-bluebird": "x",
     "nconf": "0.x",
-    "node-mandrill": "1.x",
     "persistor": "git://github.com/nikmash/persistor.git#refactor",
     "semotus": "git://github.com/nikmash/semotus.git",
     "supertype": "git://github.com/nikmash/supertype.git",
-    "uglify-js": "x"
+    "uglify-js": "2.7.5"
   },
   "devDependencies": {
     "axios": "^0.15.2",
     "chai": "3.x",
     "eslint": "3.7.x",
-    "form-data": "^2.1.2",
-    "knex": "x",
     "istanbul": "0.4.5",
     "mocha": "^3.1.2",
     "mock-fs": "3.6.x",
-    "pg": "x",
-    "q": "1.x",
     "request": "x",
-    "restify": "2.x",
     "sinon": "^1.17.6",
-    "underscore": "1.x",
     "xmlhttprequest-cookie": "x"
   },
   "scripts": {

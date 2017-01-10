@@ -22,7 +22,7 @@
     "eslint": "3.7.x",
     "istanbul": "0.4.5",
     "mocha": "^3.1.2",
-    "mock-fs": "3.6.x",
+    "mock-fs": "3.12.1",
     "request": "x",
     "sinon": "^1.17.6",
     "xmlhttprequest-cookie": "x"

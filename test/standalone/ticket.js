@@ -12,7 +12,7 @@ PersistObjectTemplate.setSchema(collections);
 PersistObjectTemplate.setDB({}, PersistObjectTemplate.DB_Mongo);
 
 var requires = amorphic.getTemplates(PersistObjectTemplate, __dirname + '/model/',
-	['ticket.js', 'person.js', 'person.js', 'project.js'], {appConfig: {}}, null, null, null);
+	['ticket.js', 'person.js', 'person.js', 'project.js'], {appConfig: {}}, null);
 
 var TicketItemComment =  requires.ticket.TicketItemComment;
 var TicketItemApproval =  requires.ticket.TicketItemApproval;

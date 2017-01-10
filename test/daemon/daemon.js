@@ -38,12 +38,13 @@ describe('Run amorphic as a deamon', function() {
 
     it('can download a file', function() {
         return new Promise(function(resolve, reject) {
-                try {
-                    resolve(fs.readFileSync(__dirname + '/./apps/daemon/js/DownloadTest.txt'));
-                } catch(e) {
-                    reject(e);
-                }
-            })
+            try {
+                resolve(fs.readFileSync(__dirname + '/./apps/daemon/js/DownloadTest.txt'));
+            }
+            catch (e) {
+                reject(e);
+            }
+        })
             .then(function(fileData) {
                 return axios.get('http://localhost:3001/amorphic/xhr?path=daemon&file=DownloadTest.txt')
                     .then(function(response) {

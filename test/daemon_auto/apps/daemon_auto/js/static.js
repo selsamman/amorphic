@@ -1,9 +1,9 @@
 module.exports.static = function (objectTemplate, uses) {
 
     var map = {
-      key: 'value'
-    }
+        key: 'value'
+    };
     return {
-      map: map
-    }
-}
+        map: map
+    };
+};

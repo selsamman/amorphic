@@ -7,10 +7,10 @@ module.exports.controller = function (objectTemplate, uses) {
     }
 
     var localObjectTemplate = objectTemplate;
-    var BaseController = uses('./baseController.js', "BaseController");
+    var BaseController = uses('./baseController.js', 'BaseController');
     var MapFromStatic = uses('./static.js', 'map');
 
-    var Controller = BaseController.extend("Controller", {
+    var Controller = BaseController.extend('Controller', {
         prop: {type: Boolean, value: false},
         propWithValuesAndDescriptions: {type: String,
             values: ['value'],
@@ -20,7 +20,7 @@ module.exports.controller = function (objectTemplate, uses) {
         },
         virtualProp: {type: String, isVirtual: true,
             get: function() {
-                return "I am virtual";
+                return 'I am virtual';
             }
         },
 
@@ -29,7 +29,7 @@ module.exports.controller = function (objectTemplate, uses) {
             daemonAutoController = this;
         },
 
-        processPost: {on: "server", body: function(uri, body) {
+        processPost: {on: 'server', body: function(uri, body) {
             this.posted = body.myfield;
             return {status: 303, headers: {location: uri.replace(/amorphic.*/, '')}};
         }},
@@ -39,7 +39,8 @@ module.exports.controller = function (objectTemplate, uses) {
             var file = __dirname + '/./' + path;
             try {
                 var stat = fs.statSync(file);
-            } catch(e) {
+            }
+            catch (e) {
                 response.writeHead(404, {'Content-Type': 'text/plain'});
                 response.end('Not found');
                 return;

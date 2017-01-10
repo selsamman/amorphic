@@ -1,10 +1,6 @@
 module.exports.controller = function (objectTemplate, uses) {
-    var fs;
-    var url;
-    if (typeof(require) !== 'undefined') {
-        fs = require('fs');
-        url = require('url');
-    }
+    var fs = require('fs');
+    var url = require('url');
 
     var localObjectTemplate = objectTemplate;
     var BaseController = uses('./baseController.js', 'BaseController');
@@ -61,4 +57,8 @@ module.exports.controller = function (objectTemplate, uses) {
             return localObjectTemplate;
         }
     });
+
+    return {
+        Controller: Controller
+    };
 };

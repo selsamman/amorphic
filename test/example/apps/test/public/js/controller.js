@@ -1,6 +1,7 @@
 module.exports.controller = function (objectTemplate, getTemplate) {
     objectTemplate.debugInfo = 'io;api';
     objectTemplate.objectMap = {};
+    var Bluebird = require('bluebird');
 
     var Customer = getTemplate('model.js').Customer;
     var Account = getTemplate('model.js').Account;
@@ -101,7 +102,7 @@ module.exports.controller = function (objectTemplate, getTemplate) {
             for (var templateName in objectsChanged) {
                 this.preServerCallObjects[templateName] = true;
             }
-            return Q()
+            return Bluebird.resolve()
                 .then(this.sam ? this.sam.refresh.bind(this.sam, null) : true)
                 .then(this.karen ? this.karen.refresh.bind(this.karen, null) : true)
                 .then(this.ashling ? this.ashling.refresh.bind(this.ashling, null) : true)
@@ -127,9 +128,6 @@ module.exports.controller = function (objectTemplate, getTemplate) {
                 this.updatedCount = _.toArray(txn.savedObjects).length;
             }.bind(this);
             return objectTemplate.end()
-                .then(function () {
-                    PostCallAssert();
-                });
         },
         validateServerCall: function () {
             return this.canValidateServerCall;

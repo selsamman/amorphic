@@ -1,10 +1,6 @@
-module.exports.controller = function (objectTemplate, getTemplate) {
-    var fs;
-    var url;
-    if (typeof(require) !== 'undefined') {
-        fs = require('fs');
-        url = require('url');
-    }
+module.exports.controller = function (objectTemplate) {
+    var fs = require('fs');
+    var url = require('url');
 
     var localObjectTemplate = objectTemplate;
     var Controller = objectTemplate.create('Controller', {

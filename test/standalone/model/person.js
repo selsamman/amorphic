@@ -11,7 +11,6 @@ module.exports.person = function (objectTemplate) {
         email: {toServer: false, type: String, value: '', length: 200},
 
 		// Relationships
-
         init: function (email, first, middle, last) {
             this.firstName = first || '';
             this.middleName = middle || '';
@@ -30,7 +29,6 @@ module.exports.person = function (objectTemplate) {
     return {
         Person: Person
     };
-
 };
 
 module.exports.person_mixins = function (_objectTemplate, requires) {

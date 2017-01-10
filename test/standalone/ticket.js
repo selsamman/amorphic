@@ -82,7 +82,7 @@ describe('Ticket System Test Suite', function () {
 
     // Persist them (everything hangs off people so the whole graph gets added
 
-    it('can create stuff', function (done)    {
+    it('can create stuff', function (done) {
         // People
         var sam = new Person('sam@elsamman.com', 'Sam', 'M', 'Elsamman');
         var karen = new Person('karen@elsamman.com', 'Karen', 'M', 'Burke');
@@ -197,7 +197,7 @@ describe('Ticket System Test Suite', function () {
         for (var ix = 0; ix < projectSemotus.tickets.length; ++ix) {
             projectSemotus.tickets[ix].remove();
         }
-        for (var iy = 0; iy < count; ++iy)            {
+        for (var iy = 0; iy < count; ++iy) {
             projectSemotus.addTicket('Ticket', iy + 1);
         }
         projectSemotus.saveModel().then(function() {

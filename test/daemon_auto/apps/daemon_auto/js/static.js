@@ -1,9 +1,11 @@
-module.exports.static = function (objectTemplate, uses) {
+'use strict';
 
+module.exports.static = function () {
     var map = {
-      key: 'value'
-    }
+        key: 'value'
+    };
+
     return {
-      map: map
-    }
-}
+        map: map
+    };
+};

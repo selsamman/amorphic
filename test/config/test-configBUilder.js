@@ -1,41 +1,41 @@
-var chai = require('chai');
+'use strict';
+
 var expect = require('chai').expect;
 var mockfs = require('mock-fs');
 
-
-var configBuilder = require('../../lib/utils/configBuilder').ConfigBuilder;
-var configApi = require('../../lib/utils/configBuilder').ConfigAPI;
+var ConfigBuilder = require('../../lib/utils/configBuilder').ConfigBuilder;
+var ConfigApi = require('../../lib/utils/configBuilder').ConfigAPI;
 
 describe('configBuilder', function() {
 
-    describe('validation', function(){
+    describe('validation', function() {
         it('should throw if null or "" path is used as root', function() {
-            var builder = new configBuilder();
+            var builder = new ConfigBuilder();
             expect(builder.build.bind(builder, undefined)).to.throw('Valid root path expected. rootDir[undefined]');
             expect(builder.build.bind(builder, null)).to.throw('Valid root path expected. rootDir[null]');
             expect(builder.build.bind(builder, '')).to.throw('Valid root path expected. rootDir[]');
         });
     });
 
-    describe('empty application list', function(){
+    describe('empty application list', function() {
 
         var myCfg;
-        beforeEach(function(){
-            myCfg = new configApi();
+        beforeEach(function() {
+            myCfg = new ConfigApi();
             // seed the file api before mocking
             myCfg.loadFile('foo', 'bar.json');
 
         });
 
-        it('should return the global "root" config and all available configs', function(){
-            var builder = new configBuilder(myCfg);
+        it('should return the global "root" config and all available configs', function() {
+            var builder = new ConfigBuilder(myCfg);
             mockfs({
                 '/my/root': {
                     'config.json': JSON.stringify({
                         'applications': {
-                            'customer': 'apps/customer',
+                            'customer': 'apps/customer'
                         },
-                        'application': '',
+                        'application': ''
                     })
                 }
             });
@@ -50,30 +50,30 @@ describe('configBuilder', function() {
             expect(configStore['root']).to.deep.equal(myCfg);
         });
 
-        afterEach(function(){
+        afterEach(function() {
             mockfs.restore();
         });
     });
 
-    describe('single application not in the list', function(){
+    describe('single application not in the list', function() {
         var myCfg;
-        beforeEach(function(){
-            myCfg = new configApi();
+        beforeEach(function() {
+            myCfg = new ConfigApi();
             // seed the file api before mocking - require fails with mock
             myCfg.loadFile('foo', 'bar.json');
 
         });
 
-        it('should return the "root" config and all available configs', function(){
+        it('should return the "root" config and all available configs', function() {
 
-            var builder = new configBuilder(myCfg);
+            var builder = new ConfigBuilder(myCfg);
             mockfs({
                 '/my/root': {
                     'config.json': JSON.stringify({
                         'applications': {
-                            'app1': 'dir/app1',
+                            'app1': 'dir/app1'
                         },
-                        'application': 'app2',
+                        'application': 'app2'
                     })
                 }
             });
@@ -91,24 +91,24 @@ describe('configBuilder', function() {
 
         });
 
-        afterEach(function(){
+        afterEach(function() {
             mockfs.restore();
         });
 
     });
 
-    describe('single application in the list', function(){
+    describe('single application in the list', function() {
 
         var myCfg;
-        beforeEach(function(){
-            myCfg = new configApi();
+        beforeEach(function() {
+            myCfg = new ConfigApi();
             // seed the file api before mocking - require fails with mock
             myCfg.loadFile('foo', 'bar.json');
 
         });
 
-        it('should return "root" and all available configs including startup app', function(){
-            var builder = new configBuilder(myCfg);
+        it('should return "root" and all available configs including startup app', function() {
+            var builder = new ConfigBuilder(myCfg);
             mockfs({
                 '/my/root': {
                     'config.json': JSON.stringify({
@@ -143,8 +143,8 @@ describe('configBuilder', function() {
 
         });
 
-        it('should return the app config with the app level override, including all available', function(){
-            var builder = new configBuilder(myCfg);
+        it('should return the app config with the app level override, including all available', function() {
+            var builder = new ConfigBuilder(myCfg);
             mockfs({
                 '/my/root': {
                     'config.json': JSON.stringify({
@@ -182,8 +182,8 @@ describe('configBuilder', function() {
             expect(configStore['app3']).to.not.be.null;
         });
 
-       it('should return the app config with the common level override', function(){
-            var builder = new configBuilder(myCfg);
+        it('should return the app config with the common level override', function() {
+            var builder = new ConfigBuilder(myCfg);
             mockfs({
                 '/my/root': {
                     'config.json': JSON.stringify({
@@ -216,25 +216,25 @@ describe('configBuilder', function() {
 
         });
 
-        afterEach(function(){
+        afterEach(function() {
             mockfs.restore();
         });
     });
 
 
 
-    describe('multiple applications in the list', function(){
+    describe('multiple applications in the list', function() {
 
         var myCfg;
-        beforeEach(function(){
-            myCfg = new configApi();
+        beforeEach(function() {
+            myCfg = new ConfigApi();
             // seed the file api before mocking - require fails with mock
             myCfg.loadFile('foo', 'bar.json');
 
         });
 
-        it('should return "root" and all of avaible configured apps, not just what is starting up', function(){
-            var builder = new configBuilder(myCfg);
+        it('should return "root" and all of avaible configured apps, not just what is starting up', function() {
+            var builder = new ConfigBuilder(myCfg);
             mockfs({
                 '/my/root': {
                     'config.json': JSON.stringify({
@@ -309,7 +309,7 @@ describe('configBuilder', function() {
         });
 
 
-        afterEach(function(){
+        afterEach(function() {
             mockfs.restore();
         });
     });

@@ -1,13 +1,9 @@
-module.exports.controller = function (objectTemplate, getTemplate) {
-    var fs;
-    var url;
-    if (typeof(require) !== 'undefined') {
-        fs = require('fs');
-        url = require('url');
-    }
+module.exports.controller = function (objectTemplate) {
+    var fs = require('fs');
+    var url = require('url');
 
     var localObjectTemplate = objectTemplate;
-    var Controller = objectTemplate.create("Controller", {
+    var Controller = objectTemplate.create('Controller', {
         prop: {type: Boolean, value: false},
         propWithValuesAndDescriptions: {type: String,
             values: ['value'],
@@ -17,7 +13,7 @@ module.exports.controller = function (objectTemplate, getTemplate) {
         },
         virtualProp: {type: String, isVirtual: true,
             get: function() {
-                return "I am virtual";
+                return 'I am virtual';
             }
         },
 
@@ -26,7 +22,7 @@ module.exports.controller = function (objectTemplate, getTemplate) {
             daemonController = this;
         },
 
-        processPost: {on: "server", body: function(uri, body) {
+        processPost: {on: 'server', body: function(uri, body) {
             this.posted = body.myfield;
             return {status: 303, headers: {location: uri.replace(/amorphic.*/, '')}};
         }},
@@ -40,7 +36,8 @@ module.exports.controller = function (objectTemplate, getTemplate) {
             var file = __dirname + '/./' + path;
             try {
                 var stat = fs.statSync(file);
-            } catch(e) {
+            }
+            catch (e) {
                 response.writeHead(404, {'Content-Type': 'text/plain'});
                 response.end('Not found');
                 return;

@@ -21,15 +21,15 @@
 "use strict";
 
 // Node Modules
-var Bluebird = require('bluebird');
-var Semotus = require('semotus');
+let Bluebird = require('bluebird');
+let Semotus = require('semotus');
 
 // Local Modules
-var getTemplates = require('./lib/getTemplates').getTemplates;
-var listen = require('./lib/listen').listen;
+let getTemplates = require('./lib/getTemplates').getTemplates;
+let listen = require('./lib/listen').listen;
 
 // Module Global Variables
-var AmorphicContext = require('./lib/AmorphicContext');
+let AmorphicContext = require('./lib/AmorphicContext');
 
 // TODO: This should be a default set in Semotus
 Semotus.maxCallTime = 60 * 1000; // Max time for call interlock

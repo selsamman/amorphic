@@ -1,14 +1,12 @@
 'use strict';
 let assert = require('chai').assert;
-let Promise = require('bluebird');
+let Bluebird = require('bluebird');
 let amorphic = require('../../index.js');
-let sinon = require('sinon');
 let axios = require('axios');
 let fs = require('fs');
 let path = require('path');
 
 describe('Run amorphic as a deamon', function() {
-    let server;
     before(function(done) {
         amorphic.listen(__dirname);
         done();
@@ -37,13 +35,14 @@ describe('Run amorphic as a deamon', function() {
     });
 
     it('can download a file', function() {
-        return new Promise(function(resolve, reject) {
-                try {
-                    resolve(fs.readFileSync(__dirname + '/./apps/daemon/js/DownloadTest.txt'));
-                } catch(e) {
-                    reject(e);
-                }
-            })
+        return new Bluebird(function(resolve, reject) {
+            try {
+                resolve(fs.readFileSync(__dirname + '/./apps/daemon/js/DownloadTest.txt'));
+            }
+            catch (e) {
+                reject(e);
+            }
+        })
             .then(function(fileData) {
                 return axios.get('http://localhost:3001/amorphic/xhr?path=daemon&file=DownloadTest.txt')
                     .then(function(response) {

@@ -11,7 +11,7 @@
     "formidable": "1.x",
     "mongodb-bluebird": "x",
     "nconf": "0.x",
-    "persistor": "git://github.com/nikmash/persistor.git#refactor",
+    "persistor": "git://github.com/nikmash/persistor.git",
     "semotus": "git://github.com/nikmash/semotus.git",
     "supertype": "git://github.com/nikmash/supertype.git",
     "uglify-js": "2.7.5"

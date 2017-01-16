@@ -76,14 +76,14 @@ function reset (soft) {
         sourceMode: 'debug'         // Whether to minify templates.  Values: 'debug', 'prod' (minify)
     }
     return soft ? Q(true) : Q()
-        .then(function () {
-            return deathWatch.reduce(function(p, task) {
-                return p.then(task)
-            }, Q(true));
-        }).then(function () {
-            console.log("All done");
-            return Q.delay(1000);
-        });
+            .then(function () {
+                return deathWatch.reduce(function(p, task) {
+                    return p.then(task)
+                }, Q(true));
+            }).then(function () {
+                console.log("All done");
+                return Q.delay(1000);
+            });
 }
 reset(true);
 function establishApplication (appPath, path, cpath, initObjectTemplate, sessionExpiration, objectCacheExpiration, sessionStore, loggerCall, appVersion, appConfig, logLevel) {
@@ -253,39 +253,39 @@ function establishServerSession (req, path, newPage, reset, newControllerId)
     controller.__sessionExpiration = sessionExpiration;
     var objectTemplate = controller.__template__.objectTemplate;
     var ret =
-    {
-        objectTemplate: controller.__template__.objectTemplate,
-        getMessage: function () {
-            var message = objectTemplate.getMessage(session.id, true);
-            message.newSession = true;
-            message.rootId = controller.__id__;
-            message.startingSequence = objectTemplate.maxClientSequence + 100000;
-            message.sessionExpiration = sessionExpiration;
-            return message;
-        },
-        getServerConnectString: function () {
-            var message = this.getMessage();
-            message.ver = appVersion;
-            return JSON.stringify({
-                url: "/amorphic/xhr?path=" + path,
-                message: message
-            })
-        },
-        getServerConfigString: function () {return getServerConfigString(config)},
+        {
+            objectTemplate: controller.__template__.objectTemplate,
+            getMessage: function () {
+                var message = objectTemplate.getMessage(session.id, true);
+                message.newSession = true;
+                message.rootId = controller.__id__;
+                message.startingSequence = objectTemplate.maxClientSequence + 100000;
+                message.sessionExpiration = sessionExpiration;
+                return message;
+            },
+            getServerConnectString: function () {
+                var message = this.getMessage();
+                message.ver = appVersion;
+                return JSON.stringify({
+                    url: "/amorphic/xhr?path=" + path,
+                    message: message
+                })
+            },
+            getServerConfigString: function () {return getServerConfigString(config)},
 
-        save: function (path, session, req) {
-            saveSession(path, session, controller, req);
-        },
-        restoreSession: function () {
-            return restoreSession(path, session, controller.__template__);
-        },
-        newSession: newSession,
-        appVersion: appVersion,
-        getPersistorProps: function () {
-            return objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
-        }
+            save: function (path, session, req) {
+                saveSession(path, session, controller, req);
+            },
+            restoreSession: function () {
+                return restoreSession(path, session, controller.__template__);
+            },
+            newSession: newSession,
+            appVersion: appVersion,
+            getPersistorProps: function () {
+                return objectTemplate.getPersistorProps ? objectTemplate.getPersistorProps() : {};
+            }
 
-    };
+        };
 
     if (newPage)
         saveSession(path, session, controller, req);
@@ -519,7 +519,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
     // Process each template passed in (except for unit tests there generally is just the controller)
     for (var ix = 0; ix < templates.length; ++ix)
-        getTemplate(templates[ix]);
+        getTemplate(templates[ix], undefined, config.appConfig.templateMode == "auto");
 
     // Extended classes can't be processed until now when we know we have all the base classes defined
     // So we do the extends for them now after recording all info in the first pass
@@ -658,8 +658,25 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             if (!objectTemplate.__dictionary__[returnVariable]) {
                 if (!requires[prop])
                     requires[prop] = {};
-                requires[prop][returnVariable] = initializerReturnValues[returnVariable];
-                objectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
+                // We can't just replace statics because unlike formal templaes (such as created by createStatic)
+                // legacy statics will have already set properties that may refer to templates that had proxies
+                // rather than the final instantiation of them
+                if (requires[prop][returnVariable]) {
+                    var requiresProps = Object.getOwnPropertyNames(requires[prop][returnVariable]);
+                    for (var rx = 0; rx < requiresProps.length; ++rx) {
+                        requires[prop][returnVariable][requiresProps[rx]] = initializerReturnValues[returnVariable][requiresProps[rx]];
+                    };
+                } else {
+                    requires[prop][returnVariable] = initializerReturnValues[returnVariable];
+                }
+                if (objectTemplate.__statics__[returnVariable]) {
+                    var staticProps = Object.getOwnPropertyNames(objectTemplate.__statics__[returnVariable]);
+                    for (var sx = 0; sx < staticProps.length; ++sx) {
+                        objectTemplate.__statics__[returnVariable][staticProps[sx]] = initializerReturnValues[returnVariable][staticProps[sx]]
+                    };
+                } else {
+                    objectTemplate.__statics__[returnVariable] = initializerReturnValues[returnVariable];
+                }
             }
     }
 

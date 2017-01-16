@@ -1,3 +1,6 @@
+## 1.5.6
+* Include supertype 1.6
+* Copy over static members
 ## 1.5.5
 * Make parameters consistent for both processPost cases
 * Including 1.5.0 of semotus

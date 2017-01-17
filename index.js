@@ -519,7 +519,7 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
 
     // Process each template passed in (except for unit tests there generally is just the controller)
     for (var ix = 0; ix < templates.length; ++ix)
-        getTemplate(templates[ix], undefined, config.appConfig.templateMode == "auto");
+        getTemplate(templates[ix], undefined, config.appConfig && config.appConfig.templateMode == "auto");
 
     // Extended classes can't be processed until now when we know we have all the base classes defined
     // So we do the extends for them now after recording all info in the first pass

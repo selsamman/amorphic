@@ -1,9 +1,0 @@
-{
-    "port": 3001,
-    "sessionSeconds" : 3600,
-    "objectCacheSeconds" : 600,
-    "sessionSecret" : "Ey0veeljPcLsHitdxCG2",
-	"applications" : {"helloworld": "apps/helloworld", "batch":"apps/batch", "tests":"apps/tests", "drpatient":"apps/drpatient", "restify":"apps/restify"},
-	"application"  : "helloworld;batch;tests;drpatient;restful",
-    "sourceMode": "debug"
-}

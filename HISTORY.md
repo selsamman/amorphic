@@ -1,4 +1,4 @@
-## 1.5.8
+## 1.5.9
 * Fixed order of statics processing
 ## 1.5.7
 * Bump for supertype

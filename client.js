@@ -610,7 +610,6 @@ amorphic = // Needs to be global to make mocha tests work
                             mixinGraph[childMixinTemplateName] = {};  // Make sure we don't process twice
                         }
                         // Now we can safely do the mixin
-                        console.log("Mixing in " + rootMixinTemplateName + " " + childMixinTemplateName);
                         RemoteObjectTemplate.mixin(RemoteObjectTemplate.__dictionary__[rootMixinTemplateName],
                             RemoteObjectTemplate.__dictionary__[childMixinTemplateName]);
                     }

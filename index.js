@@ -689,7 +689,6 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                     mixinGraph[childMixinTemplateName] = {};  // Make sure we don't process twice
                 }
                 // Now we can safely do the mixin
-                console.log("Mixing in " + rootMixinTemplateName + " " + childMixinTemplateName);
                 objectTemplate.mixin(objectTemplate.__dictionary__[rootMixinTemplateName], objectTemplate.__dictionary__[childMixinTemplateName]);
             }
         }

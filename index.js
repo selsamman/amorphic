@@ -306,6 +306,7 @@ function getServerConfigString(config) {
 
 function getTemplates(objectTemplate, appPath, templates, config, path, sourceOnly, detailedInfo) {
 
+    var mixinGraph = {};
     var requires = {};
     var ref = {};
     var mixins = [];
@@ -441,8 +442,13 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
                     }
                     var originalMixin = template.mixin;
                     template.mixin = function () {
-                        if (currentContext.pass == 2)
-                            originalMixin.apply(template, arguments);
+                        if (currentContext.pass == 2) {
+                            if (arguments[0] && arguments[0].isObjectTemplate) {
+                                scheduleDeferredMixinProcessing(template,arguments[0])
+                            } else {
+                                originalMixin.apply(template, arguments);
+                            }
+                        }
                     }
                     //console.log("Creating " + template.__name__ + " for " + currentContext.moduleName);
                     addTemplateToRequires(currentContext.moduleName, template);
@@ -553,6 +559,8 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
             }
         }
 
+    processDeferredMixins();
+
     // Add the sources to either a structure to be uglified or to an object for including one at a time
     for (var prop in applicationSourceCandidate) {
         var templateNeededOnClient = false;
@@ -652,6 +660,40 @@ function getTemplates(objectTemplate, appPath, templates, config, path, sourceOn
     }
 
     return requires;
+
+    // Record a map of the template and the templates being mixed in
+    function scheduleDeferredMixinProcessing(template, mixinTemplate) {
+        mixinGraph[template.__name__] =  mixinGraph[template.__name__] || {};
+        mixinGraph[template.__name__][mixinTemplate.__name__] = true;
+    }
+
+    function processDeferredMixins() {
+
+        // Go through each template that needs a mixin
+        for (var rootMixin in mixinGraph) {
+            processRootMixin(mixinGraph[rootMixin], rootMixin);
+        }
+
+        function processRootMixin(rootMixin, rootMixinTemplateName) {
+
+            // Go through each of the templates that needs to be mixed in
+            for (var childMixin in rootMixin) {
+                processChildMixin(childMixin);
+            }
+
+            function processChildMixin(childMixinTemplateName) {
+
+                // that template that needs to be mixed in also needs mixins, process them first
+                if (mixinGraph[childMixinTemplateName]) {
+                    processRootMixin(mixinGraph[childMixinTemplateName], childMixinTemplateName);
+                    mixinGraph[childMixinTemplateName] = {};  // Make sure we don't process twice
+                }
+                // Now we can safely do the mixin
+                console.log("Mixing in " + rootMixinTemplateName + " " + childMixinTemplateName);
+                objectTemplate.mixin(objectTemplate.__dictionary__[rootMixinTemplateName], objectTemplate.__dictionary__[childMixinTemplateName]);
+            }
+        }
+    }
 
     function recordStatics(initializerReturnValues) {
         for (var returnVariable in initializerReturnValues)

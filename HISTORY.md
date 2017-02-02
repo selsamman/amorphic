@@ -1,3 +1,5 @@
+## 1.5.8
+* Fixed order of statics processing
 ## 1.5.7
 * Bump for supertype
 * Add guard for appConfig

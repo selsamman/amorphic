@@ -1,3 +1,22 @@
+## 2.0.2
+* Retrofitted 1.5 changes for template mixins and static processing in client
+## 2.0.1
+* Fixed static processing on server
+## 2.0.0
+* Noop refactor
+## 1.5.9
+* Fixed order of statics processing
+## 1.5.7
+* Bump for supertype
+* Add guard for appConfig
+## 1.5.6
+* Include supertype 1.5
+* Copy over static members
+## 1.5.5
+* Make parameters consistent for both processPost cases
+* Including 1.5.0 of semotus
+## 1.5.4
+* Fixed bug in post
 ## 1.5.3
 * Fixed message sequencing and serialization verification
 ## 1.5.2

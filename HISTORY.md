@@ -1,3 +1,5 @@
+## 2.0.3
+* Updated dependencies
 ## 2.0.2
 * Retrofitted 1.5 changes for template mixins and static processing in client
 ## 2.0.1

@@ -549,6 +549,8 @@ amorphic = // Needs to be global to make mocha tests work
          */
         importTemplates: function () {
 
+            RemoteObjectTemplate.lazyTemplateLoad = this.config.lazyTemplateLoad;
+
             // Graph of mixins so we can process them at the end
             var mixinGraph = {};
 

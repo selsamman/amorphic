@@ -1081,7 +1081,7 @@ function getSessionCache(path, sessionId, keepTimeout) {
         if (session.timeout) {
             clearTimeout(session.timeout);
         }
-        setTimeout(function () {
+        session.timeout = setTimeout(function () {
             if (sessions[key]) {
                 delete sessions[key];
             }

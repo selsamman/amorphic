@@ -2,7 +2,7 @@
   "name": "amorphic",
   "description": "Front to back isomorphic framework for developing applications with node.js and mongoDB",
   "homepage": "https://github.com/selsamman/amorphic",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "dependencies": {
     "amorphic-bindster": "2.0.*",
     "bluebird": "^3.4.7",

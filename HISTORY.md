@@ -1,3 +1,5 @@
+## 2.0.5
+* Reorder middlewears to support new relic.
 ## 2.0.4
 * Fixed forced refresh after an hour problem
 ## 2.0.3

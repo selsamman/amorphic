@@ -646,8 +646,6 @@ amorphic = // Needs to be global to make mocha tests work
                 var objectTemplateSubClass = Object.create(RemoteObjectTemplate);
 
                 for (var exp in module.exports) {
-                    console.log('Pass 2 = processing' + exp);
-
                     objectTemplateSubClass.create = function (name, props) {
                         if (RemoteObjectTemplate.__dictionary__[name.name || name]) {
                             RemoteObjectTemplate.__dictionary__[name.name || name].mixin(props);

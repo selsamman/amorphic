@@ -22,46 +22,50 @@
 RemoteObjectTemplate._injectIntoTemplate = function (template) {
     // Add persistors to foreign key references
     var schema = amorphic.schema[template.__name__] || {};
-    var props = template.getProperties();
 
-    for (var prop in props) {
+    template._injectProperties = function () {
+        var props = template.getProperties();
+        for (var prop in props) {
 
-        var defineProperty = props[prop];
+            var defineProperty = props[prop];
 
-        if (defineProperty.autoFetch || schema[prop]) {
-            (function () {
-                var closureProp = prop;
-                var closureDefineProperty = defineProperty;
+            if (defineProperty.autoFetch || schema[prop]) {
+                (function () {
+                    var closureProp = prop;
+                    var closureDefineProperty = defineProperty;
 
-                if (!props[closureProp + 'Persistor']) {
-                    template.createProperty(closureProp + 'Persistor', {type: Object, toServer: false,
-                        value:{isFetched: !defineProperty.autoFetch, isFetching: false}});
-                }
+                    if (!props[closureProp + 'Persistor']) {
+                        template.createProperty(closureProp + 'Persistor', {type: Object, toServer: false,
+                            value:{isFetched: !defineProperty.autoFetch, isFetching: false}});
+                    }
 
-                if (!template.prototype[closureProp + 'Fetch']) {
-                    template.createProperty(closureProp + 'Fetch', {on: 'server', body: function () {}});
-                }
+                    if (!template.prototype[closureProp + 'Fetch']) {
+                        template.createProperty(closureProp + 'Fetch', {on: 'server', body: function () {}});
+                    }
 
-                if (!template.prototype[closureProp + 'Get']) {
-                    template.createProperty(closureProp + 'Get', {on: 'client', body: function () {
-                        var persistor = this[closureProp + 'Persistor'];
-
-                        if ((persistor.isFetched == false) && !persistor.isFetching) {
-                            persistor.isFetching = true;
-
-                            if (closureDefineProperty.type == Array) {
-                                this[closureProp] = [];
+                    if (!template.prototype[closureProp + 'Get']) {
+                        template.createProperty(closureProp + 'Get', {on: 'client', body: function () {
+                            var persistor = this[closureProp + 'Persistor'];
+    
+                            if ((persistor.isFetched == false) && !persistor.isFetching) {
+                                persistor.isFetching = true;
+    
+                                if (closureDefineProperty.type == Array) {
+                                    this[closureProp] = [];
+                                }
+    
+                                this[closureProp + 'Fetch'].call(this);
                             }
-
-                            this[closureProp + 'Fetch'].call(this);
-                        }
-
-                        return this[closureProp];
-                    }});
-                }
-            })();
+    
+                            return this[closureProp];
+                        }});
+                    }
+                })();
+            }
         }
     }
+    if (template.defineProperties)
+        template._injectProperties();
 };
 
 var module = {exports: {}};
@@ -545,6 +549,8 @@ amorphic = // Needs to be global to make mocha tests work
          */
         importTemplates: function () {
 
+            RemoteObjectTemplate.lazyTemplateLoad = this.config.lazyTemplateLoad;
+
             // Graph of mixins so we can process them at the end
             var mixinGraph = {};
 
@@ -640,8 +646,6 @@ amorphic = // Needs to be global to make mocha tests work
                 var objectTemplateSubClass = Object.create(RemoteObjectTemplate);
 
                 for (var exp in module.exports) {
-                    console.log('Pass 2 = processing' + exp);
-
                     objectTemplateSubClass.create = function (name, props) {
                         if (RemoteObjectTemplate.__dictionary__[name.name || name]) {
                             RemoteObjectTemplate.__dictionary__[name.name || name].mixin(props);

@@ -1,3 +1,5 @@
+## 2.1.0
+* Support for lazy template loading.
 ## 2.0.5
 * Reorder middlewears to support new relic.
 ## 2.0.4

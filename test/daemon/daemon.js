@@ -7,6 +7,9 @@ let fs = require('fs');
 let path = require('path');
 
 describe('Run amorphic as a deamon', function() {
+
+    this.timeout(5000);
+    
     before(function(done) {
         amorphic.listen(__dirname);
         done();

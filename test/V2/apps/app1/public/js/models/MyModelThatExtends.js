@@ -3,7 +3,7 @@ module.exports.MyModelThatExtends = function(objectTemplate, uses) {
 
     Model.extend({
         name: 'MyModelThatExtends',
-        toClient: true,
+        toClient: false,
         toServer: true
     } , {
         extendedTemplateData: {

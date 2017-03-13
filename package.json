@@ -11,9 +11,9 @@
     "formidable": "1.x",
     "mongodb-bluebird": "x",
     "nconf": "0.x",
-    "persistor": "2.1.*",
-    "semotus": "2.1.*",
-    "supertype": "2.1.*",
+    "persistor": "git://github.com/nikmash/persistor.git#extended-templates-createProps-fix",
+    "semotus": "git://github.com/nikmash/semotus.git#extended-templates-createProps-fix",
+    "supertype": "git://github.com/nikmash/supertype.git#extended-templates-createProps-fix",
     "uglify-js": "2.7.5"
   },
   "devDependencies": {

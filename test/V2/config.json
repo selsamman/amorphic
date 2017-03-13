@@ -1,0 +1,16 @@
+{
+    "port": 3001,
+    "sessionSeconds": 3600,
+    "objectCacheSeconds": 600,
+    "sessionSecret": "Ey0veeljPcLsHitdxCG2",
+    "applications": {
+        "admin-app": "apps/admin-app",
+        "app1": "apps/app1",
+        "app2": "apps/app2"
+    },
+	"application": "app2;app1",
+    "conflictMode": "hard",
+    "commonPath": "apps/common",
+    "templateMode": "auto",
+    "controller": "Controller.js"
+}

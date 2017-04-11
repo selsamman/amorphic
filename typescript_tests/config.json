@@ -1,0 +1,16 @@
+{
+  "dbName" : "ticket_unit_test",
+  "dbDriver" : "knex",
+  "dbType" : "pg",
+  "dbPath": "127.0.0.1",
+  "dbUser": "postgres",
+  "dbPassword": "postgres",
+  "createControllerFor": "#",
+  "ver":          "0",
+  "userman":  {
+    "require": "amorphic-userman",
+    "controller": {"require": "controller", "template": "Controller", "fields":{"principal": "loggedInPerson"}},
+    "principal": {"require" : "person", "template": "Person"},
+    "validateEmail": true
+  }
+}

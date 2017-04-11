@@ -25,7 +25,13 @@
     "mock-fs": "3.12.1",
     "request": "x",
     "sinon": "^1.17.6",
-    "xmlhttprequest-cookie": "x"
+    "xmlhttprequest-cookie": "x",
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.39",
+    "@types/node": "^7.0.5",
+    "typescript": "^2.1.6",
+    "ts-node": "*",
+    "es6-promise": "*"
   },
   "scripts": {
     "lint": "eslint .",

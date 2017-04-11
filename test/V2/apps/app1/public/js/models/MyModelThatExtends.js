@@ -5,7 +5,7 @@ module.exports.MyModelThatExtends = function(objectTemplate, uses) {
         name: 'MyModelThatExtends',
         toClient: false,
         toServer: true
-    } , {
+    }, {
         extendedTemplateData: {
             type: String,
             value: 'initial'

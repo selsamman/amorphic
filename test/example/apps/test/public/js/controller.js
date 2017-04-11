@@ -127,7 +127,7 @@ module.exports.controller = function (objectTemplate, getTemplate) {
             objectTemplate.currentTransaction.postSave = function (txn) {
                 this.updatedCount = _.toArray(txn.savedObjects).length;
             }.bind(this);
-            return objectTemplate.end()
+            return objectTemplate.end();
         },
         validateServerCall: function () {
             return this.canValidateServerCall;

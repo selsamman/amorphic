@@ -1,3 +1,5 @@
+##2.2.0
+* Fixed blocking issues by using in memory store for task start times
 ##2.1.1
 * Fix to support pass through logging.
 ## 2.1.0

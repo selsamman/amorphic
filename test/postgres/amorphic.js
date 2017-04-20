@@ -372,6 +372,47 @@ describe('Second Group of Tests', function () {
                done(e);
            });
     });
+    it('block calls', function (done) {
+        this.timeout(6000);
+        var startTime = new Date().getTime();
+        serverAssert = function () {
+            return Q.delay(200).then(function () {
+                console.log('completing call');
+            });
+        };
+        PostCallAssert = function () {
+        };
+        clientController.mainFunc()
+            .then(function () {
+                // We are now back from the first call.  The second call should be waiting in semotus blocking delay
+                // so we pull a fast one on semotus and replace it's send message handling so when the delay ends
+                // and semotus tries to send back a sync: false messages to force the client to refresh we handle
+                // it ourselves and end the test.  Note that for whaever reason the implementation of XMLHTTPRequest
+                // used here doesn not handle overlapping calls properly.  It will send the second call but will
+                // never see the response for the inner call.  For this reason the full reset sequence never happens.
+                var ServerRemoteObjectTemplate = serverController.__template__.objectTemplate;
+                var oldSendMessage = ServerRemoteObjectTemplate._getSession().sendMessage;
+                ServerRemoteObjectTemplate._getSession().sendMessage =  function (message) {
+                    oldSendMessage.call(ServerRemoteObjectTemplate, message);
+                    expect(message.sync).to.equal(false);
+                    expect((new Date()).getTime() > (startTime + 5000));
+                    done()
+                }
+            }).fail(function(e) {
+                done(e);
+            });
+        Q.delay(100).then(function () {
+            RemoteObjectTemplate._getSession().sendMessageEnabled = true; // Force duplicate message
+            clientController.mainFunc()
+                .then(function () {
+                    expect('Should not be here').to.equal(false);
+                }, function (e) {
+                    expect('Should not be here').to.equal(false);
+                }).fail(function(e) {
+                    done(e);
+                });
+        });
+    });
 
     it("can get it's data freshened", function (done) {
         serverAssert = function () {

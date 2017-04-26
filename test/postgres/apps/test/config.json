@@ -7,5 +7,6 @@
   "dbType" : "pg",
   "dbPath": "127.0.0.1",
   "dbUser": "postgres",
-  "dbPassword": "postgres"
+  "dbPassword": "postgres",
+  "keepOriginalIdForSavedObjects": "yes"
 }

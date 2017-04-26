@@ -1,6 +1,5 @@
 module.exports.controller = function (objectTemplate, getTemplate) {
     objectTemplate.debugInfo = 'io;api';
-    objectTemplate.objectMap = {};
 
     var Customer = getTemplate('model.js').Customer;
     var Account = getTemplate('model.js').Account;
@@ -10,6 +9,7 @@ module.exports.controller = function (objectTemplate, getTemplate) {
     var Transaction = getTemplate('model.js').Transaction;
     getTemplate('mail.js', {app: 'config'});
     getTemplate('anotherMail.js');
+
 
     var Controller = objectTemplate.create('Controller', {
         mainFunc: {on: 'server', body: function () {
@@ -22,6 +22,8 @@ module.exports.controller = function (objectTemplate, getTemplate) {
         ashling: {type: Customer, fetch: true},
         updatedCount: {type: Number, value: 0},
         serverInit: function () {
+            if (!objectTemplate.objectMap)
+                throw new Error('Missing keepOriginalIdForSavedObjects in config.json')
             serverController = this;
         },
         clearDB: {on: 'server', body: function () {

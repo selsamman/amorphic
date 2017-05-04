@@ -1,3 +1,5 @@
+## 2.3.0
+* Support for TypeScript.
 ##2.2.0
 * Fixed blocking issues by using in memory store for task start times
 ##2.1.1

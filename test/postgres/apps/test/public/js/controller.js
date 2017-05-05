@@ -22,8 +22,9 @@ module.exports.controller = function (objectTemplate, getTemplate) {
         ashling: {type: Customer, fetch: true},
         updatedCount: {type: Number, value: 0},
         serverInit: function () {
-            if (!objectTemplate.objectMap)
-                throw new Error('Missing keepOriginalIdForSavedObjects in config.json')
+            if (!objectTemplate.objectMap)                {
+                throw new Error('Missing keepOriginalIdForSavedObjects in config.json');
+            }
             serverController = this;
         },
         clearDB: {on: 'server', body: function () {

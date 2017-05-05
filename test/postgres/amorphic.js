@@ -396,8 +396,8 @@ describe('Second Group of Tests', function () {
                     oldSendMessage.call(ServerRemoteObjectTemplate, message);
                     expect(message.sync).to.equal(false);
                     expect((new Date()).getTime() > (startTime + 5000));
-                    done()
-                }
+                    done();
+                };
             }).fail(function(e) {
                 done(e);
             });

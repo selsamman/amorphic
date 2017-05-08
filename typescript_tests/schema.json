@@ -1,0 +1,69 @@
+{
+    "Ticket": {
+    "documentOf": "ticket",
+        "children": {
+        "ticketItems":        {"id":"ticket_id"}
+    },
+    "parents": {
+        "creator":            {"id": "creator_id"},
+        "project":            {"id": "project_id"}
+    }
+},
+    "TicketItem": {
+    "documentOf": "ticketItem",
+        "parents": {
+        "creator":            {"id": "creator_id"},
+        "ticket":             {"id": "ticket_id"}
+    }
+},
+    "TicketItemComment": {
+    "documentOf": "ticketItem",
+        "children": {
+        "attachments":        {"id": "ticket_item_id"}
+    }
+},
+    "TicketItemAttachment": {
+    "documentOf": "attachment",
+        "parents": {
+        "ticketItem":         {"id": "ticket_item_id"}
+    }
+},
+    "AuthenticatedPrincipal": {
+    "documentOf": "person"
+},
+    "Person": {
+    "documentOf": "person",
+        "children": {
+        "projectRoles":       {"id":"person_id"},
+        "ticketItems":        {"id": "creator_id"}
+    }
+},
+    "Project": {
+    "documentOf": "project",
+        "children": {
+        "projectRoles":       {"id": "project_id"},
+        "projectReleases":    {"id": "project_id"},
+        "tickets":            {"id": "project_id"}
+    },
+    "parents": {
+        "person":             {"id": "person_id"},
+        "owner":              {"id": "owner_id"},
+        "creator":            {"id": "creator_id"}
+    }
+},
+    "ProjectRole": {
+    "subDocumentOf": "project",
+        "parents": {
+        "person":             {"id": "person_id"}
+    }
+},
+    "Controller": {
+    "documentOf": "not persistent 1",
+        "parents": {
+        "tickets": {"id": "n/a"},
+        "people": {"id": "n/a"},
+        "projects": {"id": "n/a"}
+    }
+}
+
+}

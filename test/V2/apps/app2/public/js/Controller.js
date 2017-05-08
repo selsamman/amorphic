@@ -21,5 +21,5 @@ module.exports.Controller = function (objectTemplate, uses) {
             type: String,
             value: 'initial'
         }
-    })
-}
+    });
+};

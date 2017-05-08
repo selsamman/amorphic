@@ -2,7 +2,7 @@
   "name": "amorphic",
   "description": "Front to back isomorphic framework for developing applications with node.js and mongoDB",
   "homepage": "https://github.com/selsamman/amorphic",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "dependencies": {
     "amorphic-bindster": "2.0.*",
     "bluebird": "^3.4.7",
@@ -11,9 +11,9 @@
     "formidable": "1.x",
     "mongodb-bluebird": "x",
     "nconf": "0.x",
-    "persistor": "2.1.*",
-    "semotus": "2.2.*",
-    "supertype": "2.1.*",
+    "persistor": "2.2.*",
+    "semotus": "2.3.*",
+    "supertype": "2.2.*",
     "uglify-js": "2.7.5"
   },
   "devDependencies": {
@@ -25,7 +25,13 @@
     "mock-fs": "3.12.1",
     "request": "x",
     "sinon": "^1.17.6",
-    "xmlhttprequest-cookie": "x"
+    "xmlhttprequest-cookie": "x",
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.39",
+    "@types/node": "^7.0.5",
+    "typescript": "^2.1.6",
+    "ts-node": "*",
+    "es6-promise": "*"
   },
   "scripts": {
     "lint": "eslint .",

@@ -1,3 +1,6 @@
+## 2.3.1
+* Typings for Bindster
+* Some missing typings like __dictionary__ 
 ## 2.3.0
 * Support for TypeScript.
 ##2.2.0

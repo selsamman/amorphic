@@ -1,6 +1,7 @@
 export {Supertype} from 'supertype';
 export {Persistable, Persistor} from 'persistor';
 export {Remoteable} from './lib/utils/remoteable';
+export {Bindable} from 'amorphic-bindster';
 import {Persistor} from 'persistor';
 
 export class Amorphic extends Persistor {

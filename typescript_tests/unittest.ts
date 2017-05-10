@@ -15,9 +15,10 @@ describe('Banking from pgsql Example', () => {
 
     it ('can create a ticket', async () => {
         var ticket = new Ticket("My First Ticket", "This is the beginning of  something good", "Project One");
-        amorphic.beginDefaultTransaction();
+        ticket.amorphic.beginDefaultTransaction();
         ticket.persistorSave();
-        await amorphic.commit();
+        ticket.amorphic.logger.info({className: ticket.amorphic.getClasses().Ticket.amorphicClassName}, 'getting ready to commit');
+        await ticket.amorphic.commit();
     });
 
     it('can read back the ticket', async () => {

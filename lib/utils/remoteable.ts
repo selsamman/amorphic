@@ -1,6 +1,7 @@
+import {SupertypeSession} from "supertype";
 type Constructable<BC> = new (...args: any[]) => BC;
 
-export class AmorphicSession {
+export class AmorphicSession extends SupertypeSession {
     connectSession : any
     withoutChangeTracking (callback : Function) {};
     __dictionary__ : any;

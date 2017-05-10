@@ -12,7 +12,7 @@
     "mongodb-bluebird": "x",
     "nconf": "0.x",
     "persistor": "https://github.com/selsamman/persistor.git#1a031ebd311c76352b5df7666d08c368219b05ad",
-    "semotus": "https://github.com/selsamman/semotus.git#77a426a0ce2980e8a11b7ebdcf134f23853587a3",
+    "semotus": "https://github.com/selsamman/semotus.git#840b00a7fe5ce8720552998577a84be72cd2ef60",
     "supertype": "https://github.com/selsamman/supertype.git#52e9ca17b48c43a4dad344cf515018bf221ffe22",
     "uglify-js": "2.7.5"
   },

@@ -1,3 +1,5 @@
+##2.2.1
+* Fix to allow hyphens in application names.
 ##2.2.0
 * Fixed blocking issues by using in memory store for task start times
 ##2.1.1

@@ -13,4 +13,4 @@ export class Amorphic extends Persistor {
 export declare var Config : any;
 export function remote(props?);
 export function property(props?: Object);
-export function supertypeClass(target?: Function);
+export function supertypeClass(props?: any);

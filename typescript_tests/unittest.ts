@@ -1,11 +1,20 @@
 import { expect } from 'chai';
 import {Amorphic} from '../index.js';
 import {Ticket} from "./apps/common/js/ticket";
+import {supertypeClass} from "../index";
+
+@supertypeClass({toClient: false, toServer: true})
+class Dummy {};
 
 var amorphic = Amorphic.create();
 amorphic.connect(__dirname, __dirname);
 
 describe('Banking from pgsql Example', () => {
+
+    it ('passes through @supertypeClass parameters', () => {
+        expect(Dummy['__toClient__']).to.equal(false);
+        expect(Dummy['__toServer__']).to.equal(true);
+    });
 
     it ('sets it all up', async () => {
         await amorphic.connect(__dirname, __dirname);

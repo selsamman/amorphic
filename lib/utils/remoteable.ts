@@ -5,6 +5,7 @@ type Constructable<BC> = new (...args: any[]) => BC;
 export class AmorphicSession extends SupertypeSession {
     connectSession : any
     withoutChangeTracking (callback : Function) {};
+    config : any;
 }
 export class amorphicStatic extends Persistor {
 }

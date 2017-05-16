@@ -1,4 +1,4 @@
-import {SupertypeSession} from 'supertype';
+import {SupertypeSession, SupertypeLogger} from 'supertype';
 import {Persistor} from 'Persistor';
 type Constructable<BC> = new (...args: any[]) => BC;
 
@@ -7,7 +7,15 @@ export class AmorphicSession extends SupertypeSession {
     withoutChangeTracking (callback : Function) {};
     config : any;
 }
-export class amorphicStatic extends Persistor {
+export class amorphicStatic {
+    static logger : SupertypeLogger;
+    static config : any;
+    static beginDefaultTransaction() : any {}
+    static beginTransaction(nodefault? : boolean) : any {}
+    static endTransaction(persistorTransaction?, logger?) : any {}
+    static begin (isdefault?) : any {}
+    static end (persistorTransaction?, logger?) : any {};
+    static commit (options?) : any {};
 }
 
 export function Remoteable<BC extends Constructable<{}>>(Base: BC) {

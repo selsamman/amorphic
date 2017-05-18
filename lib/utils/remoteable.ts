@@ -16,7 +16,7 @@ export class amorphicStatic {
     static begin (isdefault?) : any {}
     static end (persistorTransaction?, logger?) : any {};
     static commit (options?) : any {};
-    static createTransientObject(callback : any) {};
+    static createTransientObject(callback : any) : any {};
     static __transient__ : any
 }
 

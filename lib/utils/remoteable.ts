@@ -17,7 +17,8 @@ export class amorphicStatic {
     static end (persistorTransaction?, logger?) : any {};
     static commit (options?) : any {};
     static createTransientObject(callback : any) : any {};
-    static __transient__ : any
+    static __transient__ : any;
+    static __dictionary__: any;
 }
 
 export function Remoteable<BC extends Constructable<{}>>(Base: BC) {

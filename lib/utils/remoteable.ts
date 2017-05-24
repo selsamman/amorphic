@@ -24,6 +24,8 @@ export class amorphicStatic {
     static __transient__ : any;
     static __dictionary__: any;
     static debugInfo: any;
+    static reqSession: any;
+    static getClasses(): any {};
 }
 
 export function Remoteable<BC extends Constructable<{}>>(Base: BC) {

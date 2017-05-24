@@ -8,6 +8,7 @@ import {Persistor} from 'persistor';
 export class Amorphic extends Persistor {
     static create () : Amorphic;
     connect (configDirectory, schemaDirectory?)
+    incomingIp: string;
 }
 
 export declare var Config : any;

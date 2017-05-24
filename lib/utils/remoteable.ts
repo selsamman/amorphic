@@ -3,9 +3,13 @@ import {Persistor} from 'Persistor';
 type Constructable<BC> = new (...args: any[]) => BC;
 
 export class AmorphicSession extends SupertypeSession {
-    connectSession : any
+    connectSession : any;
     withoutChangeTracking (callback : Function) {};
     config : any;
+    __transient__ : any;
+    __changeTracking__: any;
+    reqSession: any;
+    expireSession(): any {};
 }
 export class amorphicStatic {
     static logger : SupertypeLogger;
@@ -19,6 +23,7 @@ export class amorphicStatic {
     static createTransientObject(callback : any) : any {};
     static __transient__ : any;
     static __dictionary__: any;
+    static debugInfo: any;
 }
 
 export function Remoteable<BC extends Constructable<{}>>(Base: BC) {

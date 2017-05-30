@@ -137,7 +137,8 @@ let toExport = {
     reset: reset,
     Remoteable: Remoteable,
 	Bindable: Bindable,
-    Persistable: Persistor.Persistable
+    Persistable: Persistor.Persistable,
+    Persistor: Persistor.Persistor
     // Additional decorators added here by the subsequent bindDecorators call
 };
 

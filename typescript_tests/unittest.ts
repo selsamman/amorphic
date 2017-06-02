@@ -28,6 +28,9 @@ describe('Banking from pgsql Example', () => {
         ticket.persistorSave();
         ticket.amorphic.logger.info({className: ticket.amorphic.getClasses().Ticket.amorphicClassName}, 'getting ready to commit');
         await ticket.amorphic.commit();
+        expect(ticket.amorphicGetPropertyValues('type')[0]).to.equal('N');
+        expect(ticket.amorphicGetPropertyDescriptions('type').P).to.equal('Priority');
+
     });
 
     it('can read back the ticket', async () => {

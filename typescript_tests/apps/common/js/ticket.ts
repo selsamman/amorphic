@@ -13,6 +13,9 @@ export class Ticket  extends Created(Remoteable(Persistable(Supertype))){
     @property({rule: ['required']})
     title:			string;
 
+    @property({values: ['N', 'P'], descriptions: {N: 'Normal', P: 'Priority'}})
+    type: string;
+
     @property()
     description:	string;
 

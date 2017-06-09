@@ -4,7 +4,7 @@
   "homepage": "https://github.com/selsamman/amorphic",
   "version": "2.3.0",
   "dependencies": {
-    "amorphic-bindster": "https://github.com/selsamman/amorphic-bindster.git#12007c3d4f31ef62cbd2f4827165b95e54d7a392",
+    "amorphic-bindster": "https://github.com/selsamman/amorphic-bindster.git#a5a7e3111d4445e4f2f53d617400d06bf188e47e",
     "bluebird": "^3.4.7",
     "compression": "x",
     "connect": "2.6.2",

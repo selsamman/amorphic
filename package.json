@@ -11,9 +11,9 @@
     "formidable": "1.x",
     "mongodb-bluebird": "x",
     "nconf": "0.x",
-    "persistor": "https://github.com/selsamman/persistor.git#4aadbf0379098cf123f8532f7fdd59e181c85f95",
-    "semotus": "https://github.com/selsamman/semotus.git#596f6134d01eb34187d3aa7ea6234583b91f6847",
-    "supertype": "https://github.com/selsamman/supertype.git#d624f1374f701a85c550128912b8d123d0a3e17b",
+    "persistor": "https://github.com/selsamman/persistor.git#1dacbc4e5e9b79d1418f3a38528b4989ef478a19",
+    "semotus": "https://github.com/selsamman/semotus.git#a58873b48b58173bdc1f15584db58e5eeb447be8",
+    "supertype": "https://github.com/selsamman/supertype.git#50ee507e258e499ba04e9d08605120914d71c0f6",
     "uglify-js": "2.7.5"
   },
   "devDependencies": {

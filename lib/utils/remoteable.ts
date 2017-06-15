@@ -1,5 +1,5 @@
 import {SupertypeSession, SupertypeLogger} from 'supertype';
-import {Persistor} from 'Persistor';
+import {Persistor} from 'persistor';
 type Constructable<BC> = new (...args: any[]) => BC;
 
 export class AmorphicSession extends SupertypeSession {

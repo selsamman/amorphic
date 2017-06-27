@@ -119,13 +119,26 @@ function Remoteable (Base) {
         return classOne;
     }(Base));
 }
+function Bindable (Base) {
+	return (function n(_super) {
+		__extends(classOne, _super);
+
+		function classOne() {
+			return _super !== null && _super.apply(this, arguments) || this;
+		}
+
+		return classOne;
+	}(Base));
+}
 
 let toExport = {
     getTemplates: getTemplates,
     listen: listen,
     reset: reset,
     Remoteable: Remoteable,
-    Persistable: Persistor.Persistable
+	Bindable: Bindable,
+    Persistable: Persistor.Persistable,
+    Persistor: Persistor.Persistor
     // Additional decorators added here by the subsequent bindDecorators call
 };
 

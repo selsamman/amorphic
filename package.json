@@ -4,16 +4,16 @@
   "homepage": "https://github.com/selsamman/amorphic",
   "version": "2.3.0",
   "dependencies": {
-    "amorphic-bindster": "2.0.*",
+    "amorphic-bindster": "https://github.com/selsamman/amorphic-bindster.git#a5a7e3111d4445e4f2f53d617400d06bf188e47e",
     "bluebird": "^3.4.7",
     "compression": "x",
     "connect": "2.6.2",
     "formidable": "1.x",
     "mongodb-bluebird": "x",
     "nconf": "0.x",
-    "persistor": "2.2.*",
-    "semotus": "2.3.*",
-    "supertype": "2.2.*",
+    "persistor": "https://github.com/selsamman/persistor.git#2d3d5971273ceeb5cbccf8b3378266be5f85b1ba",
+    "semotus": "https://github.com/selsamman/semotus.git#83a26797a3874634052a92ba38fdb14b545e4f0a",
+    "supertype": "https://github.com/selsamman/supertype.git#4b6baf678ec499772a0416592a1242bfe71e40a9",
     "uglify-js": "2.7.5"
   },
   "devDependencies": {

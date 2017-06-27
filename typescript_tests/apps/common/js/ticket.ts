@@ -13,6 +13,9 @@ export class Ticket  extends Created(Remoteable(Persistable(Supertype))){
     @property({rule: ['required']})
     title:			string;
 
+    @property({values: ['N', 'P'], descriptions: {N: 'Normal', P: 'Priority'}})
+    type: string;
+
     @property()
     description:	string;
 
@@ -28,6 +31,7 @@ export class Ticket  extends Created(Remoteable(Persistable(Supertype))){
         this.description = description || null;
         if (projectName)
             this.project = new Project(projectName, projectDescription);
+        this.amorphic.logger.warn({}, 'yes I can log');
     };
 
     @remote({validate: function () {return this.validate();}})

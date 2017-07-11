@@ -1,3 +1,5 @@
+## 2.3.2
+* Fixed session serialization which sometimes used wrong objectTemplate
 ## 2.3.1
 * Typings for Bindster
 * Some missing typings like __dictionary__ 

@@ -1,3 +1,5 @@
+## 2.3.3
+* Adding dbConnectionTimeout and knexDebug config settings
 ## 2.3.2
 * Fixed session serialization which sometimes used wrong objectTemplate
 ## 2.3.1

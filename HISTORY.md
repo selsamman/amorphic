@@ -1,3 +1,105 @@
+## 2.3.4
+* Fixed a session leakage problem where users could end up with each other's sessions.
+## 2.3.3
+* Adding dbConnectionTimeout and knexDebug config settings
+## 2.3.2
+* Fixed session serialization which sometimes used wrong objectTemplate
+## 2.3.1
+* Typings for Bindster
+* Some missing typings like __dictionary__ 
+## 2.3.0
+* Support for TypeScript.
+##2.2.1
+* Fix to allow hyphens in application names.
+##2.2.0
+* Fixed blocking issues by using in memory store for task start times
+##2.1.1
+* Fix to support pass through logging.
+## 2.1.0
+* Support for lazy template loading.
+## 2.0.5
+* Reorder middlewears to support new relic.
+## 2.0.4
+* Fixed forced refresh after an hour problem
+## 2.0.3
+* Updated dependencies
+## 2.0.2
+* Retrofitted 1.5 changes for template mixins and static processing in client
+## 2.0.1
+* Fixed static processing on server
+## 2.0.0
+* Noop refactor
+## 1.5.9
+* Fixed order of statics processing
+## 1.5.7
+* Bump for supertype
+* Add guard for appConfig
+## 1.5.6
+* Include supertype 1.5
+* Copy over static members
+## 1.5.5
+* Make parameters consistent for both processPost cases
+* Including 1.5.0 of semotus
+## 1.5.4
+* Fixed bug in post
+## 1.5.3
+* Fixed message sequencing and serialization verification
+## 1.5.2
+* Fixed tests to setup and teardown
+## 1.5.1
+* Message sequence numbers being out of sync force a reset
+* Passing change conflict mode to semoutus
+* Warning when serialization may be out of sync
+## 1.4.19
+* More changes for templateMode: auto
+## 1.4.18
+* Numerous changes for new template mode after testing with our app
+## 1.4.17
+* Bump version to get latest semotus which gets latest supertype
+## 1.4.16
+* Moved client.js functions out of if block
+## 1.4.15
+* Cherry picked app name with dashes fix
+## 1.4.14
+* Get 1.4 versions of all modules
+## 1.4.12
+* Stopped including modules in source if rules dictated they were toClient: false
+* Update client.js with the same deferred template processing as we had on the server
+## 1.4.11
+* Fixed problem with random ordering of extends messing up recusive template processing
+## 1.4.8
+* default sourceMode to debug
+* Add controller application config setting for setting controller.js file name
+## 1.4.5
+* Produce object.__statics__ even for legacy template mode
+## 1.4.4
+* Data was being sent to browser even if template file was getTemplated as toClient: false
+## 1.4.3
+* Added the ability to still support non-supertype return values in templates
+## 1.4.1
+* First cut at simplified template definition pattern
+## 1.3.21
+* Adde PR to allow app names with dash and eliminate regexp in app name checking
+## 1.3.20
+* Revert shrink wrap
+## 1.3.19
+* Shrink wrap
+## 1.3.9
+* Cherry picked 1.2.16
+## 1.3.8
+* Find amorphic-bindster in the root
+## 1.3.2
+* New bindster
+* Fixed browser logging on server to include session
+## 1.2.18
+* Added extra parameters to getTemplate to allow optimized pattern
+## 1.2.16
+* Fixed bug where objectMaps were not separated by application
+## 1.2.15
+* Fixed bug where duplicate ids could be generated
+* Added logging context for client logging
+## 1.2.14
+* Fixed bad dependency
 ## 1.2.13
 * Addeed call to controller.displayError for amorphic errors
 ## 1.2.11

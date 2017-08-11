@@ -1,3 +1,5 @@
+## 2.3.4
+* Fixed a session leakage problem where users could end up with each other's sessions.
 ## 2.3.3
 * Adding dbConnectionTimeout and knexDebug config settings
 ## 2.3.2

@@ -1,0 +1,5 @@
+.postgres_6
+.postgres_8
+.redis
+.mongo
+node_modules

@@ -11,17 +11,6 @@ services:
 # uncomment to save data between tests
 #    volumes:
 #      - ./.postgres_6:/var/lib/postgresql/data
-
-#  database_8:
-#    image: postgres:9.4-alpine
-#    ports:
-#      - '5434:5432'
-##    environment:
-#      - POSTGRES_USER=amorphic
-#      - POSTGRES_PASSWORD=amorphic
-#      - POSTGRES_DB=persistor_banking_8
-#    volumes:
-#      - ./.postgres:/var/lib/postgresql/data
   mongo:
     image: mongo:3.4
     ports:
@@ -40,14 +29,4 @@ services:
     env_file:
       - ./test-node-6.env
     command: ./wait-for-it.sh database_6:5432 -- ./wait-for-it.sh mongo:27017 -- npm run test    
- # amorphic-test-node-8:
- #   build:
- #     context: .
- #     dockerfile: Dockerfile-node-8
- #   image: amorphic-test-node-8:latest
- #   depends_on:
- #     - mongo
- #     - database_8
- #   env_file:
- #     - ./test-node-8.env
- #   command: ./wait-for-it.sh database_8:5434 -- ./wait-for-it.sh mongo:27017 -- npm run test    
+ 

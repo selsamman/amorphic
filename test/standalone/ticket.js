@@ -6,6 +6,7 @@ var ObjectTemplate = require('supertype');
 var PersistObjectTemplate = require('persistor')(ObjectTemplate, null, ObjectTemplate);
 var amorphic = require('../../index.js');
 var logMessage = require('../../lib/utils/logger').logMessage;
+var nconf = require('nconf');
 
 var collections = JSON.parse(fs.readFileSync(__dirname + '/model/schema.json'));
 PersistObjectTemplate.setSchema(collections);
@@ -39,6 +40,10 @@ function clearCollection(collectionName) {
     });
 }
 
+var cfg = new nconf.Provider();
+cfg.argv().env();
+var mongoHost=cfg.get('mongoHost') ? cfg.get('mongoHost') : 'localhost';
+
 describe('Ticket System Test Suite', function () {
 
     it ('can perform injections', function () {
@@ -51,7 +56,7 @@ describe('Ticket System Test Suite', function () {
 
     it ('opens the database', function (done) {
         var MongoClient = require('mongodb-bluebird');
-        MongoClient.connect('mongodb://localhost:27017/testamorphic').then(function (dbopen) {
+        MongoClient.connect('mongodb://'+mongoHost+':27017/testamorphic').then(function (dbopen) {
             db = dbopen;
             PersistObjectTemplate.setDB(db);
             done();

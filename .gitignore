@@ -4,3 +4,7 @@ npm-debug.log
 download
 coverage
 .DS_Store
+.postgres_6
+.postgres_8
+.mongo
+.redis

@@ -1,3 +1,5 @@
+## 2.3.5
+* AmorphicStatic will expose the appendSchema method to allow private modules to include schemas.
 ## 2.3.4
 * Fixed a session leakage problem where users could end up with each other's sessions.
 ## 2.3.3

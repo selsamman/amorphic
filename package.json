@@ -6,13 +6,17 @@
   "dependencies": {
     "amorphic-bindster": "2.0.*",
     "bluebird": "3.5.1",
+    "body-parser": "1.18.2",
     "compression": "1.7.1",
-    "connect": "2.6.2",
+    "connect": "3.6.5",
+    "cookie-parser": "1.4.3",
+    "express-session": "1.15.6",
     "formidable": "1.1.1",
     "mongodb-bluebird": "0.1.2",
     "nconf": "0.8.5",
     "persistor": "2.3.*",
     "semotus": "2.3.*",
+    "serve-static": "1.13.1",
     "supertype": "2.2.*",
     "uglify-js": "2.7.5"
   },

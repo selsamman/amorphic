@@ -1,3 +1,5 @@
+## 2.3.7
+* Added a default sessionSecret for applications running in daemon mode. Changed request body size limit from default to 50kb. It can also be configured by applications as well via app level config.
 ## 2.3.6
 * Upgrade and lock down npm dependancies.
 ## 2.3.5
@@ -10,7 +12,7 @@
 * Fixed session serialization which sometimes used wrong objectTemplate
 ## 2.3.1
 * Typings for Bindster
-* Some missing typings like __dictionary__ 
+* Some missing typings like __dictionary__
 ## 2.3.0
 * Support for TypeScript.
 ##2.2.1
@@ -183,7 +185,7 @@
 * Included link to video
 * Pull standard amorphic-bindster
 ## 0.1.88
-* Beta version including beta version 0.1.51 of amorphic-bindster for new router functionality 
+* Beta version including beta version 0.1.51 of amorphic-bindster for new router functionality
 ## 0.1.87
 * serverInit on controller was not tracking changes
 * zombie handling allowed messages to go through
@@ -227,17 +229,17 @@
 ## 0.1.62
 * Allow file uploads in iFrames
 ## 0.1.61
-* Zombie detection code now takes into account application name  
+* Zombie detection code now takes into account application name
 ## 0.1.60
-* file upload mechansim now compatible with REDIS  
+* file upload mechansim now compatible with REDIS
 ## 0.1.59
-* support for file download  
+* support for file download
 ## 0.1.54
-* queue up messages while being processed by server so stuff goes single file  
+* queue up messages while being processed by server so stuff goes single file
 ## 0.1.51
-* application parameter in config.json or environment / start parameter must specifiy list of apps to star separated by ; 
+* application parameter in config.json or environment / start parameter must specifiy list of apps to star separated by ;
 ## 0.1.50
-* Use env variables or command parameters dbname and dbpath if app level names and paths are not specified 
+* Use env variables or command parameters dbname and dbpath if app level names and paths are not specified
 ## 0.1.49
 * Don't require subclasses in same collection to be defined in schema
 ## 0.1.48

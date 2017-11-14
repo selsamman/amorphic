@@ -1,3 +1,5 @@
+## 2.3.8
+* Updated client.js to use bluebird promises and updated the corresponding tests that depend on the Q being on the window.
 ## 2.3.7
 * Added a default sessionSecret for applications running in daemon mode. Changed request body size limit from default to 50kb. It can also be configured by applications as well via app level config.
 ## 2.3.6

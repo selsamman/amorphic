@@ -22,7 +22,7 @@ ObjectTemplate = require('supertype');
 RemoteObjectTemplate = require('semotus')._createObject();
 RemoteObjectTemplate.role = 'client';
 RemoteObjectTemplate._useGettersSetters = false;
-Q = require('q');
+Bluebird = require('bluebird');
 _ = require('underscore');
 __ver = 0;
 document = {
@@ -129,7 +129,7 @@ describe('First Group of Tests', function () {
         };
         clientController.clearDB().then(function () {
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -147,7 +147,7 @@ describe('First Group of Tests', function () {
                serverController.sam.roles[1].account.getBalance()).to.equal(225);
             expect(serverController.preServerCallObjects['Controller']).to.equal(true);
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -164,7 +164,7 @@ describe('First Group of Tests', function () {
             expect(serverController.sam.roles[0].account.getBalance() +
                   serverController.sam.roles[1].account.getBalance()).to.equal(226);
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -181,7 +181,7 @@ describe('First Group of Tests', function () {
            }, function (e) {
                expect(e.message).to.equal('get stuffed');
                done();
-           }).fail(function(e) {
+           }).catch(function(e) {
                done(e);
            });
     });
@@ -192,14 +192,14 @@ describe('First Group of Tests', function () {
             expect(serverController.sam.firstName).to.equal('Sammy');
         };
         var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
-        Q().then(function () {
+        Bluebird.resolve().then(function () {
             return knex('customer').where({'_id': serverController.sam._id}).update({'firstName': 'Sammy', '__version__': 100});
         }).then(function () {
             return clientController.mainFunc();
         }).then(function () {
             expect(clientController.sam.firstName).to.equal('Sammy');
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -212,21 +212,21 @@ describe('First Group of Tests', function () {
             return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'});
         };
         var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
-        Q().then(function () {
+        Bluebird.resolve().then(function () {
             return clientController.mainFunc();
         }).then(function () {
             expect(clientController.sam.firstName).to.equal('Sam');
             expect(clientController.sam.lastName).to.equal('The Man');
             expect(retryCount).to.equal(2);
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
 
     it('can do a resetSession', function (done) {
         clientController.conflictData = 'foo';
-        Q().then(function () {
+        Bluebird.resolve().then(function () {
             serverAssert = function () {
                 expect(serverController.conflictData).to.equal('foo');
             };
@@ -244,7 +244,7 @@ describe('First Group of Tests', function () {
         }).then(function () {
             expect(clientController.conflictData).to.equal('initial');
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e instanceof Error ? e : new Error(JSON.stringify(e)));
         });
     });
@@ -254,7 +254,7 @@ describe('First Group of Tests', function () {
             expect(serverController.conflictData).to.equal('foo');
         };
         clientController.conflictData = 'foo';
-        Q().then(function () {
+        Bluebird.resolve().then(function () {
             return clientController.mainFunc();
         }).then(function () {
             expect('Should not be here').to.equal(false);
@@ -267,7 +267,7 @@ describe('First Group of Tests', function () {
         }).then(function () {
             expect(clientController.conflictData).to.equal('foo');
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             if (e.code == 'reset') {
                 done();
             }
@@ -293,7 +293,7 @@ describe('First Group of Tests', function () {
                serverController.sam.roles[1].account.getBalance()).to.equal(226);
             PostCallAssert = function () {};
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             PostCallAssert = function () {};
             done(e);
         });
@@ -316,7 +316,7 @@ describe('Second Group of Tests', function () {
         };
         clientController.clearDB().then(function () {
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -334,7 +334,7 @@ describe('Second Group of Tests', function () {
                serverController.sam.roles[1].account.getBalance()).to.equal(225);
             expect(serverController.preServerCallObjects['Controller']).to.equal(true);
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -352,7 +352,7 @@ describe('Second Group of Tests', function () {
             expect(serverController.sam.roles[0].account.getBalance() +
                serverController.sam.roles[1].account.getBalance()).to.equal(226);
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -368,7 +368,7 @@ describe('Second Group of Tests', function () {
            }, function (e) {
                expect(e.message).to.equal('get stuffed');
                done();
-           }).fail(function(e) {
+           }).catch(function(e) {
                done(e);
            });
     });
@@ -376,7 +376,7 @@ describe('Second Group of Tests', function () {
         this.timeout(6000);
         var startTime = new Date().getTime();
         serverAssert = function () {
-            return Q.delay(200).then(function () {
+            return Bluebird.delay(200).then(function () {
                 console.log('completing call');
             });
         };
@@ -398,17 +398,17 @@ describe('Second Group of Tests', function () {
                     expect((new Date()).getTime() > (startTime + 5000));
                     done();
                 };
-            }).fail(function(e) {
+            }).catch(function(e) {
                 done(e);
             });
-        Q.delay(100).then(function () {
+        Bluebird.delay(100).then(function () {
             RemoteObjectTemplate._getSession().sendMessageEnabled = true; // Force duplicate message
             clientController.mainFunc()
                 .then(function () {
                     expect('Should not be here').to.equal(false);
                 }, function (e) {
                     expect('Should not be here').to.equal(false);
-                }).fail(function(e) {
+                }).catch(function(e) {
                     done(e);
                 });
         });
@@ -420,14 +420,14 @@ describe('Second Group of Tests', function () {
             expect(serverController.sam.firstName).to.equal('Sammy');
         };
         var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
-        Q().then(function () {
+        Bluebird.resolve().then(function () {
             return knex('customer').where({'_id': serverController.sam._id}).update({'firstName': 'Sammy', '__version__': 100});
         }).then(function () {
             return clientController.mainFunc();
         }).then(function () {
             expect(clientController.sam.firstName).to.equal('Sammy');
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -440,20 +440,20 @@ describe('Second Group of Tests', function () {
             return knex('customer').where({'_id': serverController.sam._id}).update({'__version__': 200, lastName: 'The Man'});
         };
         var knex = serverController.__template__.objectTemplate.getDB('__default__').connection;
-        Q().then(function () {
+        Bluebird.resolve().then(function () {
             return clientController.mainFunc();
         }).then(function () {
             expect(clientController.sam.firstName).to.equal('Sam');
             expect(clientController.sam.lastName).to.equal('The Man');
             expect(retryCount).to.equal(2);
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
     it('can do a resetSession', function () {
         clientController.conflictData = 'foo';
-        return Q().then(function () {
+        return Bluebird.resolve().then(function () {
             serverAssert = function () {
                 expect(serverController.conflictData).to.equal('foo');
             };
@@ -479,7 +479,7 @@ describe('Second Group of Tests', function () {
             expect(serverController.conflictData).to.equal('foo');
         };
         clientController.conflictData = 'foo';
-        Q().then(function () {
+        Bluebird.resolve().then(function () {
             return clientController.mainFunc();
         }).then(function () {
             expect('Should not be here').to.equal(false);
@@ -492,7 +492,7 @@ describe('Second Group of Tests', function () {
         }).then(function () {
             expect(clientController.conflictData).to.equal('foo');
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             if (e.code == 'reset') {
                 done();
             }
@@ -516,7 +516,7 @@ describe('Second Group of Tests', function () {
             expect(serverController.sam.roles[0].account.getBalance() +
                serverController.sam.roles[1].account.getBalance()).to.equal(226);
             done();
-        }).fail(function(e) {
+        }).catch(function(e) {
             done(e);
         });
     });
@@ -710,7 +710,7 @@ describe('source mode prod testing', function () {
                 }
             }).then(function (res) {
                 expect(res.status).to.equal(200);
-                expect(res.data).to.equal('module.exports.model=function(objectTemplate){var Customer=objectTemplate.create("Customer",{init:function(first,middle,last){this.firstName=first,this.lastName=last,this.middleName=middle},email:{type:String,value:"",length:50,rule:["text","email","required"]},firstName:{type:String,value:"",length:40,rule:["name","required"]},middleName:{type:String,value:"",length:40,rule:"name"},lastName:{type:String,value:"",length:40,rule:["name","required"]},local1:{type:String,persist:!1,value:"local1"},local2:{type:String,isLocal:!0,value:"local2"}}),Address=objectTemplate.create("Address",{init:function(customer){this.customer=customer},lines:{type:Array,of:String,value:[],max:3},city:{type:String,value:"",length:20},state:{type:String,value:"",length:20},postalCode:{type:String,value:"",length:20},country:{type:String,value:"US",length:3}});Customer.mixin({referredBy:{type:Customer,fetch:!0},referrers:{type:Array,of:Customer,value:[],fetch:!0},addAddress:function(lines,city,state,zip){var address=new Address(this);address.lines=lines,address.city=city,address.state=state,address.postalCode=zip,address.customer=this,this.addresses.push(address)},addresses:{type:Array,of:Address,value:[],fetch:!0}});var ReturnedMail=objectTemplate.create("ReturnedMail",{date:{type:Date},address:{type:Address},init:function(address,date){this.address=address,this.date=date}});Address.mixin({customer:{type:Customer},returnedMail:{type:Array,of:ReturnedMail,value:[]},addReturnedMail:function(date){this.returnedMail.push(new ReturnedMail(this,date))}});var Role=objectTemplate.create("Role",{init:function(customer,account,relationship){this.customer=customer,this.account=account,relationship&&(this.relationship=relationship)},relationship:{type:String,value:"primary"},customer:{type:Customer}}),Account=objectTemplate.create("Account",{init:function(number,title,customer,address){address&&(this.address=address,this.address.account=this),this.number=number,this.title=title,customer&&this.addCustomer(customer)},addCustomer:function(customer,relationship){var role=new Role(customer,this,relationship);this.roles.push(role),customer.roles.push(role)},number:{type:Number},title:{type:Array,of:String,max:4},roles:{type:Array,of:Role,value:[],fetch:!0},address:{type:Address},debit:function(amount){new Transaction(this,"debit",amount)},credit:function(amount){new Transaction(this,"credit",amount)},transferFrom:function(amount,fromAccount){new Transaction(this,"xfer",amount,fromAccount)},transferTo:function(amount,toAccount){new Transaction(toAccount,"xfer",amount,this)},listTransactions:function(){function processTransactions(transactions){transactions.forEach(function(transaction){str+=transaction.type+" "+transaction.amount+" "+(transaction.type.xfer?transaction.fromAccount.__id__:"")+" "})}var str="";processTransactions(this.transactions),processTransactions(this.fromAccountTransactions),console.log(str)},getBalance:function(){function processTransactions(transactions){for(var ix=0;ix<transactions.length;++ix)switch(transactions[ix].type){case"debit":balance-=transactions[ix].amount;break;case"credit":balance+=transactions[ix].amount;break;case"xfer":balance+=transactions[ix].amount*(transactions[ix].fromAccount===thisAccount?-1:1)}}var balance=0,thisAccount=this;return processTransactions(this.transactions),processTransactions(this.fromAccountTransactions),balance}});Address.mixin({account:{type:Account}});var Transaction=objectTemplate.create("Transaction",{init:function(account,type,amount,fromAccount){this.account=account,this.fromAccount=fromAccount,this.type=type,this.amount=amount,account&&account.transactions.push(this),fromAccount&&fromAccount.fromAccountTransactions.push(this)},amount:{type:Number},type:{type:String},account:{type:Account,fetch:!0},fromAccount:{type:Account,fetch:!0}});return Customer.mixin({roles:{type:Array,of:Role,value:[]}}),Role.mixin({account:{type:Account}}),Account.mixin({transactions:{type:Array,of:Transaction,value:[],fetch:!0},fromAccountTransactions:{type:Array,of:Transaction,value:[],fetch:!0}}),{Customer:Customer,Address:Address,ReturnedMail:ReturnedMail,Role:Role,Account:Account,Transaction:Transaction}},module.exports.mail=function(objectTemplate,getTemplate){var Mail=objectTemplate.create("Mail",{init:function(){}});return Mail},module.exports.anotherMail=function(objectTemplate,getTemplate){var AnotherMail=objectTemplate.create("AnotherMail",{init:function(){}});return AnotherMail},module.exports.controller=function(objectTemplate,getTemplate){objectTemplate.debugInfo="io;api";var Customer=getTemplate("model.js").Customer,Account=getTemplate("model.js").Account,Address=getTemplate("model.js").Address,ReturnedMail=getTemplate("model.js").ReturnedMail,Role=getTemplate("model.js").Role,Transaction=getTemplate("model.js").Transaction;getTemplate("mail.js",{app:"config"}),getTemplate("anotherMail.js");var Controller=objectTemplate.create("Controller",{mainFunc:{on:"server",body:function(){}},conflictData:{type:String,value:"initial"},someData:{type:String,value:"A"},sam:{type:Customer,fetch:!0},karen:{type:Customer,fetch:!0},ashling:{type:Customer,fetch:!0},updatedCount:{type:Number,value:0},serverInit:function(){if(!objectTemplate.objectMap)throw new Error("Missing keepOriginalIdForSavedObjects in config.json");serverController=this},clearDB:{on:"server",body:function(){}},clientInit:function(){clientController=this;var sam=new Customer("Sam","M","Elsamman"),karen=new Customer("Karen","M","Burke"),ashling=new Customer("Ashling","","Burke");sam.referrers=[ashling,karen],ashling.referredBy=sam,karen.referredBy=sam,sam.local1="foo",sam.local2="bar",sam.addAddress(["500 East 83d","Apt 1E"],"New York","NY","10028"),sam.addAddress(["38 Haggerty Hill Rd",""],"Rhinebeck","NY","12572"),sam.addresses[0].addReturnedMail(new Date),sam.addresses[0].addReturnedMail(new Date),sam.addresses[1].addReturnedMail(new Date),karen.addAddress(["500 East 83d","Apt 1E"],"New York","NY","10028"),karen.addAddress(["38 Haggerty Hill Rd",""],"Rhinebeck","NY","12572"),karen.addresses[0].addReturnedMail(new Date),ashling.addAddress(["End of the Road",""],"Lexington","KY","34421");var samsAccount=new Account(1234,["Sam Elsamman"],sam,sam.addresses[0]),jointAccount=new Account(123,["Sam Elsamman","Karen Burke","Ashling Burke"],sam,karen.addresses[0]);jointAccount.addCustomer(karen,"joint"),jointAccount.addCustomer(ashling,"joint"),samsAccount.credit(100),samsAccount.debit(50),jointAccount.credit(200),jointAccount.transferTo(100,samsAccount),jointAccount.transferFrom(50,samsAccount),jointAccount.debit(25),this.sam=sam,this.karen=karen,this.ashling=ashling},preServerCall:function(changeCount,objectsChanged){for(var templateName in objectsChanged)this.preServerCallObjects[templateName]=!0;return Q().then(!this.sam||this.sam.refresh.bind(this.sam,null)).then(!this.karen||this.karen.refresh.bind(this.karen,null)).then(!this.ashling||this.ashling.refresh.bind(this.ashling,null)).then(function(){objectTemplate.begin(),console.log(this.sam?this.sam.__version__:""),objectTemplate.currentTransaction.touchTop=!0}.bind(this))},postServerCall:function(){if(this.postServerCallThrowException)throw"postServerCallThrowException";if(this.postServerCallThrowRetryException)throw"Retry";return serverController.sam.cascadeSave(),serverController.karen.cascadeSave(),serverController.ashling.cascadeSave(),objectTemplate.currentTransaction.postSave=function(txn){this.updatedCount=_.toArray(txn.savedObjects).length}.bind(this),objectTemplate.end().then(function(){PostCallAssert()})},validateServerCall:function(){return this.canValidateServerCall},preServerCallObjects:{isLocal:!0,type:Object,value:{}},preServerCalls:{isLocal:!0,type:Number,value:0},postServerCalls:{isLocal:!0,type:Number,value:0},preServerCallThrowException:{isLocal:!0,type:Boolean,value:!1},postServerCallThrowException:{isLocal:!0,type:Boolean,value:!1},postServerCallThrowRetryException:{isLocal:!0,type:Boolean,value:!1},serverCallThrowException:{isLocal:!0,type:Boolean,value:!1},canValidateServerCall:{isLocal:!0,type:Boolean,value:!0}});return{Controller:Controller}};');
+                expect(res.data).to.equal('module.exports.model=function(objectTemplate){var Customer=objectTemplate.create("Customer",{init:function(first,middle,last){this.firstName=first,this.lastName=last,this.middleName=middle},email:{type:String,value:"",length:50,rule:["text","email","required"]},firstName:{type:String,value:"",length:40,rule:["name","required"]},middleName:{type:String,value:"",length:40,rule:"name"},lastName:{type:String,value:"",length:40,rule:["name","required"]},local1:{type:String,persist:!1,value:"local1"},local2:{type:String,isLocal:!0,value:"local2"}}),Address=objectTemplate.create("Address",{init:function(customer){this.customer=customer},lines:{type:Array,of:String,value:[],max:3},city:{type:String,value:"",length:20},state:{type:String,value:"",length:20},postalCode:{type:String,value:"",length:20},country:{type:String,value:"US",length:3}});Customer.mixin({referredBy:{type:Customer,fetch:!0},referrers:{type:Array,of:Customer,value:[],fetch:!0},addAddress:function(lines,city,state,zip){var address=new Address(this);address.lines=lines,address.city=city,address.state=state,address.postalCode=zip,address.customer=this,this.addresses.push(address)},addresses:{type:Array,of:Address,value:[],fetch:!0}});var ReturnedMail=objectTemplate.create("ReturnedMail",{date:{type:Date},address:{type:Address},init:function(address,date){this.address=address,this.date=date}});Address.mixin({customer:{type:Customer},returnedMail:{type:Array,of:ReturnedMail,value:[]},addReturnedMail:function(date){this.returnedMail.push(new ReturnedMail(this,date))}});var Role=objectTemplate.create("Role",{init:function(customer,account,relationship){this.customer=customer,this.account=account,relationship&&(this.relationship=relationship)},relationship:{type:String,value:"primary"},customer:{type:Customer}}),Account=objectTemplate.create("Account",{init:function(number,title,customer,address){address&&(this.address=address,this.address.account=this),this.number=number,this.title=title,customer&&this.addCustomer(customer)},addCustomer:function(customer,relationship){var role=new Role(customer,this,relationship);this.roles.push(role),customer.roles.push(role)},number:{type:Number},title:{type:Array,of:String,max:4},roles:{type:Array,of:Role,value:[],fetch:!0},address:{type:Address},debit:function(amount){new Transaction(this,"debit",amount)},credit:function(amount){new Transaction(this,"credit",amount)},transferFrom:function(amount,fromAccount){new Transaction(this,"xfer",amount,fromAccount)},transferTo:function(amount,toAccount){new Transaction(toAccount,"xfer",amount,this)},listTransactions:function(){function processTransactions(transactions){transactions.forEach(function(transaction){str+=transaction.type+" "+transaction.amount+" "+(transaction.type.xfer?transaction.fromAccount.__id__:"")+" "})}var str="";processTransactions(this.transactions),processTransactions(this.fromAccountTransactions),console.log(str)},getBalance:function(){function processTransactions(transactions){for(var ix=0;ix<transactions.length;++ix)switch(transactions[ix].type){case"debit":balance-=transactions[ix].amount;break;case"credit":balance+=transactions[ix].amount;break;case"xfer":balance+=transactions[ix].amount*(transactions[ix].fromAccount===thisAccount?-1:1)}}var balance=0,thisAccount=this;return processTransactions(this.transactions),processTransactions(this.fromAccountTransactions),balance}});Address.mixin({account:{type:Account}});var Transaction=objectTemplate.create("Transaction",{init:function(account,type,amount,fromAccount){this.account=account,this.fromAccount=fromAccount,this.type=type,this.amount=amount,account&&account.transactions.push(this),fromAccount&&fromAccount.fromAccountTransactions.push(this)},amount:{type:Number},type:{type:String},account:{type:Account,fetch:!0},fromAccount:{type:Account,fetch:!0}});return Customer.mixin({roles:{type:Array,of:Role,value:[]}}),Role.mixin({account:{type:Account}}),Account.mixin({transactions:{type:Array,of:Transaction,value:[],fetch:!0},fromAccountTransactions:{type:Array,of:Transaction,value:[],fetch:!0}}),{Customer:Customer,Address:Address,ReturnedMail:ReturnedMail,Role:Role,Account:Account,Transaction:Transaction}},module.exports.mail=function(objectTemplate,getTemplate){var Mail=objectTemplate.create("Mail",{init:function(){}});return Mail},module.exports.anotherMail=function(objectTemplate,getTemplate){var AnotherMail=objectTemplate.create("AnotherMail",{init:function(){}});return AnotherMail},module.exports.controller=function(objectTemplate,getTemplate){objectTemplate.debugInfo="io;api";var Customer=getTemplate("model.js").Customer,Account=getTemplate("model.js").Account,Address=getTemplate("model.js").Address,ReturnedMail=getTemplate("model.js").ReturnedMail,Role=getTemplate("model.js").Role,Transaction=getTemplate("model.js").Transaction;getTemplate("mail.js",{app:"config"}),getTemplate("anotherMail.js");var Controller=objectTemplate.create("Controller",{mainFunc:{on:"server",body:function(){}},conflictData:{type:String,value:"initial"},someData:{type:String,value:"A"},sam:{type:Customer,fetch:!0},karen:{type:Customer,fetch:!0},ashling:{type:Customer,fetch:!0},updatedCount:{type:Number,value:0},serverInit:function(){if(!objectTemplate.objectMap)throw new Error("Missing keepOriginalIdForSavedObjects in config.json");serverController=this},clearDB:{on:"server",body:function(){}},clientInit:function(){clientController=this;var sam=new Customer("Sam","M","Elsamman"),karen=new Customer("Karen","M","Burke"),ashling=new Customer("Ashling","","Burke");sam.referrers=[ashling,karen],ashling.referredBy=sam,karen.referredBy=sam,sam.local1="foo",sam.local2="bar",sam.addAddress(["500 East 83d","Apt 1E"],"New York","NY","10028"),sam.addAddress(["38 Haggerty Hill Rd",""],"Rhinebeck","NY","12572"),sam.addresses[0].addReturnedMail(new Date),sam.addresses[0].addReturnedMail(new Date),sam.addresses[1].addReturnedMail(new Date),karen.addAddress(["500 East 83d","Apt 1E"],"New York","NY","10028"),karen.addAddress(["38 Haggerty Hill Rd",""],"Rhinebeck","NY","12572"),karen.addresses[0].addReturnedMail(new Date),ashling.addAddress(["End of the Road",""],"Lexington","KY","34421");var samsAccount=new Account(1234,["Sam Elsamman"],sam,sam.addresses[0]),jointAccount=new Account(123,["Sam Elsamman","Karen Burke","Ashling Burke"],sam,karen.addresses[0]);jointAccount.addCustomer(karen,"joint"),jointAccount.addCustomer(ashling,"joint"),samsAccount.credit(100),samsAccount.debit(50),jointAccount.credit(200),jointAccount.transferTo(100,samsAccount),jointAccount.transferFrom(50,samsAccount),jointAccount.debit(25),this.sam=sam,this.karen=karen,this.ashling=ashling},preServerCall:function(changeCount,objectsChanged){for(var templateName in objectsChanged)this.preServerCallObjects[templateName]=!0;return Bluebird.resolve().then(!this.sam||this.sam.refresh.bind(this.sam,null)).then(!this.karen||this.karen.refresh.bind(this.karen,null)).then(!this.ashling||this.ashling.refresh.bind(this.ashling,null)).then(function(){objectTemplate.begin(),console.log(this.sam?this.sam.__version__:""),objectTemplate.currentTransaction.touchTop=!0}.bind(this))},postServerCall:function(){if(this.postServerCallThrowException)throw"postServerCallThrowException";if(this.postServerCallThrowRetryException)throw"Retry";return serverController.sam.cascadeSave(),serverController.karen.cascadeSave(),serverController.ashling.cascadeSave(),objectTemplate.currentTransaction.postSave=function(txn){this.updatedCount=_.toArray(txn.savedObjects).length}.bind(this),objectTemplate.end().then(function(){PostCallAssert()})},validateServerCall:function(){return this.canValidateServerCall},preServerCallObjects:{isLocal:!0,type:Object,value:{}},preServerCalls:{isLocal:!0,type:Number,value:0},postServerCalls:{isLocal:!0,type:Number,value:0},preServerCallThrowException:{isLocal:!0,type:Boolean,value:!1},postServerCallThrowException:{isLocal:!0,type:Boolean,value:!1},postServerCallThrowRetryException:{isLocal:!0,type:Boolean,value:!1},serverCallThrowException:{isLocal:!0,type:Boolean,value:!1},canValidateServerCall:{isLocal:!0,type:Boolean,value:!0}});return{Controller:Controller}};');
             });
         });
 

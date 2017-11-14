@@ -281,7 +281,7 @@ amorphic = // Needs to be global to make mocha tests work
                 }
                 else {
                     var hasChanges = RemoteObjectTemplate.processMessage(message);
-                    Q.delay(50).then(function () {
+                    Bluebird.delay(50).then(function () {
                         self.refresh(hasChanges);
                     }); // Let the promises settle out
                 }

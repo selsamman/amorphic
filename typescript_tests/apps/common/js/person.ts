@@ -38,7 +38,7 @@ export class Person extends Remoteable(Persistable(Supertype)) {
         //if (this.getSecurityContext().isAdmin())
             return this.persistDelete();
         //else
-        //    return Q(false);
+        //    return Bluebird.resolve(false);
     };
 
 };

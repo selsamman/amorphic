@@ -1,3 +1,15 @@
 /test
 /node_modules
 .idea
+coverage
+typescript_tests
+wait-for-it.sh
+tsconfig.json
+test-node-6.env
+test-node-8.env
+Dockerfile-node-6
+Dockerfile-node-8
+docker-compose.yml
+.eslintrc.js
+.eslintignore
+

@@ -1,3 +1,5 @@
+## 2.4.0
+* Change default nconf nested-config delimiter from `:` to `__` in configBuilder
 ## 2.3.8
 * Updated client.js to use bluebird promises and updated the corresponding tests that depend on the Q being on the window.
 ## 2.3.7

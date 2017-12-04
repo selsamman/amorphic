@@ -1,3 +1,5 @@
+## 2.4.1
+* can include dbPort in the configuration.
 ## 2.4.0
 * Change default nconf nested-config delimiter from `:` to `__` in configBuilder
 ## 2.3.8

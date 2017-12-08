@@ -1,3 +1,5 @@
+## 2.4.2
+* Removed sessionSecret from logs when starting amorphic.
 ## 2.4.1
 * can include dbPort in the configuration.
 ## 2.4.0

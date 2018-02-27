@@ -3,12 +3,14 @@ var request = require('request');
 var axios = require('axios');
 var path = require('path');
 
+var amorphicContext = require('../../lib/AmorphicContext');
 var serverAmorphic = require('../../index.js');
 
 function afterEachDescribe(done) {
-    serverAmorphic.reset().then(function () {
-        done();
-    });
+    if(amorphicContext.appContext.connectServer){
+        amorphicContext.appContext.connectServer.close();
+    }
+    done();
 }
 function beforeEachDescribe(done, appName, createControllerFor, sourceMode) {
     process.env.createControllerFor = createControllerFor;

@@ -6,6 +6,7 @@ let sinon = require('sinon');
 let axios = require('axios');
 let fs = require('fs');
 let path = require('path');
+let amorphicContext = require('../../lib/AmorphicContext');
 
 describe('Setup amorphic', function() {
     let server;
@@ -28,7 +29,8 @@ describe('Setup amorphic', function() {
 
     after(function() {
         // Clean up server
-        // server.close();
-        return serverAmorphic.reset();
+        if(amorphicContext.appContext.connectServer){
+            amorphicContext.appContext.connectServer.close();
+        }
     });
 });

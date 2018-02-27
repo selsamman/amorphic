@@ -5,6 +5,7 @@ let amorphic = require('../../index.js');
 let axios = require('axios');
 let fs = require('fs');
 let path = require('path');
+let amorphicContext = require('../../lib/AmorphicContext');
 
 describe('Run amorphic as a deamon with template mode "auto"', function() {
     before(function(done) {
@@ -74,9 +75,9 @@ describe('Run amorphic as a deamon with template mode "auto"', function() {
 
     after(function(done) {
         // Clean up server
-        amorphic.reset()
-            .then(function() {
-                done();
-            });
+        if(amorphicContext.appContext.connectServer){
+            amorphicContext.appContext.connectServer.close();
+        }
+        done();
     });
 });

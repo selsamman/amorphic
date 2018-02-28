@@ -12,28 +12,20 @@ function __bindController (newController, sessionExpiration) {
     controller = newController;
     if (firstTimeLoad) {
         firstTimeLoad = false;
-        if (typeof(controller.clientInit) === 'function') {
-            controller.clientInit(sessionExpiration);
-        }
     }
-    else {
-        if (typeof(controller.clientInit) === 'function') {
-            controller.clientInit(sessionExpiration);
-        }
-        controller.refresh(1);
+    if (typeof(controller.clientInit) === 'function') {
+        controller.clientInit(sessionExpiration);
     }
 }
 
 // Rerender after xhr request received
 function __refresh (hadChanges) {
-    controller.refresh(1, hadChanges);
 }
 
 // When a new version is detected pop up "about to be refreshed" and
 // then reload the document after 5 seconds.
 function __reload () {
     controller.amorphicStatus = 'reloading';
-    controller.refresh(1);
     setTimeout(function reload () {
         document.location.reload(true);
     }, 3000);

@@ -1,3 +1,5 @@
+## 2.4.3
+* Removed reset function from AmorphicContext, which previously was only used for writing tests.
 ## 2.4.2
 * Removed sessionSecret from logs when starting amorphic.
 ## 2.4.1

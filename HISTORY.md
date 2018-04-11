@@ -1,3 +1,5 @@
+## 2.4.4
+* Added logging and a hard failure when the main application is not in the application list.
 ## 2.4.3
 * Removed reset function from AmorphicContext, which previously was only used for writing tests.
 ## 2.4.2

@@ -1,3 +1,5 @@
+## 2.4.4
+* Added better logging for when the application isn't provided with an application list.
 ## 2.4.3
 * Removed reset function from AmorphicContext, which previously was only used for writing tests.
 ## 2.4.2

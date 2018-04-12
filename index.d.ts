@@ -5,6 +5,7 @@ import {Bindable} from 'amorphic-bindster';
 
 export {amorphicStatic} from './lib/utils/remoteable';
 export {ContainsPersistable} from 'persistor';
+export {Supertype} from 'supertype';
 
 export class Persistent extends Persistable(Supertype){}  // classes that have no business in any browser
 export class Serializable extends Supertype {} // classes used in APIs but are serializable

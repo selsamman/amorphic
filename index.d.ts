@@ -4,8 +4,8 @@ import {Remoteable} from './lib/utils/remoteable';
 import {Bindable} from 'amorphic-bindster';
 
 export {amorphicStatic} from './lib/utils/remoteable';
-export {ContainsPersistable} from 'persistor';
 export {Supertype} from 'supertype';
+export {ContainsPersistable, Persistable} from 'persistor';
 
 export class IsomorphicQuery extends Remoteable(Persistable(Supertype)) {} // native knex transportable to browser
 export class Persistent extends Persistable(Supertype){}  // classes that have no business in any browser

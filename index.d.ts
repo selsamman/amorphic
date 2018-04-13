@@ -7,12 +7,11 @@ export {amorphicStatic} from './lib/utils/remoteable';
 export {Supertype} from 'supertype';
 export {ContainsPersistable, Persistable} from 'persistor';
 
-export class IsomorphicQuery extends Remoteable(Persistable(Supertype)) {} // native knex transportable to browser
-export class Persistent extends Persistable(Supertype){}  // classes that have no business in any browser
-export class Serializable extends Supertype {} // classes used in APIs but are serializable
-export class AppController extends Remoteable(Bindable(Supertype)) {} // main controllers
-export class SubController extends Remoteable(Supertype) {} // controllers hanging off main controller
-export class Everything extends Persistable(Remoteable(Bindable(Supertype))) {} // Doesn't match regex
+export class IsomorphicQuery extends Remoteable(Persistable(Supertype)) {}
+export class Persistent extends Persistable(Supertype) {}
+export class AppController extends Remoteable(Bindable(Supertype)) {}
+export class SubController extends Remoteable(Supertype) {}
+export class Everything extends Persistable(Remoteable(Bindable(Supertype))) {}
 
 // This class is for Amorphic unit tests
 export class Amorphic extends Persistor {

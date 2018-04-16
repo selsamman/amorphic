@@ -1,8 +1,17 @@
+import {Supertype} from 'supertype';
+import {Persistable, Persistor} from 'persistor';
+import {Remoteable} from './lib/utils/remoteable';
+import {Bindable} from 'amorphic-bindster';
+
+export {amorphicStatic} from './lib/utils/remoteable';
 export {Supertype} from 'supertype';
-export {Persistable, ContainsPersistable, Persistor} from 'persistor';
-export {Remoteable, amorphicStatic} from './lib/utils/remoteable';
-export {Bindable} from 'amorphic-bindster';
-import {Persistor} from 'persistor';
+export {ContainsPersistable, Persistable} from 'persistor';
+
+export class IsomorphicQuery extends Remoteable(Persistable(Supertype)) {}
+export class Persistent extends Persistable(Supertype) {}
+export class AppController extends Remoteable(Bindable(Supertype)) {}
+export class SubController extends Remoteable(Supertype) {}
+export class Everything extends Persistable(Remoteable(Bindable(Supertype))) {}
 
 // This class is for Amorphic unit tests
 export class Amorphic extends Persistor {

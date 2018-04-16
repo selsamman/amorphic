@@ -1,3 +1,5 @@
+## 2.4.6
+* Fixed error logging for checking the application list.
 ## 2.4.5
 * Added convenience types to amorphic.
 ## 2.4.4

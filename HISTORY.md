@@ -1,3 +1,5 @@
+## 2.4.7
+* Fixed error logging for checking the application list.
 ## 2.4.6
 * Reverted changes from 2.4.5.
 ## 2.4.5

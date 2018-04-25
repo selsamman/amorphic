@@ -1,3 +1,7 @@
+## 2.4.6
+* Reverted changes from 2.4.5.
+## 2.4.5
+* Added convenience types to amorphic.
 ## 2.4.4
 * Added logging and a hard failure when the main application is not in the application list.
 ## 2.4.3

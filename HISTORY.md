@@ -1,3 +1,5 @@
+## 2.4.8
+* Adding application name to the connection for better debugging.
 ## 2.4.7
 * Fixed error logging for checking the application list.
 ## 2.4.6

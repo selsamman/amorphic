@@ -2,7 +2,6 @@ const __controllerTemplate = 'Controller';
 const __appVersion = __ver || 0;
 
 var controller = typeof(controller) === 'undefined' ? null : controller;
-var firstTimeLoad = typeof(firstTimeLoad) === 'undefined';
 
 // Establish a new session whether first time or because of expiry / server restart
 function __bindController (newController, sessionExpiration) {
@@ -10,9 +9,6 @@ function __bindController (newController, sessionExpiration) {
         controller.shutdown();
     }
     controller = newController;
-    if (firstTimeLoad) {
-        firstTimeLoad = false;
-    }
     if (typeof(controller.clientInit) === 'function') {
         controller.clientInit(sessionExpiration);
     }

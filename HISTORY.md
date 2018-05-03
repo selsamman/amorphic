@@ -1,3 +1,6 @@
+
+## 2.4.9
+* Added clientInit.js to allow to remove the dependency for Bindster in Amorphic. See the pull request notes for more details (https://github.com/selsamman/amorphic/pull/55).
 ## 2.4.8
 * Adding application name to the connection for better debugging.
 ## 2.4.7

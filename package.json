@@ -33,7 +33,7 @@
     "@types/chai": "4.0.4",
     "@types/mocha": "2.2.43",
     "@types/node": "8.0.46",
-    "typescript": "2.5.3",
+    "typescript": "2.7.1",
     "ts-node": "3.3.0",
     "es6-promise": "4.1.1"
   },

@@ -4,6 +4,8 @@ export {Remoteable, amorphicStatic} from './lib/utils/remoteable';
 export {Bindable} from 'amorphic-bindster';
 import {Persistor} from 'persistor';
 
+export {Persistent, IsomorphicQuery, AppController, SubController, Everything} from './classes';
+
 // This class is for Amorphic unit tests
 export class Amorphic extends Persistor {
     static create () : Amorphic;
